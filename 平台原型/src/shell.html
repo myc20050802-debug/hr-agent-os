@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HR-Agent OS · B端 HR AI Agent SaaS 平台原型</title>
+<style>__CSS__</style>
+</head>
+<body>
+<div id="app">
+  <!-- ============ 侧边栏（对应 PRD 第七部分菜单结构） ============ -->
+  <aside>
+    <div class="logo">
+      <div class="dot">🤖</div>
+      <div class="logo-txt">HR-Agent OS<small>智能体时代的人力资源平台</small></div>
+    </div>
+    <div class="tenant">
+      <span>🏢</span>
+      <div class="tenant-info">
+        <b id="tenantName">—</b>
+        <span>数据存境内 · cn-north</span>
+      </div>
+    </div>
+    <nav id="nav"></nav>
+    <div class="userbar">
+      <div class="avatar" id="userAvatar">李</div>
+      <div class="usermeta">
+        <b id="userName">—</b>
+        <span id="userRole">—</span>
+      </div>
+      <button class="iconbtn" id="switchBtn" title="切换演示身份" data-act="doSwitch"
+              style="margin-left:auto;flex:0 0 auto">🔁</button>
+      <button class="iconbtn" id="logoutBtn" title="退出登录" data-act="doLogout"
+              style="flex:0 0 auto">⎋</button>
+    </div>
+  </aside>
+
+  <!-- ============ 主区 ============ -->
+  <main>
+    <header>
+      <button class="iconbtn" id="collapseBtn" title="收起/展开侧边栏">☰</button>
+      <div class="crumb"><span class="muted">HR-Agent OS</span> / <b id="crumbPage">工作台</b></div>
+      <div class="spacer"></div>
+      <div class="searchbar">🔍 <input placeholder="搜索候选人 / 员工 / 流程"></div>
+      <span class="tag" id="whoami" style="display:none;cursor:help"></span>
+      <span class="tag g" id="liveBadge" style="display:none;cursor:help">🟢 真实后端</span>
+      <button class="iconbtn" title="通知">🔔</button>
+      <button class="iconbtn" title="重置演示数据" data-act="resetDemo">♻</button>
+      <button class="iconbtn" title="帮助">❓</button>
+      <span class="tag y" id="apprTag" style="cursor:pointer" data-act="go" data-page="approvals">✋ 待审核 3</span>
+    </header>
+    <div class="content" id="pageHost"></div>
+  </main>
+</div>
+
+<!-- ============ 右侧抽屉（Agent 运行追踪 / 详情） ============ -->
+<div class="overlay" id="drawer">
+  <div class="drawer">
+    <div class="drawer-h">
+      <div style="flex:1">
+        <h3 id="drawerTitle">标题</h3>
+        <div class="small muted" id="drawerSub"></div>
+      </div>
+      <button class="iconbtn" data-act="closeDrawer">✕</button>
+    </div>
+    <div class="drawer-b" id="drawerBody"></div>
+    <div class="drawer-f" id="drawerFoot"></div>
+  </div>
+</div>
+
+<!-- ============ 居中弹层 ============ -->
+<div class="overlay center" id="modal"><div class="modal" id="modalBox"></div></div>
+
+<!-- ============ 轻提示 ============ -->
+<div class="toast" id="toast"></div>
+
+<!-- ============ 脚本（全部内联，离线可用） ============ -->
+<!-- req-lib：任职要求 / JD 素材库，由 ../shared/req-lib.js 内联而来。
+     后端 server/engine.js require 的是同一份文件，保证离线与在线口径一致。 -->
+<script>__REQLIB__</script>
+<script>__DATA__</script>
+<script>__AGENT__</script>
+<script>__APP__</script>
+<script>
+document.getElementById('collapseBtn').addEventListener('click', function () {
+  document.getElementById('app').classList.toggle('collapsed');
+});
+// 原型说明：检测到 server/ 启动后自动切换为真实后端（SQLite + Agent 引擎），否则使用内置演示数据。
+console.log('%cHR-Agent OS 原型', 'color:#7aa9ff;font-weight:700', '构建时间 __BUILT__ · 无后端依赖，双击可用');
+</script>
+</body>
+</html>
