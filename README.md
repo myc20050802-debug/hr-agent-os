@@ -27,8 +27,12 @@ Windows 双击 `server/start.bat` 即可（自动开浏览器）。
 
 | 文件 | 是什么 |
 |---|---|
-| `平台原型/index.html` | **可点击平台原型**，单文件 **389,471 bytes（约 380KB）**，23 个页面，双击即开 |
+| `平台原型/index.html` | **可点击平台原型**，单文件 **450,757 bytes（约 440KB）**，23 个页面，双击即开 |
 | `server/` | **真实后端**：Node 原生 HTTP + SQLite + Agent 引擎，零依赖；**16 个模块按 L0–L5 分层** |
+| `tools/golden/golden_set.json` | **人工标注黄金集**：3 个岗位 × 10 份简历 = 30 例，含人工档位标签与决定性因素说明 |
+| `tools/test_eval.js` | **筛选质量评测**：档位一致率 / ±1 档一致率 / 漏筛率 / 误筛率（与线上同一份 `evaluateCandidate`） |
+| `tools/test_load.js` | **并发压测**：读 / 写 / 读写混合三阶段，输出 P50 / P90 / P95 / P99 与吞吐 |
+| `tools/run_all.js` | **一键回归**：拉起隔离实例（独立端口 + 临时库）跑全部套件，不碰演示数据 |
 | `docs/01_产品需求草稿PRD.md` | 七部分 PRD 草稿（定位 / 架构 / 模块 / 底座 / 合规 / MVP / 菜单） |
 | `docs/02_搭建实操教程.md` | 8 阶段落地教程（含建表 SQL、工具注册中心、闸门代码） |
 | `docs/03_本地全栈版运行说明.md` | 眼前这套代码怎么启动、怎么验证、怎么接模型、已知边界 |
@@ -138,21 +142,56 @@ node --experimental-sqlite server.js
 
 ## 测试
 
-```bash
-# 后端集成（真 HTTP，零依赖）
-node --experimental-sqlite tools/test_auth.js     # 可信底座 · 127 项
-node --experimental-sqlite tools/test_hiring.js   # 招聘链路 · 87 项（需先启动 server）
-node tools/test_jd.js                             # JD 生成口径 · 74 项（后端在跑时附带端到端验证）
+一键跑全部（**推荐**）：起一个隔离实例（`127.0.0.1:8799` + 临时库），演示库 `server/hr_agent.db` 毫发无伤。
 
-cd 平台原型
-node test_prototype.js   # 离线模式：23 页渲染 + 18 项交互（无需 server）
-node test_live.js        # 真实后端：23 页渲染 + 22 项真链路（需先启动 server）
+```bash
+node tools/run_all.js                 # 功能回归：7 套件
+node tools/run_all.js --only backend  # 只跑后端 5 套件
+node tools/run_all.js --only load     # 并发压测（单独一档，不混进默认回归）
 ```
 
-当前状态：**全部 0 失败** —— 后端 127/127；招聘链路 87/87；JD 生成口径 74/74；在线 23 页 + 22 项 0 异常 0 错误；离线 23 页 + 18 项 0 异常 0 错误。
-另有一次**硬验证**：删掉 `server/hr_agent.db` 后重启，空库自动跑到 `schemaVersion: 5`（19 表 / 2 触发器），无需人工干预。
+单套件（`--experimental-sqlite` 是因为要 require 服务端模块；`test_hiring` / `test_live` 需先启动 server）：
 
-> 运行无头测试需要 `jsdom`：`NODE_PATH=<你的 workspace>/node_modules node test_live.js`（本项目自身不依赖任何 npm 包）。
+```bash
+node --experimental-sqlite tools/test_auth.js        # 可信底座 · 鉴权 / 权限 / 迁移 / 错误契约
+node --experimental-sqlite tools/test_hiring.js      # 招聘链路 · 状态机 / 合规闸门 / 行级隔离
+node --experimental-sqlite tools/test_jd.js          # JD 生成口径 · 原文还原 / 段落化 / 往返无损
+node --experimental-sqlite tools/test_eval.js        # 筛选质量评测 · 黄金集 + 一致率接口 · 55 项
+node --experimental-sqlite tools/test_screening.js   # 用量真实性 / 可重复运行 · 29 项
+cd 平台原型
+node test_prototype.js                               # 离线：23 页渲染 + 19 项交互（无需 server）
+node test_live.js                                    # 真后端：23 页渲染 + 24 项真链路（需先启动 server）
+```
+
+当前状态：**全部 0 失败 · 7 套件全绿**（后端 5 + 前端 2）。压测另跑，0 错误。
+
+> 运行前端无头测试需要 `jsdom`：`NODE_PATH=<你的 workspace>/node_modules node test_live.js`（本项目自身不依赖任何 npm 包）。
+> 硬验证：删掉 `server/hr_agent.db` 后重启，空库自动跑到 `schemaVersion: 6`（19 张业务表 / 2 个触发器 / 20 个索引），无需人工干预。
+
+---
+
+## 质量与性能实测（数字都是跑出来的）
+
+**筛选质量**（`tools/golden/golden_set.json`，30 例人工标注，3 个岗位各 10 例）：
+
+| 指标 | 数值 | 口径 |
+|---|---|---|
+| 档位一致率 | **90.0%**（27/30） | AI 档位与人工档位完全相同 |
+| ±1 档一致率 | **100.0%**（30/30） | 没有跨两档的硬错 |
+| 漏筛率 | **0.0%**（0/18） | **该通过的人被 AI 判 no** ← 安全红线，回归断言 |
+| 误筛率 | **25.0%**（3/12） | 该淘汰的人被 AI 判 strong/ok |
+
+3 例分歧全部同向（AI 过宽），且都是**故意埋的边界探针**：前端技术负责人（`JavaScript` 含「Java」字样被误命中）、资深算法工程师（业务/加分标签堆叠抬高分数）、资深销售（沟通类标签全中但无交付经验）。这三条直接对应 `override_code` 枚举里的 `keyword_fuzzy` / `biz_overrated`——**评测不只是打分，它给出了改进清单**。
+
+**并发性能**（`tools/test_load.js`，单进程 Node，并发 20）：
+
+| 阶段 | n | P50 | P95 | P99 | 吞吐 |
+|---|---|---|---|---|---|
+| 纯读 | 240 | 22ms | 35ms | 42ms | 822 req/s |
+| 纯写 | 40 | 11ms | 12ms | 15ms | 816 req/s |
+| 读写混合 | 120 | 24ms | 39ms | 50ms | 779 req/s |
+
+三阶段 0 错误 —— 混合阶段不报错即说明 **WAL 的「读不阻塞写」在实际并发下成立**，而不是一句宣传语。注意这是**单进程单写者**的数字，不代表多实例生产容量；口径与边界见 `docs/05`。
 
 ---
 
@@ -161,5 +200,7 @@ node test_live.js        # 真实后端：23 页渲染 + 22 项真链路（需�
 这是**可运行的产品原型 + 可信底座 PoC**，不是多租户生产级 SaaS。
 `docs/03` 第八节列了完整边界（并发、文件存储、集成、知识库、评测、多租户）。
 `docs/05` 把「离企业级还差什么」按 P0/P1/P2 分级列全了。
-**M1 已经把其中两个 P0（身份认证、权限）补上**，剩下的最硬短板是**离线评测集**（`docs/09` §七 有完整诚实清单）。
-要变成生产系统，按 `docs/02` 的 8 阶段路线推进。
+
+已补上的 P0：**身份认证**、**权限**（M1），以及**离线评测集**（30 例人工标注黄金集 + 一致率 / 漏筛率 / 误筛率）。评测数字与失败模式见上一节，不回避 25% 的误筛率 —— 它说明的是「规则型筛选在标签堆叠面前会偏宽」，而不是「我们做得很好」。
+
+仍然缺的：多租户物理隔离、真实 ATS / 招聘渠道集成、文件与简历原文存储、向量检索、模型评测平台、灰度与回滚。要变成生产系统，按 `docs/02` 的 8 阶段路线推进。

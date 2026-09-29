@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>HR-Agent OS · M1 实现说明与验收报告</title>
+<title>HR-AI-Agent 平台 · 实现说明与验收报告</title>
 <style>
 :root{
   --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
@@ -85,8 +85,8 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <body>
 <header>
   <div class="hrow">
-    <h1 class="brand">HR-Agent OS · M1 实现说明与验收报告</h1>
-    <span class="sub"></span>
+    <h1 class="brand">HR-AI-Agent 平台 · 实现说明与验收报告</h1>
+    <span class="sub">docs/09 · 含本轮追加：筛选质量评测 / 一致率接口 / 并发实测 / 工程化补齐</span>
     <div class="searchbox">
       <span class="hint" id="hint">全文搜索</span>
       <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
@@ -164,6 +164,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <hr class="sep">
 <h2 id="doc0--五-验收证据-可当场复现">五、验收证据（可当场复现）</h2>
 <h3 id="doc0--5-1-三套回归-全部-0-失败">5.1 三套回归，全部 0 失败</h3>
+<blockquote>⚠️ 本节是 <strong>M1 收尾时的历史快照</strong>（当时 <code>schemaVersion: 4</code>、16 项交互）。当前套件、断言数与实测数字见 <strong>§十二</strong>，以及仓库根 <code>README.md</code> 的「测试」与「质量与性能实测」两节。历史快照保留不改 —— 改它等于篡改当时的证据。</blockquote>
 <div class="tablewrap"><table><thead><tr><th>套件</th><th>命令</th><th>覆盖</th><th>结果</th></tr></thead><tbody><tr><td>后端集成（真 HTTP，无依赖）</td><td><code>node --experimental-sqlite tools/test_auth.js</code></td><td>认证 / 三层权限 / 治理 / 迁移 / 错误契约 / 限流 / 会话吊销 <strong>127 项断言</strong></td><td>✅ <strong>127 通过 / 0 失败</strong></td></tr><tr><td>在线端到端（真后端 + 真鉴权）</td><td><code>NODE_PATH=... node 平台原型/test_live.js</code></td><td><strong>23 页渲染 + 16 项真链路交互</strong></td><td>✅ <strong>0 异常 / 0 错误</strong></td></tr><tr><td>离线兜底（单文件 <code>file://</code>）</td><td><code>NODE_PATH=... node 平台原型/test_prototype.js</code></td><td><strong>23 页渲染 + 16 项离线交互</strong></td><td>✅ <strong>0 异常 / 0 错误</strong></td></tr></tbody></table></div>
 <p>在线回归的关键日志（原文摘录）：</p>
 <div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>0. 身份认证
@@ -395,9 +396,44 @@ fnKey = null（职能识别不出）→ 走行业兜底
 <li><strong>运行期产物</strong>：<code>server/hr_agent.db</code>（21 个岗位全部重算至 <code>jd_ver=9</code>）。</li>
 </ul>
 <hr class="sep">
+<p><strong>本轮追加（§十二 · 筛选质量评测 + 并发实测 + 工程化补齐）</strong>：</p>
+<p>起因：一次「面试官视角」的缺口审计发现，项目能证明「跑得通」，但答不出三件事 —— <strong>判得准不准 / 扛不扛得住 / 能不能被别人一键跑起来</strong>。本轮把这三块补上。</p>
+<p><strong>① 筛选质量有了数字（新增 <code>tools/golden/golden_set.json</code> + <code>tools/test_eval.js</code>）</strong></p>
+<ul>
+<li>黄金集：3 个岗位（高级 Java 工程师 / AI 产品经理 / 软件实施管培生）× 10 例 = <strong>30 例人工标注</strong>，每例带人工档位（strong/ok/no）与决定性因素说明。</li>
+<li>评测口径：档位一致率 / ±1 档一致率 / <strong>漏筛率</strong>（该通过却被判 no）/ <strong>误筛率</strong>（该淘汰却被判 strong·ok）。口径在代码与文档里都写死，避免「一致率」被含糊解释。</li>
+<li>实测：一致率 <strong>90.0%</strong>（27/30）、±1 档 <strong>100%</strong>、漏筛率 <strong>0.0%</strong>、误筛率 <strong>25.0%</strong>。</li>
+<li>关键结构保证：评测调用的 <code>evaluateCandidate</code> 与线上筛选<strong>是同一个函数</strong>（本轮把硬性门槛抽成 <code>ruleGate</code>、合成判定抽成 <code>evaluateCandidate</code>），避免「评测一套、线上另一套」。</li>
+<li>3 例分歧全部同向（AI 过宽），且都是<strong>有意埋的边界探针</strong>（前端技术负责人 / 资深算法工程师 / 资深销售）。它们不是「评测没过」，而是本轮 <code>override_code</code> 枚举的设计输入。</li>
+</ul>
+<p><strong>② 「进入优化数据集」从承诺变成数据（迁移 v6 + <code>shared/override-codes.js</code> + <code>GET /api/metrics/agreement</code>）</strong></p>
+<ul>
+<li>原状：<code>override_reason</code> 是自由文本，存得下、<strong>统计不了</strong>，所以那句承诺是空的。</li>
+<li>现在：9 个可归因原因码（<code>keyword_fuzzy</code> / <code>keyword_miss</code> / <code>experience_lost</code> / <code>gate_too_strict</code> / <code>biz_overrated</code> / <code>plus_overrated</code> / <code>parse_failed</code> / <code>compliance</code> / <code>other</code>）；人工结论三态（<strong>确认</strong> / 推翻·推进 / 推翻·否决）。</li>
+<li>一致率接口返回样本数、一致率、<strong>过严次数 / 过宽次数</strong>、以及 byCode 分布 —— 最后这个分布就是「下一步该修什么」的排序清单。</li>
+<li>一个刻意的设计取舍：<strong>只记录推翻，一致率恒为 0</strong>（样本里全是分歧）。因此「确认 AI 结论」也被做成一次真实落库操作，它不是为了多一个按钮，而是<strong>一致率分母成立的前提</strong>。</li>
+<li>不做演示假数据：样本为 0 时接口返回 <code>rate: null</code> 并说明原因，不编一个好看的比例。</li>
+</ul>
+<p><strong>③ 并发实测（新增 <code>tools/test_load.js</code>，单进程 Node，并发 20）</strong></p>
+<div class="tablewrap"><table><thead><tr><th>阶段</th><th>n</th><th>P50</th><th>P95</th><th>P99</th><th>吞吐</th><th>错误</th></tr></thead><tbody><tr><td>纯读</td><td>240</td><td>22ms</td><td>35ms</td><td>42ms</td><td>822 req/s</td><td>0</td></tr><tr><td>纯写</td><td>40</td><td>11ms</td><td>12ms</td><td>15ms</td><td>816 req/s</td><td>0</td></tr><tr><td>读写混合</td><td>120</td><td>24ms</td><td>39ms</td><td>50ms</td><td>779 req/s</td><td>0</td></tr></tbody></table></div>
+<p>混合阶段 0 错误即说明 <strong>WAL 的「读不阻塞写」在真实并发下成立</strong>。边界要一并说清：这是<strong>单进程单写者</strong>的数字，不代表多实例生产容量。</p>
+<p><strong>④ WAL 不再无限增长</strong></p>
+<p><code>db.checkpoint()</code> 支持 PASSIVE/FULL/RESTART/TRUNCATE；维护定时器用 PASSIVE（不打扰在途请求），<strong>关闭与重置用 TRUNCATE</strong>；<code>/api/health</code> 暴露 <code>wal.dbBytes / walBytes / shmBytes</code>。压测中 WAL 从 288KB 涨到 2.87MB（未触及 4MB autocheckpoint 阈值），正是「只写不 checkpoint 会怎样」的现场证据。</p>
+<p><strong>⑤ 工程化补齐</strong></p>
+<p><code>package.json</code>（engines ≥22.5 + 分套件脚本）、<code>server/start.sh</code> + <code>start.bat</code>（去硬编码 Node 路径、版本校验）、<code>平台原型/build.js</code>（构建不再需要 Python）、<code>tools/run_all.js</code>（拉起隔离实例一键回归，不碰演示库）。压测作为 <code>optIn</code> 套件，默认回归不含它。</p>
+<p><strong>⑥ 无障碍最小集（并诚实标注「最小」）</strong></p>
+<p><code>role="dialog"</code> + <code>aria-modal</code>、打开移入焦点 / 关闭归还、Esc 关闭、<code>th scope="col"</code>、提示区 <code>aria-live="polite"</code>、<code>prefers-reduced-motion</code>、<code>:focus-visible</code>、跳转链接。<code>test_prototype.js</code> 新增 1 项专门断言（含键盘实操：打开抽屉 → 焦点在浮层内 → Esc 关闭）。<strong>完整 WCAG 审计未做</strong>，不要当合规凭证用。</p>
+<p><strong>⑦ 本轮又被测试抓出来的真实缺陷</strong></p>
+<ul>
+<li><code>agrees()</code> 方向分支写反：一度把「AI 判不适合 + 人工推进」算成<strong>一致</strong>。是单元断言（<code>AI=no + 人工推进 → 不一致</code>）把它抓出来的 —— 这正是「口径要写成函数+断言」而不是散落在 if/else 里的理由。</li>
+<li><code>LIVE.authMode</code> 初值 <code>'legacy'</code>：该字段只写不读，但初值会让人误以为还有伪身份后门，已改 <code>strict</code> 并注明用途。</li>
+<li>前端「推翻并推进」按钮实际写死 <code>rejected_by_human</code>（否决）—— 名实不符，已改为<strong>方向由 AI 档位推出</strong>，并在后端加方向自洽校验（反向不符直接 400，避免污染一致率样本）。</li>
+</ul>
+<p><strong>本轮口径（面试可直接引用）</strong>：筛选评测<strong>错误全部落在安全侧</strong> —— 漏筛率 0（不会静默杀掉合格的人），25% 的误筛只是「多进一轮人工」。这不是「做得很好」，而是「错的方向可以接受，且我们量过」。</p>
+<hr class="sep">
 <p><em>配套阅读：<code>docs/07_项目计划书.md</code>（里程碑与决策）、<code>docs/08_架构设计文档.md</code>（L0–L5 与 ADR）、<code>docs/05_从PoC到企业级的差距清单.md</code>（本轮的立项依据）。凡本报告与代码冲突，<strong>以代码实测为准</strong>。</em></p></article></main>
 </div>
-<footer>生成时间：2026-09-29 11:00（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-09-29 14:39（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "09 · M1 实现说明与验收报告（可信底座）"}];
 
