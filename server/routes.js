@@ -187,7 +187,7 @@ function buildRouter(db) {
   /* ================= 系统 ================= */
   r.get('/api/health', { public: true }, rc => rc.ok({
     time: audit.nowCN(),
-    mode: config.llm.url ? 'llm' : 'rule',
+    mode: engine.llmConfigured() ? 'llm' : 'rule',
     authMode: config.auth.mode,
     schemaVersion: dbmod.schemaVersion(db),
     uptimeSec: metrics.snapshot().uptimeSec,
@@ -247,7 +247,7 @@ function buildRouter(db) {
   r.get('/api/bootstrap', {}, rc => rc.ok(Object.assign(
     {
       server: true,
-      mode: config.llm.url ? 'llm' : 'rule',
+      mode: engine.llmConfigured() ? 'llm' : 'rule',
       me: rbac.describe(rc.ctx),
       authMode: config.auth.mode,
       schemaVersion: dbmod.schemaVersion(db),

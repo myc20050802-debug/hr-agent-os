@@ -12,7 +12,10 @@ const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const fs = require('fs');
 
-const DB_FILE = path.join(__dirname, 'hr_agent.db');
+/* 库文件路径：默认 server/hr_agent.db，可用环境变量 DB_PATH 覆盖。
+   为什么需要覆盖：① 测试要跑在隔离库上，不能污染演示数据；
+   ② 部署时数据目录通常挂在卷上，不该写死在代码目录里（容器重建即丢数据）。 */
+const DB_FILE = process.env.DB_PATH ? path.resolve(process.env.DB_PATH) : path.join(__dirname, 'hr_agent.db');
 
 /* ---------- schema 由 migrations.js 统一管理 ----------
    v0.10.0 起，建表 / 补列 / 建索引 / 建触发器全部走**版本化迁移**，

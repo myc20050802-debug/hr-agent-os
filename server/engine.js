@@ -43,10 +43,17 @@ function toolCall(db, taskId, tool, params, result, o = {}) {
       o.highRisk ? 1 : 0, o.status || 'ok', o.error || null, o.ms || 0, now());
 }
 
-/* ---------- LLM 网关（可插拔，默认规则模式） ---------- */
+/* ---------- LLM 网关（可插拔，默认规则模式） ----------
+   返回值统一为 { text, usage, configured, error }。
+   为什么连 usage 一起返回：界面上的「模型用量」必须来自真实响应。
+   早先这里只返回文本、而调用方按 160 token/份 记了个常量，
+   于是规则模式下也会显示出一笔并未发生的模型成本 —— 成本数字不可信，
+   业务方就不会信产品的任何输出。用量要么是真的，要么不显示。 */
+const llmConfigured = () => !!(process.env.LLM_API_URL && process.env.LLM_API_KEY);
+
 async function llm(messages) {
   const url = process.env.LLM_API_URL, key = process.env.LLM_API_KEY;
-  if (!url || !key) return null;                       // 规则模式
+  if (!url || !key) return { text: null, usage: null, configured: false };   // 规则模式
   try {
     const r = await fetch(url.replace(/\/$/, '') + '/chat/completions', {
       method: 'POST',
@@ -54,10 +61,11 @@ async function llm(messages) {
       body: JSON.stringify({ model: process.env.LLM_MODEL || 'gpt-4o-mini', messages, temperature: 0.2 }),
       signal: AbortSignal.timeout(20000)
     });
-    if (!r.ok) return null;
+    if (!r.ok) return { text: null, usage: null, configured: true, error: 'http_' + r.status };
     const j = await r.json();
-    return j.choices && j.choices[0] && j.choices[0].message ? j.choices[0].message.content : null;
-  } catch { return null; }
+    const text = j.choices && j.choices[0] && j.choices[0].message ? j.choices[0].message.content : null;
+    return { text, usage: j.usage || null, configured: true };
+  } catch (e) { return { text: null, usage: null, configured: true, error: 'network' }; }
 }
 
 /* ===========================================================
@@ -68,6 +76,10 @@ async function runScreening(db, { jobId = 'J-118', initiatorId = 'U-001' } = {})
   const taskId = uid('T');
   const steps = [];
   const push = (intent, tool, opt) => { steps.push(Object.assign({ intent, tool, rule: !opt.tokens, risk: 0, ms: 0, tokens: 0, out: '', status: 'done' }, opt)); };
+  /* 本次运行到底是「真实调用模型」还是「纯规则」—— 决定工具名与用量怎么记。
+     此前不判断：无论有没有配模型，都按 160 token/份 记常量、工具名一律写 llm.*，
+     于是规则模式下界面显示了一个并未发生的模型成本。 */
+  const useModel = llmConfigured();
   let tokens = 0;
 
   /* ① 读岗位（任意岗位，不再写死 J-118） */
@@ -114,10 +126,11 @@ async function runScreening(db, { jobId = 'J-118', initiatorId = 'U-001' } = {})
 
   /* ③ 解析状态核对 */
   const parseFail = cands.filter(c => !c.parse_ok).length;
-  toolCall(db, taskId, 'resume.parse', { count: cands.length }, { ok: cands.length - parseFail, failed: parseFail }, { ms: 40, tokens: 180 * cands.length });
-  tokens += 180 * cands.length;
+  /* 解析状态来自库里的 parse_ok 字段（本 PoC 用预置结构化数据），
+     是纯规则步骤、不产生模型用量，因此不记 token。 */
+  toolCall(db, taskId, 'resume.parse', { count: cands.length }, { ok: cands.length - parseFail, failed: parseFail }, { ms: 40, tokens: 0 });
   push('核对简历解析状态（含扫描件 OCR）', 'resume.parse',
-    { ms: 40, tokens: 180 * cands.length, out: `成功 ${cands.length - parseFail} / 失败 ${parseFail}（失败件标记需人工补录，仍进入规则门槛但跳过模型打分）` });
+    { rule: true, ms: 40, tokens: 0, out: `成功 ${cands.length - parseFail} / 失败 ${parseFail}（失败件标记需人工补录，仍进入规则门槛但跳过打分）\n解析结果取自结构化字段 —— 规则步骤，0 token` });
 
   /* ④ 反歧视：物理剔除 —— 真实做法：打分输入里根本不 SELECT gender/birth_date */
   push('⚙️ 反歧视处理：物理剔除受保护字段', 'guard.strip_protected', { rule: true, ms: 3,
@@ -143,21 +156,43 @@ async function runScreening(db, { jobId = 'J-118', initiatorId = 'U-001' } = {})
   push('⚙️ 硬性门槛规则前置判断（不消耗模型）', 'rule.gate', { rule: true, ms: 2,
     out: `${juniorJob ? '【管培生／实习岗】不设工作年限门槛；' : ''}规则拦截 ${ruleBlocked.length} 份 → 剩余 ${modelPool.length} 份进入打分\n被拦截：${ruleBlocked.map(r => r[0].name + '（' + r[1] + '）').join('、') || '无'}\n节省模型调用 ${ruleBlocked.length} 次` });
 
-  /* ⑥ 打分（规则模式下为可解释启发式；配置 LLM 后由模型生成 ai_note） */
+  /* ⑥ 打分
+     分工：分数与维度**固定由 scoreOne() 算**（可解释、可复现、跨行业一致）；
+     接入模型时只把「推荐理由的措辞」交给模型。
+     用量取自响应里的 usage，拿不到就记 0 并显式标注未知 —— 不猜。
+     未接入模型时整步标 rule: true / 0 token，工具名用 rule.score_resume（不冒充 llm）。 */
   t0 = Date.now();
   const results = [];
+  let usageUnknown = false;
   for (const [c, parseFailFlag] of modelPool) {
     const r = scoreOne(c, job);
-    tokens += 160;
-    results.push({ c, r, parseFailFlag });
+    let modelNote = null;
+    if (useModel) {
+      const gen = await llm([
+        { role: 'system', content: '你是资深HR筛选助手。只依据给出的评分维度写不超过80字的中文推荐理由，不得添加未给出的事实。' },
+        { role: 'user', content: `岗位：${job.title}（${job.industry || '未标注行业'}）\n评分：${r.score}/100（${r.grade}）\n维度依据：${r.dims.map(d => d.dim + '：' + d.ev).join('；')}` }
+      ]);
+      modelNote = gen.text;
+      const u = gen.usage && Number(gen.usage.total_tokens);
+      if (u) tokens += u; else usageUnknown = true;
+    }
+    results.push({ c, r, parseFailFlag, modelNote });
   }
-  toolCall(db, taskId, 'llm.score_resume', { count: modelPool.length }, { scored: results.length }, { ms: Date.now() - t0 + 30, tokens: 160 * modelPool.length });
-  push('按岗位维度逐项打分并生成理由', 'llm.score_resume', { ms: Date.now() - t0 + 30, tokens: 160 * modelPool.length,
-    out: `${results.length} 份完成打分：strong ${results.filter(x => x.r.grade === 'strong').length} / ok ${results.filter(x => x.r.grade === 'ok').length} / no ${results.filter(x => x.r.grade === 'no').length}\n每条评分均附 evidence（依据来自候选人结构化字段）` });
+  const scoreTool = useModel ? 'llm.score_resume' : 'rule.score_resume';
+  toolCall(db, taskId, scoreTool, { count: modelPool.length }, { scored: results.length },
+    { ms: Date.now() - t0 + 30, tokens: useModel ? tokens : 0 });
+  push('按岗位维度逐项打分并生成理由', scoreTool, { rule: !useModel, ms: Date.now() - t0 + 30, tokens: useModel ? tokens : 0,
+    out: (useModel
+      ? `${results.length} 份完成打分：strong ${results.filter(x => x.r.grade === 'strong').length} / ok ${results.filter(x => x.r.grade === 'ok').length} / no ${results.filter(x => x.r.grade === 'no').length}\n模型只负责推荐理由措辞；分数由固定权重逐维计算，保证可复现\n真实用量 ${tokens} tokens${usageUnknown ? '（部分响应未返回 usage，未计入）' : '（取自网关响应）'}`
+      : `${results.length} 份完成打分：strong ${results.filter(x => x.r.grade === 'strong').length} / ok ${results.filter(x => x.r.grade === 'ok').length} / no ${results.filter(x => x.r.grade === 'no').length}\n规则模式：按固定权重（技能 40 / 业务 30 / 稳定 15 / 加分 15）逐维打分，**未调用模型（0 token）**\n每条评分均附 evidence（依据来自候选人结构化字段）`) });
 
   /* ⑦ 写入打分结果（AI 输出，L2：写入评分不影响对外状态） */
-  for (const { c, r } of results) {
-    const note = parseFailNote(c, r);
+  for (const { c, r, modelNote } of results) {
+    const ruleNote = parseFailNote(c, r);
+    /* 模型理由只替换「措辞」；简历解析失败的告警必须保留，不能被模型话术盖掉。 */
+    const note = modelNote
+      ? (ruleNote.indexOf('⚠️') === 0 ? ruleNote.slice(0, ruleNote.indexOf('。') + 1) + modelNote : modelNote)
+      : ruleNote;
     db.prepare(`UPDATE candidates SET ai_score=?, ai_grade=?, ai_reasons=?, ai_note=?, human_decision=NULL WHERE id=?`)
       .run(r.score, r.grade, JSON.stringify(r.dims), note, c.id);
   }
@@ -374,10 +409,11 @@ async function chat(db, { question, userId = 'U-003' }) {
 
   /* 命中：优先用 LLM 组织语言；未配置则直接返回制度原文（保真） */
   let text = best.content;
-  const llmText = await llm([
+  const gen = await llm([
     { role: 'system', content: '你是企业HR自助助手。只依据给定的制度原文回答员工问题，不得添加原文没有的信息，用简体中文，简洁分点。' },
     { role: 'user', content: `制度原文：${best.content}\n\n员工问题：${q}` }
   ]);
+  const llmText = gen.text;
   if (llmText) text = llmText;
   audit(db, { actorType: 'agent', actorId: userId, action: '回答员工提问', objType: 'user', objId: userId,
     detail: `依据《${best.title}》${best.ver}（${llmText ? 'LLM 组织' : '原文直出'}）`, result: 'ok' });
@@ -1277,6 +1313,6 @@ function userName(db, id) {
   return u ? u.name : '未知用户';
 }
 
-module.exports = { runScreening, decide, chat, bootstrap, tryExportAll, audit, llm, T,
+module.exports = { runScreening, decide, chat, bootstrap, tryExportAll, audit, llm, llmConfigured, T,
   runJD, buildJD, scanJd, suggestRequirements, expandRequirements, renderReqs, eduRequirement, INDUSTRY_REQ, REQ_DIMS,
   createJob, updateJob, deleteJob, autoSeedCandidates, nextJobId };
