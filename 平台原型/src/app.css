@@ -291,3 +291,20 @@ textarea.i{resize:vertical;line-height:1.6}
 @media(max-width:900px){#app{grid-template-columns:60px minmax(0,1fr)}
   #app .navtext,#app .logo-txt,#app .navgroup-title,#app .tenant-info,#app .usermeta{display:none}
   .content{padding:14px}}
+
+/* ---------- 无障碍：尊重系统「减少动态效果」偏好 ----------
+   为什么必须有而不是可选：前庭功能敏感的用户会因为位移动画（抽屉滑入、
+   弹层缩放、骨架屏扫光）产生眩晕。系统里已经表达了这个偏好，
+   页面不理会它，等于把这类用户直接排除在外。
+   做法是「一刀切关掉动画」，不保留「轻微动效」—— 偏好是二元的，别自作主张。 */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms !important;animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;scroll-behavior:auto !important}
+}
+/* 键盘焦点必须可见：去掉 outline 会让键盘用户彻底失去位置感。
+   只在键盘导航时显示（:focus-visible），不干扰鼠标点击。 */
+:focus-visible{outline:2px solid #4c8dff;outline-offset:2px;border-radius:4px}
+/* 跳转到主内容：仅聚焦时出现 */
+.skiplink{position:absolute;left:8px;top:-40px;z-index:99;background:#4c8dff;color:#fff;
+  padding:8px 14px;border-radius:8px;font-size:13px;text-decoration:none;transition:top .15s}
+.skiplink:focus{top:8px}

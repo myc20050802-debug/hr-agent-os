@@ -7,30 +7,31 @@
 <style>__CSS__</style>
 </head>
 <body>
+<a class="skiplink" href="#pageHost">跳到主内容</a>
 <div id="app">
   <!-- ============ 侧边栏（对应 PRD 第七部分菜单结构） ============ -->
   <aside>
     <div class="logo">
-      <div class="dot">🤖</div>
+      <div class="dot" aria-hidden="true">🤖</div>
       <div class="logo-txt">HR-Agent OS<small>智能体时代的人力资源平台</small></div>
     </div>
     <div class="tenant">
-      <span>🏢</span>
+      <span aria-hidden="true">🏢</span>
       <div class="tenant-info">
         <b id="tenantName">—</b>
         <span>数据存境内 · cn-north</span>
       </div>
     </div>
-    <nav id="nav"></nav>
+    <nav id="nav" aria-label="主导航"></nav>
     <div class="userbar">
-      <div class="avatar" id="userAvatar">李</div>
+      <div class="avatar" id="userAvatar" aria-hidden="true">李</div>
       <div class="usermeta">
         <b id="userName">—</b>
         <span id="userRole">—</span>
       </div>
-      <button class="iconbtn" id="switchBtn" title="切换演示身份" data-act="doSwitch"
+      <button class="iconbtn" id="switchBtn" title="切换演示身份" aria-label="切换演示身份" data-act="doSwitch"
               style="margin-left:auto;flex:0 0 auto">🔁</button>
-      <button class="iconbtn" id="logoutBtn" title="退出登录" data-act="doLogout"
+      <button class="iconbtn" id="logoutBtn" title="退出登录" aria-label="退出登录" data-act="doLogout"
               style="flex:0 0 auto">⎋</button>
     </div>
   </aside>
@@ -38,30 +39,32 @@
   <!-- ============ 主区 ============ -->
   <main>
     <header>
-      <button class="iconbtn" id="collapseBtn" title="收起/展开侧边栏">☰</button>
+      <button class="iconbtn" id="collapseBtn" title="收起/展开侧边栏" aria-label="收起或展开侧边栏" aria-expanded="true" aria-controls="app">☰</button>
       <div class="crumb"><span class="muted">HR-Agent OS</span> / <b id="crumbPage">工作台</b></div>
       <div class="spacer"></div>
-      <div class="searchbar">🔍 <input placeholder="搜索候选人 / 员工 / 流程"></div>
+      <div class="searchbar">🔍 <input placeholder="搜索候选人 / 员工 / 流程" aria-label="搜索候选人、员工或流程"></div>
       <span class="tag" id="whoami" style="display:none;cursor:help"></span>
       <span class="tag g" id="liveBadge" style="display:none;cursor:help">🟢 真实后端</span>
-      <button class="iconbtn" title="通知">🔔</button>
-      <button class="iconbtn" title="重置演示数据" data-act="resetDemo">♻</button>
-      <button class="iconbtn" title="帮助">❓</button>
-      <span class="tag y" id="apprTag" style="cursor:pointer" data-act="go" data-page="approvals">✋ 待审核 3</span>
+      <button class="iconbtn" title="通知" aria-label="通知">🔔</button>
+      <button class="iconbtn" title="重置演示数据" aria-label="重置演示数据" data-act="resetDemo">♻</button>
+      <button class="iconbtn" title="帮助" aria-label="帮助">❓</button>
+      <span class="tag y" id="apprTag" style="cursor:pointer" role="button" tabindex="0" data-act="go" data-page="approvals">✋ 待审核 3</span>
     </header>
-    <div class="content" id="pageHost"></div>
+    <div class="content" id="pageHost" tabindex="-1"></div>
   </main>
 </div>
 
 <!-- ============ 右侧抽屉（Agent 运行追踪 / 详情） ============ -->
+<!-- role="dialog" + aria-modal：屏幕阅读器会把它读成模态框并限制在框内，
+     而不是继续念背后的页面 —— 这是「看得见」与「听得见」的区别。 -->
 <div class="overlay" id="drawer">
-  <div class="drawer">
+  <div class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
     <div class="drawer-h">
       <div style="flex:1">
         <h3 id="drawerTitle">标题</h3>
         <div class="small muted" id="drawerSub"></div>
       </div>
-      <button class="iconbtn" data-act="closeDrawer">✕</button>
+      <button class="iconbtn" data-act="closeDrawer" title="关闭" aria-label="关闭抽屉">✕</button>
     </div>
     <div class="drawer-b" id="drawerBody"></div>
     <div class="drawer-f" id="drawerFoot"></div>
@@ -69,21 +72,27 @@
 </div>
 
 <!-- ============ 居中弹层 ============ -->
-<div class="overlay center" id="modal"><div class="modal" id="modalBox"></div></div>
+<div class="overlay center" id="modal"><div class="modal" id="modalBox" role="dialog" aria-modal="true" aria-label="对话框"></div></div>
 
 <!-- ============ 轻提示 ============ -->
-<div class="toast" id="toast"></div>
+<!-- role="status" + aria-live="polite"：提示不打断当前朗读，但会被念出来。
+     提示如果只是视觉上的，屏幕阅读器用户会完全错过「操作是否成功」。 -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- ============ 脚本（全部内联，离线可用） ============ -->
 <!-- req-lib：任职要求 / JD 素材库，由 ../shared/req-lib.js 内联而来。
      后端 server/engine.js require 的是同一份文件，保证离线与在线口径一致。 -->
 <script>__REQLIB__</script>
+<script>__OVERRIDECODES__</script>
 <script>__DATA__</script>
 <script>__AGENT__</script>
 <script>__APP__</script>
 <script>
 document.getElementById('collapseBtn').addEventListener('click', function () {
-  document.getElementById('app').classList.toggle('collapsed');
+  var app = document.getElementById('app');
+  app.classList.toggle('collapsed');
+  /* 折叠是「状态」，不能只靠视觉表达：同步 aria-expanded，屏幕阅读器才知道现在是收还是展 */
+  this.setAttribute('aria-expanded', app.classList.contains('collapsed') ? 'false' : 'true');
 });
 // 原型说明：检测到 server/ 启动后自动切换为真实后端（SQLite + Agent 引擎），否则使用内置演示数据。
 console.log('%cHR-Agent OS 原型', 'color:#7aa9ff;font-weight:700', '构建时间 __BUILT__ · 无后端依赖，双击可用');

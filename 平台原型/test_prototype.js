@@ -294,6 +294,59 @@ JSDOM.fromFile(file, { runScripts: 'dangerously', pretendToBeVisual: true, virtu
       if (($('#pageHost').textContent || '').indexOf('已接受') === -1) throw new Error('应答登记后未回写为已接受');
     });
 
+    /* 3. 无障碍最小集
+       为什么单独断言：无障碍最容易被「看起来没问题」骗过 —— 视觉上一切正常，
+       键盘用户与屏幕阅读器用户可能完全用不了。这里只覆盖最基本、可机检的部分
+       （语义角色 / 可读名称 / 键盘可达 / 动效偏好），不假装做完了全部 WCAG。 */
+    await tryAsync('无障碍最小集：语义角色 + 键盘可达 + 动效偏好', async () => {
+      const doc = window.document;
+      if (doc.documentElement.lang !== 'zh-CN') throw new Error('html lang 缺失或错误');
+      const skip = doc.querySelector('a.skiplink');
+      if (!skip || skip.getAttribute('href') !== '#pageHost') throw new Error('缺少「跳到主内容」链接');
+      const toast = doc.getElementById('toast');
+      if (toast.getAttribute('role') !== 'status' || toast.getAttribute('aria-live') !== 'polite') throw new Error('提示区未声明 live region');
+      const dlg = doc.querySelector('#drawer .drawer');
+      if (dlg.getAttribute('role') !== 'dialog' || dlg.getAttribute('aria-modal') !== 'true') throw new Error('抽屉未声明 dialog 角色');
+      if (dlg.getAttribute('aria-labelledby') !== 'drawerTitle') throw new Error('抽屉未关联标题');
+      const mb = doc.getElementById('modalBox');
+      if (mb.getAttribute('role') !== 'dialog' || mb.getAttribute('aria-modal') !== 'true') throw new Error('弹层未声明 dialog 角色');
+      if (!doc.getElementById('nav').getAttribute('aria-label')) throw new Error('导航未声明 aria-label');
+
+      /* 图标按钮：只有图形没有文字，必须给出可读名称 */
+      const iconBtns = Array.from(doc.querySelectorAll('.iconbtn'));
+      if (!iconBtns.length) throw new Error('未找到图标按钮');
+      const unnamed = iconBtns.filter(b => !b.getAttribute('aria-label'));
+      if (unnamed.length) throw new Error(unnamed.length + ' 个图标按钮没有可读名称');
+
+      /* 侧边导航项是 div，必须能被键盘聚焦到（Enter/空格 触发） */
+      const navs = Array.from(doc.querySelectorAll('.navitem'));
+      if (!navs.length) throw new Error('未渲染导航项');
+      if (navs.some(x => x.getAttribute('role') !== 'button' || x.getAttribute('tabindex') !== '0')) throw new Error('存在不可键盘聚焦的导航项');
+      if (!navs.some(x => x.getAttribute('aria-current') === 'page')) throw new Error('当前页未标记 aria-current');
+
+      /* 表头必须绑定到列，否则读屏只念值不念列名 */
+      app.state.page = 'screen'; app.render();
+      const ths = Array.from(doc.querySelectorAll('#pageHost th'));
+      if (!ths.length) throw new Error('筛选页未渲染表头');
+      if (ths.some(t => t.getAttribute('scope') !== 'col')) throw new Error('存在未绑定列的表头');
+
+      /* 动效偏好与焦点样式必须真的写进 CSS，而不是「说了会做」 */
+      const css = doc.querySelector('style').textContent;
+      if (css.indexOf('prefers-reduced-motion') === -1) throw new Error('未处理「减少动态效果」系统偏好');
+      if (css.indexOf(':focus-visible') === -1) throw new Error('未提供可见的键盘焦点样式');
+
+      /* 键盘实操：打开抽屉 → 焦点应移入 → Esc 应能关闭 */
+      const cd = doc.querySelector('[data-act="candDetail"]');
+      if (!cd) throw new Error('无候选人可点开');
+      cd.click();
+      await wait(180);
+      if (!doc.getElementById('drawer').classList.contains('on')) throw new Error('抽屉未打开');
+      if (!dlg.contains(doc.activeElement)) throw new Error('打开抽屉后焦点未移入（键盘用户会被卡在浮层外）');
+      doc.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await wait(180);
+      if (doc.getElementById('drawer').classList.contains('on')) throw new Error('Esc 未关闭抽屉');
+    });
+
     log('\n================ 结果 ================');
     log('页面渲染异常：' + bad);
     log('运行时错误：' + errors.length);

@@ -78,7 +78,18 @@
   const state = { page: 'dashboard', q: '', collapsed: false, jobId: null, jobForm: null,
     /* 最近一次筛选运行的真实模型用量（null = 还没跑过）。
        只由服务端返回的 steps 汇总而来；规则模式下恒为 0。绝不本地估算。 */
-    runTokens: null };
+    runTokens: null,
+    /* 人工复核一致率快照（来自 /api/metrics/agreement）。
+       null = 离线模式或未取到；样本为 0 时服务端返回 rate:null，前端照实显示「尚无样本」。 */
+    agreement: null };
+
+  /* 推翻原因枚举：优先用服务端下发的（唯一真源，见 /api/bootstrap 的 overrideCodes），
+     离线时退回内联的同一份 shared/override-codes.js。两边内容一致，不会各说各话。 */
+  function ocLib() {
+    if (D && D.overrideCodes && D.overrideCodes.codes && D.overrideCodes.codes.length) return D.overrideCodes;
+    if (window.OverrideCodes) return { decisions: window.OverrideCodes.DECISIONS, codes: window.OverrideCodes.CODES };
+    return { decisions: [], codes: [] };
+  }
 
   /* ---------- 当前岗位（不再写死「高级 Java 工程师」） ---------- */
   function curJob() { return D.jobs.find(x => x.id === state.jobId) || D.jobs[0] || null; }
@@ -129,7 +140,10 @@
      - 401 会中断当前操作并弹出登录层；离线态（file:// 打开）不触发任何网络请求，
        继续使用内置演示数据，保证「断网也能演示」。
      ================================================================ */
-  const LIVE = { on: false, mode: 'rule', authMode: 'legacy' };
+  /* authMode 只是从 /api/health 抄回来的**展示用**字段，不参与任何分支判断
+     （后端已删除 AUTH_MODE=legacy，前端也不该留一个假身份路径）。
+     默认值写 strict：与服务端唯一支持的模式一致 —— 初值写 legacy 会让人以为还有后门。 */
+  const LIVE = { on: false, mode: 'rule', authMode: 'strict' };
   const AUTH = { token: null, me: null, mustChange: false };
   try { AUTH.token = localStorage.getItem('hr_token') || null; } catch (e) { /* 隐私模式禁 localStorage */ }
   function setToken(t) {
@@ -302,6 +316,10 @@
       applyIdentity();
       /* 岗位可能被删除 / 被行级权限裁剪，兜底重选 */
       if (!D.jobs.some(x => x.id === state.jobId)) state.jobId = D.jobs[0] ? D.jobs[0].id : null;
+      /* 人工复核一致率：单独取，它属于「质量指标」而不是「数据快照」。
+         取不到（例如 auditor 之外的角色没 metrics:read）不影响主流程，静默降级。 */
+      try { state.agreement = (await apiFetch('GET', '/api/metrics/agreement')).agreement; }
+      catch (e) { state.agreement = null; }
     } catch (e) { /* 401 已由 apiFetch 弹登录层 */ }
   }
   async function logout() {
@@ -371,6 +389,11 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const gradeTag = g => g === 'strong' ? '<span class="tag g">强烈推荐</span>'
     : g === 'ok' ? '<span class="tag y">可聊</span>' : '<span class="tag r">不合适</span>';
+  /* 人工结论 → 中文。取值域与后端 shared/override-codes.js 一致：
+     confirmed 一致；approved_by_human / rejected_by_human 都是推翻（方向不同）。 */
+  const humanLabel = h => h === 'confirmed' ? '人工确认 AI 结论'
+    : h === 'approved_by_human' ? '人工推进（推翻了 AI 的「不合适」）'
+      : h === 'rejected_by_human' ? '人工否决（推翻了 AI 的「推荐」）' : String(h || '');
   /* 阶段徽章配色。这里列出**后端状态机里全部**的阶段（见 server/hiring.js STAGES），
      不再有「前端画得出、后端写不进」的死值。 */
   const stageTag = s => {
@@ -391,20 +414,62 @@
     setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 320); }, 4200);
   }
 
+  /* ---------- 抽屉 / 弹层的可达性 ----------
+     打开时把焦点移进容器，关闭时还给原来那个元素。
+     没有这一层会怎样：键盘用户打开抽屉后按 Tab，焦点跑到背后页面上，
+     视觉上在弹层里、实际焦点在弹层外 —— 等于被卡住。
+     Esc 关闭是最基本的期待，浏览器原生对话框自带，自绘的得自己补。 */
+  let lastFocus = null;
   let drawerCloseHook = null;
+  function focusFirst(root) {
+    if (!root) return;
+    const el = root.querySelector('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])');
+    if (el && el.focus) el.focus();
+  }
+  function restoreFocus() {
+    if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) { /* 元素已卸载 */ } }
+    lastFocus = null;
+  }
   function openDrawer(title, sub, html) {
+    lastFocus = document.activeElement;
     $('#drawerTitle').textContent = title;
     $('#drawerSub').textContent = sub || '';
     $('#drawerBody').innerHTML = html;
     $('#drawer').classList.add('on');
+    focusFirst($('#drawer').querySelector('.drawer')); 
   }
   function closeDrawer() {
     $('#drawer').classList.remove('on');
     if (drawerCloseHook) { drawerCloseHook(); drawerCloseHook = null; }
+    restoreFocus();
     render();
   }
-  function openModal(html) { $('#modalBox').innerHTML = html; $('#modal').classList.add('on'); }
-  function closeModal() { $('#modal').classList.remove('on'); }
+  function openModal(html) {
+    lastFocus = document.activeElement;
+    $('#modalBox').innerHTML = html;
+    $('#modal').classList.add('on');
+    focusFirst($('#modalBox'));
+  }
+  function closeModal() { $('#modal').classList.remove('on'); restoreFocus(); }
+
+  /* 键盘可达：Esc 关闭顶层浮层；Enter / 空格 触发 role="button" 的元素。
+     页面里仍有若干可点元素是 div（类名驱动的样式不好换标签），
+     这里补一层把键盘事件转成 click，键盘用户才能走完整个流程。 */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if ($('#modal').classList.contains('on')) { closeModal(); return; }
+      if ($('#drawer').classList.contains('on')) { closeDrawer(); return; }
+      return;
+    }
+    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+    const t = e.target;
+    if (!t || !t.closest) return;
+    /* 只在「元素自身」是 role=button 时接管，避免劫持输入框里的空格 */
+    const el = t.closest('[role="button"][data-act]');
+    if (!el || el !== t) return;
+    e.preventDefault();
+    el.click();
+  });
 
   /* ============ SVG 图表 ============ */
   function funnelChart(data) {
@@ -440,7 +505,9 @@
 
   function tbl(head, rows, empty) {
     if (!rows.length) return `<div class="tbl-empty">${empty || '暂无数据'}</div>`;
-    return `<div class="tblwrap"><table><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead>
+    /* scope="col"：让屏幕阅读器把表头与列关联起来。
+       否则读到一个单元格只会念「电商」，用户不知道这是哪一列。 */
+    return `<div class="tblwrap"><table><thead><tr>${head.map(h => `<th scope="col">${h}</th>`).join('')}</tr></thead>
       <tbody>${rows.join('')}</tbody></table></div>`;
   }
 
@@ -584,6 +651,42 @@
     </div>`;
   };
 
+  /* ---- 人工复核一致率卡片 ----
+     为什么要有这块：筛选 Agent 准不准，此前只能用嘴说。有了「确认 / 推翻」两种
+     真实人工表态 + 原因码枚举之后，一致率与失败分布可以自己长出来。
+     离线原型不产生样本 —— 这里显式说明，而不是编一个好看的比例糊上去。 */
+  function agreementCard() {
+    const a = state.agreement;
+    const head = `
+      <div class="card-h"><h3>人工复核一致率</h3><span class="spacer"></span>
+        <span class="card-sub">确认 AI 结论 ÷ 有人工结论的样本 · 样本来自真实操作</span></div>`;
+    if (!a) {
+      return `<div class="card pad0" style="margin-bottom:14px">${head}
+        <div style="padding:0 16px 16px" class="small muted">
+          离线原型不产生人工复核样本，故此处不显示比例。<b>启动本地后端</b>后，在候选人详情里「确认」或「推翻」一次 AI 结论，这里会真实变化。
+        </div></div>`;
+    }
+    if (!a.samples) {
+      return `<div class="card pad0" style="margin-bottom:14px">${head}
+        <div style="padding:0 16px 16px" class="small muted">${esc(a.note || '尚无人工复核结论。')}</div></div>`;
+    }
+    const rate = (a.agreementRate * 100).toFixed(1);
+    const col = a.agreementRate >= 0.8 ? 'grn' : a.agreementRate >= 0.5 ? 'yel' : 'red';
+    return `<div class="card pad0" style="margin-bottom:14px">${head}
+      <div style="padding:0 16px 16px">
+        <div class="kpis" style="margin:0">
+          <div class="kpi"><div class="k-label">一致率</div><div class="k-val" style="color:var(--${col})">${rate}<small>%</small></div>
+            <div class="k-foot">${a.confirmed}/${a.samples} 次确认 AI 结论</div></div>
+          <div class="kpi"><div class="k-label">AI 过严（人工推进）</div><div class="k-val">${a.humanOverrodeUp}<small>次</small></div>
+            <div class="k-foot">规则把合格的人拦了</div></div>
+          <div class="kpi"><div class="k-label">AI 过宽（人工否决）</div><div class="k-val">${a.humanOverrodeDown}<small>次</small></div>
+            <div class="k-foot">规则把不合适的放了</div></div>
+        </div>
+        ${(a.byCode && a.byCode.length) ? `<div class="small muted" style="margin:12px 0 6px">推翻原因分布 —— 这张表就是「下一步该修什么」的排序清单：</div>
+          ${tbl(['原因码', '含义', '次数'], a.byCode.map(x => `<tr><td class="mono small">${esc(x.code)}</td><td class="small">${esc(x.label)}</td><td><b>${x.count}</b></td></tr>`))}` : ''}
+      </div></div>`;
+  }
+
   /* ---- 简历筛选台 ---- */
   PAGES.screen = () => {
     const job = curJob();
@@ -650,6 +753,8 @@
           ? `真实用量 · 含 ${cut} 次规则节省（按 ¥35.7/1M tokens 试算 ¥${(usedTokens * 0.0000357).toFixed(2)}）`
           : `未调用模型 · 含 ${cut} 次规则前置拦截`}</div></div>
     </div>
+
+    ${agreementCard()}
 
     <div class="card pad0">
       <div class="card-h"><h3>筛选结果（按推荐度排序）</h3><span class="spacer"></span>
@@ -2051,28 +2156,62 @@ GitHub 有开源项目 800 star。期望薪资 35k。</textarea>
           <td><b>${r.score}</b>${r.max ? ' / ' + r.max : ''}</td><td class="small muted">${esc(r.ev)}</td></tr>`))}
         <div class="hr-note"><b>Agent 结论</b>：${esc(c.aiNote)}</div>
         ${c.parseOk ? '' : `<div class="scanwarn">⚠️ 解析状态：${esc(c.parseNote || '存在不确定字段')}</div>`}
-        <div class="small muted" style="margin:14px 0 6px">你的判断（推翻 AI 必须填写原因，会进入优化数据集）：</div>
-        <textarea class="i" id="ovReason" rows="3" placeholder="例如：制造业背景但招聘方法论扎实，值得面聊"></textarea>
+        ${c.human ? `<div class="callout" style="margin-top:12px">已有人工结论：<b>${esc(humanLabel(c.human))}</b>${c.overrideCode ? ' · 原因码 <span class="mono">' + esc(c.overrideCode) + '</span>' : ''}${c.overrideReason ? '<br><span class="small muted">' + esc(c.overrideReason) + '</span>' : ''}</div>` : ''}
+        ${c.grade == null ? '<div class="small muted" style="margin:14px 0 0">尚未评分，先运行筛选 Agent 再判断。</div>' : `
+        <div class="small muted" style="margin:14px 0 6px">你的判断（推翻需选原因码 + 填写说明；确认或推翻都会成为一致率的真实样本）：</div>
+        <label class="f">推翻原因码（选「确认」时不必填）</label>
+        <select class="i" id="ovCode">
+          <option value="">— 请选择 —</option>
+          ${ocLib().codes.map(x => `<option value="${esc(x.code)}">${esc(x.label)}</option>`).join('')}
+        </select>
+        <textarea class="i" id="ovReason" rows="2" style="margin-top:8px" placeholder="补充说明（写进审计日志与优化数据集）"></textarea>
         <div style="display:flex;gap:9px;margin-top:12px">
-          <button class="btn" data-act="toast" data-msg="已接受 AI 判断，候选人进入下一阶段。">✓ 接受 AI 判断</button>
-          <button class="btn danger" data-act="override" data-id="${esc(c.id)}">✕ 推翻并推进</button>
-        </div>`);
+          <button class="btn" data-act="confirmAI" data-id="${esc(c.id)}">✓ 确认 AI 判断</button>
+          <button class="btn danger" data-act="override" data-id="${esc(c.id)}">✕ 推翻 AI（改为${c.grade === 'no' ? '推进' : '否决'}）</button>
+        </div>`}`);
       $('#drawerFoot').innerHTML = '<button class="btn ghost" data-act="closeDrawer">关闭</button>';
     },
-    async override(el) {
-      const reason = ($('#ovReason') ? $('#ovReason').value : '').trim();
-      if (!reason) { toast('推翻 AI 必须填写原因 —— 原因会进入优化数据集，这是产品越用越准的关键。', 'warn'); return; }
+    /* 确认 AI 结论 —— 真实落库，不再只是一个 toast。
+       理由：只记录「推翻」，一致率的分母永远是 0（样本里全是分歧）。
+       把「确认」也写成一次人工表态，指标才成立。 */
+    async confirmAI(el) {
       const id = el.dataset.id;
       if (LIVE.on) {
         try {
-          await apiFetch('POST', '/api/candidates/' + id + '/override', { decision: 'rejected_by_human', reason });
+          await apiFetch('POST', '/api/candidates/' + id + '/override', { decision: 'confirmed' });
           await liveRefresh(); closeDrawer();
-          toast('✕ 已推翻 AI 结论，原因已写入数据库并进入优化数据集。', 'err');
+          toast('✓ 已确认 AI 结论，这条样本计入人工复核一致率。', 'ok');
         } catch (e) { toast('提交失败：' + e.message, 'err'); }
         return;
       }
-      closeDrawer();
-      toast('已推翻 AI 判断，原因已记录并进入优化数据集。');
+      const c = D.candidates.find(x => x.id === id);
+      if (c) { c.human = 'confirmed'; c.overrideCode = null; }
+      closeDrawer(); render();
+      toast('已确认 AI 判断（离线演示；接入后端后会计入真实一致率）。');
+    },
+    async override(el) {
+      const reason = ($('#ovReason') ? $('#ovReason').value : '').trim();
+      const code = ($('#ovCode') ? $('#ovCode').value : '');
+      /* 校验顺序说明：先原因码后说明 —— 因为码是**可统计**的部分，缺了它这条推翻
+         就退化成一条没法归因的自由文本，正是这次要修的毛病。 */
+      if (!code) { toast('推翻 AI 必须选择原因码 —— 自由文本存得下、统计不了，枚举才能告诉我们规则最常错在哪。', 'warn'); return; }
+      if (!reason) { toast('请再补一句说明：原因会写进审计日志与优化数据集。', 'warn'); return; }
+      const id = el.dataset.id;
+      const c = D.candidates.find(x => x.id === id);
+      /* 方向由 AI 档位推出：AI 判「不合适」→ 推翻即推进；AI 判「推荐/可聊」→ 推翻即否决。
+         修掉一个名实不符：原来按钮写着「推翻并推进」，却写死 rejected_by_human（否决）。 */
+      const decision = (c && c.grade && c.grade !== 'no') ? 'rejected_by_human' : 'approved_by_human';
+      if (LIVE.on) {
+        try {
+          await apiFetch('POST', '/api/candidates/' + id + '/override', { decision, reason, overrideCode: code });
+          await liveRefresh(); closeDrawer();
+          toast('✕ 已推翻 AI 结论 · 原因码 <b>' + esc(code) + '</b> · 已计入一致率样本。', 'err');
+        } catch (e) { toast('提交失败：' + e.message, 'err'); }
+        return;
+      }
+      if (c) { c.human = decision; c.overrideCode = code; c.overrideReason = reason; }
+      closeDrawer(); render();
+      toast('已推翻 AI 判断 · 原因码 <b>' + esc(code) + '</b> 已记录（离线演示）。');
     },
     reveal(el) {
       const c = D.candidates.find(x => x.id === el.dataset.id);
@@ -2726,9 +2865,10 @@ WHERE tenant_id = current_tenant() AND job_id = 'J-2026-118'<br>
       .filter(g => g.items.length);
     const html = groups.map(g => `
       ${g.group ? `<div class="navgroup-title">${g.group}</div>` : ''}
-      ${g.items.map(i => `<div class="navitem ${state.page === i.id ? 'active' : ''}" data-act="go" data-page="${i.id}">
-        <span class="ico">${i.ico}</span><span class="navtext">${i.name}</span>
-        ${i.cnt ? `<span class="cnt">${i.id === 'approvals' && pend !== null ? pend : i.cnt}</span>` : ''}</div>`).join('')}`).join('');
+      ${g.items.map(i => `<div class="navitem ${state.page === i.id ? 'active' : ''}" role="button" tabindex="0"
+        data-act="go" data-page="${i.id}" ${state.page === i.id ? 'aria-current="page"' : ''}>
+        <span class="ico" aria-hidden="true">${i.ico}</span><span class="navtext">${i.name}</span>
+        ${i.cnt ? `<span class="cnt" aria-label="待处理 ${i.id === 'approvals' && pend !== null ? pend : i.cnt} 项">${i.id === 'approvals' && pend !== null ? pend : i.cnt}</span>` : ''}</div>`).join('')}`).join('');
     $('#nav').innerHTML = html;
   }
 

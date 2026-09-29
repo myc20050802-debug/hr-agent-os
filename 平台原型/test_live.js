@@ -431,19 +431,76 @@ const html = fs.readFileSync(file, 'utf8');
     if (r405.status !== 405) throw new Error('方法不允许未返回 405');
   });
 
-  /* 12. 人工推翻 AI */
-  await tryAsync('人工推翻AI结论（需填原因）', async () => {
+  /* 12. 人工推翻 AI（必须先选原因码，再填说明；两者都会落库） */
+  await tryAsync('人工推翻AI结论（须选原因码 + 填说明）', async () => {
+    /* 前置：推翻的对象必须先有 AI 结论，所以这里先重置+跑一轮筛选。
+       （不能复用前面用例的状态：驳回会把本轮打分一并作废，属于有意设计） */
+    await api('/api/reset', { method: 'POST' });
+    const rb = await (await api('/api/bootstrap')).json();
+    if (!rb.jobs.some(x => x.id === app.state.jobId)) app.state.jobId = rb.jobs[0].id;
+    app.state.page = 'screen'; app.render();
+    $('[data-act="runScreen"]').click();
+    await wait(8000);
+    $('[data-act="closeDrawer"]').click();
+
     app.state.page = 'screen'; app.render();
     const d = $('[data-act="candDetail"]');
     if (!d) throw new Error('无候选人可点开');
     d.click();
     await wait(200);
+
+    /* 空提交：原因码缺失应先被拦下 */
+    $('#toast').innerHTML = '';
     $('[data-act="override"]').click();
     await wait(200);
-    if (($('#toast').textContent || '').indexOf('必须填写原因') === -1) throw new Error('未拦截空原因推翻');
+    if (($('#toast').textContent || '').indexOf('必须选择原因码') === -1) throw new Error('未拦截空原因码推翻');
+
+    /* 只填说明、不选码：仍应被拦（这一步保证「可统计」不被自由文本绕开） */
+    $('#toast').innerHTML = '';
     $('#ovReason').value = '跳槽过于频繁，与岗位稳定性要求不符';
     $('[data-act="override"]').click();
-    await wait(1200);
+    await wait(200);
+    if (($('#toast').textContent || '').indexOf('必须选择原因码') === -1) throw new Error('未拦截缺原因码的推翻');
+
+    /* 选码 + 说明：通过并落库 */
+    const sel = $('#ovCode');
+    if (!sel || sel.options.length < 2) throw new Error('原因码下拉未渲染');
+    if (!sel.options[1].value) throw new Error('原因码选项为空值');
+    sel.value = sel.options[1].value;
+    $('#toast').innerHTML = '';
+    $('[data-act="override"]').click();
+    await wait(1400);
+    if (($('#toast').textContent || '').indexOf('已推翻') === -1) throw new Error('推翻未成功');
+  });
+
+  /* 12a. 人工确认 AI 结论（真实落库 —— 一致率的分母就来自这里） */
+  await tryAsync('人工确认AI结论（计入一致率）', async () => {
+    app.state.page = 'screen'; app.render();
+    /* 必须换一个人：同一候选人只能有一个当前结论，重复操作是「改结论」而非新增样本 */
+    const all = window.document.querySelectorAll('[data-act="candDetail"]');
+    const d = all[1] || all[0];
+    if (!d) throw new Error('无候选人可点开');
+    d.click();
+    await wait(200);
+    const btn = $('[data-act="confirmAI"]');
+    if (!btn) throw new Error('未渲染「确认 AI 判断」按钮（候选人可能尚未评分）');
+    $('#toast').innerHTML = '';
+    btn.click();
+    await wait(1400);
+    if (($('#toast').textContent || '').indexOf('已确认') === -1) throw new Error('确认未成功');
+  });
+
+  /* 12b. 一致率接口：样本应随上面的操作增长（确认 1 + 推翻 1） */
+  await tryAsync('一致率接口反映真实人工样本', async () => {
+    const r = await api('/api/metrics/agreement');
+    if (r.status !== 200) throw new Error('一致率接口状态 ' + r.status);
+    const a = (await r.json()).agreement;
+    if (!a) throw new Error('返回体缺 agreement');
+    if (a.samples < 2) throw new Error('样本数应 ≥2，实际 ' + a.samples);
+    if (a.agreementRate == null) throw new Error('有样本时一致率不应为 null');
+    if (!Array.isArray(a.byCode)) throw new Error('byCode 应为数组');
+    log('      一致率 ' + (a.agreementRate * 100).toFixed(1) + '% · 样本 ' + a.samples
+      + '（确认 ' + a.confirmed + ' / 过严 ' + a.humanOverrodeUp + ' / 过宽 ' + a.humanOverrodeDown + '）');
   });
 
   /* 12b. 招聘链路闭环（本轮新增）
