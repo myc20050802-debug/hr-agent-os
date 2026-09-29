@@ -327,6 +327,35 @@ const html = fs.readFileSync(file, 'utf8');
     if (($('#pageHost').textContent || '').indexOf('已批准') === -1) throw new Error('批准后状态未回写页面');
   });
 
+  /* 8.5 打分归因（放在筛选与批准之后：此时候选人刚被打分、前端数据也刚刷新过）。
+     这条同时守住两件事：① 后端确实产出了 why 并随候选人下发；
+     ② 前端详情抽屉真的把它渲染出来了 —— 只存不显示等于没做。 */
+  await tryAsync('打分归因：后端下发 why 且与分数同源 + 详情抽屉渲染', async () => {
+    const withWhy = (window.DB.candidates || []).filter(c => c.why && c.why.terms);
+    if (!withWhy.length) throw new Error('后端没有下发任何打分归因（why）');
+    const c = withWhy[0];
+    const sum = c.why.terms.reduce((a, t) => a + t.score, 0);
+    if (sum !== c.score) throw new Error(`归因之和 ${sum} ≠ 后端分数 ${c.score}`);
+    c.why.terms.forEach(t => {
+      if (Math.round(t.max * t.coef) !== t.score) {
+        throw new Error(`维度「${t.dim}」算式 ${t.max} × ${t.coef} 算不出 ${t.score}`);
+      }
+    });
+    /* 详情抽屉里必须能看到这一块（「每个分数都要有原因」的界面约定）。
+       详情入口在「筛选」页、且按当前选中岗位过滤，所以要先把岗位切到这位候选人的岗。 */
+    app.state.jobId = c.jobId; app.state.page = 'screen'; app.render();
+    const btn = $(`[data-act="candDetail"][data-id="${c.id}"]`);
+    if (!btn) throw new Error('找不到候选人详情入口：' + c.id + '（岗位 ' + c.jobId + '）');
+    btn.click();
+    await wait(120);
+    const body = $('#drawerBody');
+    if (!body.querySelector('.why')) throw new Error('候选人详情里没有归因块');
+    if (!/为什么是\s*\d+\s*分/.test(body.textContent)) throw new Error('详情归因块缺少「为什么是 N 分」');
+    const closer = $('[data-act="closeDrawer"]');
+    if (closer) closer.click();
+    await wait(80);
+  });
+
   /* 9. 驳回必填原因 */
   await tryAsync('驳回必须填原因（服务端规则）', async () => {
     await api('/api/reset', { method: 'POST' });

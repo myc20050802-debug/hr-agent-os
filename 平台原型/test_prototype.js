@@ -118,6 +118,17 @@ JSDOM.fromFile(file, { runScripts: 'dangerously', pretendToBeVisual: true, virtu
       await wait(60);
       const out = window.document.getElementById('psOut');
       if (!out || out.innerHTML.length < 80) throw new Error('打分结果为空');
+      /* 每个分数都必须带「为什么是这个分」——这几条是那条界面约定的护栏。
+         少了它，分数又变成一个凭空出现的数字（面试官的第一反应就是「凭什么是这个数」）。 */
+      const why = out.querySelector('.why');
+      if (!why) throw new Error('打分结果里没有归因块（.why）');
+      const txt = why.textContent;
+      if (!/为什么是\s*\d+\s*分/.test(txt)) throw new Error('归因块缺少「为什么是 N 分」标题');
+      if (!/\d+\s*\+\s*\d+\s*\+\s*\d+\s*\+\s*\d+\s*=/.test(txt)) throw new Error('归因块缺少逐维相加的算式');
+      if (!/决定性因素/.test(txt)) throw new Error('归因块缺少「决定性因素」');
+      if (!/再往前一步/.test(txt)) throw new Error('归因块缺少「再往前一步」的提分路径');
+      if (!/置信度/.test(txt)) throw new Error('归因块缺少置信度提醒');
+      if (why.querySelectorAll('table tbody tr').length < 4) throw new Error('归因块未逐维给出系数算式');
     });
 
     await tryAsync('候选人详情抽屉', async () => {
@@ -434,6 +445,65 @@ JSDOM.fromFile(file, { runScripts: 'dangerously', pretendToBeVisual: true, virtu
       /* 反过来：真实命中不能被边界规则误杀（顿号分隔是常见写法） */
       if (!RL.kwContains('了解 LLM、RAG、Agent', 'RAG')) throw new Error('顿号分隔的 RAG 被判成无边界，漏命中');
       if (!RL.kwContains('熟练 Go 语言', 'Go')) throw new Error('独立的 Go 被判成无边界，漏命中');
+    });
+
+    /* 打分归因：把「解释不许和分数打架」这条锁住。
+       归因是**从已算好的分数反推**的（系数取自 shared/score-why.js 的同一份阶梯），
+       所以它的算式必须能逐位对上 —— 一旦有人另写一套归因算法，这里立刻红。 */
+    await tryAsync('打分归因：算式与分数同源、可逐位核对', async () => {
+      const A2 = window.Agent, SW = window.ScoreWhy;
+      if (!SW || typeof SW.explain !== 'function') throw new Error('缺少 window.ScoreWhy.explain');
+
+      const RESUME = '熟悉 LLM 与 RAG 应用设计，做过 Prompt 调优。获校级一等奖。本科（在读）';
+      const r = A2.scoreResume(RESUME, '了解LLM RAG');
+      const w = r.why;
+      if (!w || !w.terms) throw new Error('scoreResume 没有返回 why');
+
+      /* ① 总分的算式必须恰好等于各维之和，且等于真实分数 */
+      const sum = w.terms.reduce((a, t) => a + t.score, 0);
+      if (sum !== r.score) throw new Error(`归因算式之和 ${sum} ≠ 实际分数 ${r.score}`);
+      if (!new RegExp(w.terms.map(t => t.score).join('\\s*\\+\\s*') + '\\s*=\\s*' + r.score).test(w.formula)) {
+        throw new Error('formula 文案与 terms 不一致：' + w.formula);
+      }
+
+      /* ② 每一维的「满分 × 系数」必须能算出它自己的分数（系数不是装饰） */
+      w.terms.forEach(t => {
+        const calc = Math.round(t.max * t.coef);
+        if (calc !== t.score) throw new Error(`维度「${t.dim}」算式 ${t.max} × ${t.coef} = ${calc}，与实际 ${t.score} 不符`);
+        if (!t.reason) throw new Error(`维度「${t.dim}」没给出「为什么是这个系数」`);
+      });
+
+      /* ③ 系数必须真的来自共享阶梯 —— 否则说明有人又写死了一份 */
+      if (SW.coefOf('biz', 0) !== 0.2 || SW.coefOf('biz', 4) !== 1) throw new Error('业务匹配系数阶梯与实现不符');
+      if (SW.coefOf('plus', 0) !== 0) throw new Error('加分项触底应为 0（唯一没有底分的一维）');
+      if (SW.coefOf('stab', 5, 0) !== 0.8) throw new Error('岗位未设年限门槛时应固定 0.8');
+      const biz = r.dims.find(d => d.dim === '业务匹配');
+      if (biz.coef !== SW.coefOf('biz', 0)) throw new Error('打分的系数没走共享阶梯');
+
+      /* ④ 「还差几分」的算术要对得上 */
+      if (w.threshold && w.threshold.need !== w.threshold.min - r.score) {
+        throw new Error(`门槛差值算错：${JSON.stringify(w.threshold)} vs 实际 ${r.score}`);
+      }
+      /* ⑤ 提分路径必须给出可核对的新分数与增量 */
+      w.lift.forEach(l => {
+        const t = w.terms.find(x => x.dim === l.dim);
+        if (l.delta !== l.newDim - t.score) throw new Error('提分增量与维度分数对不上：' + JSON.stringify(l));
+      });
+
+      /* ⑥ 关键词样本越少，越要主动提示置信度不足（本例只有 2 个） */
+      if (w.confidence.level !== '偏低' && w.confidence.level !== '低') {
+        throw new Error('2 个关键词时置信度应为偏低/低，实得：' + w.confidence.level);
+      }
+
+      /* ⑦ 反推模式（老数据只有已存分数）：不能编关键词，也要说清来源 */
+      const d2 = SW.explain({ score: r.score, dims: r.dims.map(d => ({ dim: d.dim, score: d.score, max: d.max, ev: d.ev })), ctx: { derived: true } });
+      if (d2.formula !== w.formula) throw new Error('反推模式的算式与实际打分的算式不一致');
+      if (d2.confidence.level !== '未记录') throw new Error('反推模式不该假装评估得了样本充分度');
+      if (!d2.notes.some(n => n.kind === '归因来源')) throw new Error('反推模式未标注归因来源');
+      if (d2.lift.some(l => /还差：/.test(l.text))) throw new Error('反推模式编造了关键词清单');
+
+      /* ⑧ 全触底的理论最低分必须由阶梯算出（四维底分 14+6+12+0），不是拍的数字 */
+      if (SW.floorScore() !== 32) throw new Error('四维全触底最低分应为 32，实得 ' + SW.floorScore());
     });
 
     log('\n================ 结果 ================');
