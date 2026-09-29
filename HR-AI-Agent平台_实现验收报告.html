@@ -102,6 +102,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <h2 id="doc0--〇-一页速览">〇、一页速览</h2>
 <div class="tablewrap"><table><thead><tr><th>项</th><th>结论</th></tr></thead><tbody><tr><td>本轮做了什么</td><td>把项目从「功能可演示的 PoC」推进到「<strong>可信、可运维、可审计</strong>的 M1 可信底座」</td></tr><tr><td>最关键的修复</td><td>拔掉 <strong>P0 身份可伪造</strong>（原 <code>X-User</code> 请求头即身份）；并顺带补齐三层权限、审计不可篡改、PIPL 数据治理、版本化迁移</td></tr><tr><td>代码规模</td><td>后端 <strong>16 个模块 / 4,924 行</strong>（从 3 个文件拆成 L0–L5 分层）；前端 <code>app.js</code> 约 188KB；单文件原型 <strong>436,610 bytes（约 426KB）</strong></td></tr><tr><td>回归证据</td><td>在线（真鉴权）<strong>23 页 + 22 项</strong>、离线 <strong>23 页 + 18 项</strong>、后端集成 <strong>127 + 87 + 74 项断言</strong>，<strong>全部 0 失败</strong></td></tr><tr><td>一次硬验证</td><td><strong>删库重启</strong>：空 DB → 5 个迁移自动应用 → 种子写入 → 服务健康（<code>schemaVersion: 5</code>）全程无人工干预</td></tr><tr><td>一句话面试口径</td><td>「企业级的门槛不是数据量，是<strong>可信</strong>。我先把可以伪造的身份换成服务端签发的会话，再让权限落在服务端出数据之前，最后让审计在数据库层就改不动。」</td></tr><tr><td>还没做</td><td>换 PostgreSQL／多租户隔离／接真实模型／离线评测集（见 §七、§八）</td></tr></tbody></table></div>
 <blockquote><strong>补记（§九，招聘链路闭环）</strong>：M1 之后又补了一轮 —— 把「已邀约」之后<strong>断掉的招聘链路</strong>接上（面试表、Offer 表、真实面试官账号、状态机）。 内容见 §九、§十、§十一；本速览的「代码规模 / 回归证据」两行已按 §九 / §十 / §十一 之后的实测值刷新。</blockquote>
+<blockquote><strong>补记（打分口径与词库，2026-09-29）</strong>：又修了一轮，起因是「一份 AI 产品经理简历被自己这套系统打了 16 分」—— 原型打分函数 <code>scoreResume</code> 曾写死一份 Java 技术词表，岗位要求只用于判学历与年限，于是任何非 Java 岗位的简历必然技能匹配 0/40。 已改为<strong>从岗位要求抽词</strong>并与后端 <code>scoreOne</code> 同口径；词库侧补了三处根因（<code>tags</code> 裸名词、拉丁技术名词兜底、<code>kwContains</code> 词边界）， <code>REQ_LIB_VER</code> 9 → 11（登录拉快照即自动重算 21 个岗位）。离线回归用例数 <strong>18 → 21</strong>，单文件产物 <strong>436,610 → 468,655 bytes</strong>。 <strong>评测指标未变</strong>（90.0% / 100.0% / 0.0% / 25.0%）—— 说明这一轮改的是「关键词覆盖」，没有动打分的分档拐点。 因此本速览表内其余数字仍为 §十一 时点的快照，最新数字以 <code>README.md</code> 的「质量与性能实测」为准。</blockquote>
 <hr class="sep">
 <h2 id="doc0--一-目标-范围与优先序">一、目标、范围与优先序</h2>
 <h3 id="doc0--1-1-为什么先做-M1-而不是先灌数据-先接模型">1.1 为什么先做 M1（而不是先灌数据、先接模型）</h3>
@@ -433,7 +434,7 @@ fnKey = null（职能识别不出）→ 走行业兜底
 <hr class="sep">
 <p><em>配套阅读：<code>docs/07_项目计划书.md</code>（里程碑与决策）、<code>docs/08_架构设计文档.md</code>（L0–L5 与 ADR）、<code>docs/05_从PoC到企业级的差距清单.md</code>（本轮的立项依据）。凡本报告与代码冲突，<strong>以代码实测为准</strong>。</em></p></article></main>
 </div>
-<footer>生成时间：2026-09-29 14:39（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-09-29 15:58（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "09 · M1 实现说明与验收报告（可信底座）"}];
 

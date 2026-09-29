@@ -53,7 +53,7 @@ Windows 双击 `server/start.bat` 即可（自动开浏览器）。
 
 | 文件 | 是什么 |
 |---|---|
-| `平台原型/index.html` | **可点击平台原型**，单文件 **457,279 bytes（约 447KB）**，23 个页面，双击即开（探测到本机后端会自动切到在线） |
+| `平台原型/index.html` | **可点击平台原型**，单文件 **468,655 bytes（约 458KB）**，23 个页面，双击即开（探测到本机后端会自动切到在线） |
 | `server/` | **真实后端**：Node 原生 HTTP + SQLite + Agent 引擎，零依赖；**16 个模块按 L0–L5 分层** |
 | `.workbuddy/settings.json` | **项目级 hook**：SessionStart → `tools/dev-up.sh`，每次打开项目把后端幂等拉起 |
 | `tools/dev-up.js` / `tools/dev-up.sh` | **幂等启动器**：已在跑就不重复启；比 `schema` 版本、检陈旧实例；Windows 走 WMI 让进程活过宿主回收 |
@@ -191,7 +191,7 @@ node --experimental-sqlite tools/test_eval.js        # 筛选质量评测 · 黄
 node --experimental-sqlite tools/test_screening.js   # 用量真实性 / 可重复运行 · 29 项
 node tools/test_devup.js                             # 打开即在线 · 幂等启动 / CORS / hook 接线 / 跨源场景 · 18 项
 cd 平台原型
-node test_prototype.js                               # 离线：23 页渲染 + 20 项交互（无需 server）
+node test_prototype.js                               # 离线：23 页渲染 + 21 项交互（无需 server）
 node test_live.js                                    # 真后端：23 页渲染 + 25 项真链路（需先启动 server）
 ```
 
@@ -214,6 +214,22 @@ node test_live.js                                    # 真后端：23 页渲染 
 | 误筛率 | **25.0%**（3/12） | 该淘汰的人被 AI 判 strong/ok |
 
 3 例分歧全部同向（AI 过宽），且都是**故意埋的边界探针**：前端技术负责人（`JavaScript` 含「Java」字样被误命中）、资深算法工程师（业务/加分标签堆叠抬高分数）、资深销售（沟通类标签全中但无交付经验）。这三条直接对应 `override_code` 枚举里的 `keyword_fuzzy` / `biz_overrated`——**评测不只是打分，它给出了改进清单**。
+
+**打分口径：关键词必须跟着岗位走**（`shared/req-lib.js`，词库版本 `REQ_LIB_VER = 11`）
+
+原型里有个更隐蔽的同类问题：`scoreResume` 曾**写死一份 Java 技术词表**（java/spring/kafka/mysql…），岗位要求只拿来判学历与年限两个闸门。于是任何非 Java 岗位都必然技能匹配 0/40 —— 把一份正文写着 `LLM`、`RAG`、`Agent` 的 AI 产品经理简历，拿去评「了解LLM RAG」的岗位，得到 **16 分 / 不合适**。已改为**关键词一律从岗位硬性要求抽**，四个维度的映射口径与后端 `scoreOne` 对齐，界面并把抽到的关键词显示出来（分数可解释）。
+
+同一次排查还修掉了词库层的三个根因：
+
+| 根因 | 症状 | 修法 |
+|---|---|---|
+| 技能全集只有「能力描述」措辞，没有裸名词 | 「3 年以上 AI 产品经验」只抽得出一个 `AI`；`大模型`/`前端`/`数据库` 全漏 | 新增 `tags` 字段（只进技能全集，**不参与 JD 文案**），已配 tech / product / data 三族 |
+| 词库永远追不上新技术词 | 「了解LLM RAG」抽出 `[]` —— `LLM` 词库里根本没有 | 加**拉丁技术名词兜底**（字母开头 ≥2 字符，剔英文虚词） |
+| 冗余裁剪把巧合当冗余 | `ue ⊂ vue`、`sql ⊂ mysql` → 留下 `UE` 却裁掉 `Vue` | 裁剪仅跳过「两个词都是纯拉丁」的情形 |
+
+另外把关键词匹配统一到 `ReqLib.kwContains()`：纯拉丁且 ≤3 字符的词要求**词边界**，否则 `email` 会命中 `AI`、`Django` 会命中 `Go`；边界判定用「分隔符→空格」的归一化，否则「Agent、RAG」这种最常见的顿号写法反而漏命中。
+
+自愈：这批改动让 `REQ_LIB_VER` 从 9 升到 11，登录后拉一次快照（`GET /api/bootstrap`）即自动重算全部 21 个岗位的 JD 与关键词，不需要人工逐个改岗位。**评测数字未变**（下表仍是 90.0% / 100% / 0.0% / 25.0%）——说明这次改的是「关键词覆盖」，没有动打分的分档拐点。
 
 **并发性能**（`tools/test_load.js`，单进程 Node，并发 20）：
 
