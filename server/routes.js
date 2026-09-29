@@ -461,6 +461,30 @@ function buildRouter(db) {
     return rc.ok({});
   });
 
+  /* 重置某岗位的 AI 评分，便于重复演示。
+     为什么必须有这个接口：筛选只处理 `ai_score IS NULL` 的候选人
+     （见 engine.runScreening 的取数条件），所以同一岗位第二次运行会「无事发生」。
+     没有它，演示到第二轮就走不下去了。
+     范围：只清评分与人工结论，**不动阶段** —— 重置的是「机器判断」，
+     不是把人从流程里退回去。 */
+  r.post('/api/jobs/:id/reset-scores', { need: 'screen:run' }, rc => {
+    const job = db.prepare(`SELECT id,title,dept_path FROM jobs WHERE id=?`).get(rc.params.id);
+    if (!job) throw notFound('岗位不存在');
+    if (!rbac.inScope(rc.ctx, { deptPath: job.dept_path })) {
+      throw denyScope(rc, 'job', rc.params.id, '岗位超出本角色数据范围');
+    }
+    const before = db.prepare(`SELECT COUNT(*) c FROM candidates WHERE job_id=? AND ai_score IS NOT NULL`).get(job.id).c;
+    db.prepare(`UPDATE candidates SET ai_score=NULL, ai_grade=NULL, ai_reasons=NULL, ai_note=NULL,
+      human_decision=NULL, override_reason=NULL WHERE job_id=? AND ai_score IS NOT NULL`).run(job.id);
+    audit.record(db, {
+      tenantId: TENANT, actorType: 'user', actorId: rc.ctx.userId, action: '重置岗位 AI 评分',
+      objectType: 'job', objectId: job.id,
+      detail: `${job.title}：清空 ${before} 份评分（阶段不变，可重新运行筛选）`, result: audit.RESULT.OK,
+    });
+    metrics.inc('screening.resets');
+    return rc.ok({ reset: before });
+  });
+
   /* ================= 候选人详情（受审计的 PII 读取路径） =================
      为什么单独开这个接口，而不是让 bootstrap 直接返回未脱敏数据：
      读 PII 必须留痕。若放在 bootstrap，则每进一次首页就写一条审计

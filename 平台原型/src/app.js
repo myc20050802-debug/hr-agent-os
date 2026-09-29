@@ -75,7 +75,10 @@
     { id: 'OF-1', candidate: '赵一诺', job: '高级 Java 工程师', salary: 32000, probationMonths: 3, reportDate: '2026-11-02', status: 'pending_approval', statusLabel: '待审批', createdBy: '王强', checks: [] }
   ];
 
-  const state = { page: 'dashboard', q: '', collapsed: false, jobId: null, jobForm: null };
+  const state = { page: 'dashboard', q: '', collapsed: false, jobId: null, jobForm: null,
+    /* 最近一次筛选运行的真实模型用量（null = 还没跑过）。
+       只由服务端返回的 steps 汇总而来；规则模式下恒为 0。绝不本地估算。 */
+    runTokens: null };
 
   /* ---------- 当前岗位（不再写死「高级 Java 工程师」） ---------- */
   function curJob() { return D.jobs.find(x => x.id === state.jobId) || D.jobs[0] || null; }
@@ -595,8 +598,12 @@
     const okc = cs.filter(c => c.grade === 'ok').length;
     const no = cs.filter(c => c.grade === 'no').length;
     const cut = cs.filter(c => c.ruleHit).length;
-    const tokens = scored.length * 160 + cs.length * 180;
-    const cost = (tokens * 0.0000357).toFixed(2);
+    /* 用量只认服务端返回的真实值。
+       原来的 `scored*160 + cs*180` 是本地估算的常数，会在「根本没调用模型」的
+       规则模式下算出一笔金额显示给用户 —— 等于对外承诺一个不存在的成本。
+       与项目自己的红线一致：不编硬数字。 */
+    const usedTokens = Number(state.runTokens || 0);
+    const modelUsed = usedTokens > 0;
     const eduName = { 1: '大专', 2: '本科', 3: '硕士', 4: '博士' };
     return `
     <div class="page-head"><h2>招聘 Agent · 简历筛选台</h2>
@@ -624,7 +631,8 @@
         🎯 <b>打分关键词（来自本岗位要求，不是写死的）</b>：${(job.keywords && job.keywords.length) ? job.keywords.map(k => `<span class="tag">${esc(k)}</span>`).join(' ') : '<span class="muted">未配置</span>'}
         <span class="spacer"></span><span class="small muted" style="display:block;margin-top:6px">要改要求或关键词？到「📋 岗位管理」编辑该岗位即可，改完重跑筛选。</span>
       </div>
-      <div class="callout" style="margin-bottom:0">⚙️ 执行顺序：<b>规则前置过滤</b>（硬性条件用代码判，不花模型钱）→ <b>物理剔除受保护字段</b> → <b>模型逐维打分</b> → <b>PII 脱敏</b> → <b>写回 ATS（需你确认）</b></div>
+      <div class="callout" style="margin-bottom:0">⚙️ 执行顺序：<b>规则前置过滤</b>（硬性条件用代码判，不花模型钱）→ <b>物理剔除受保护字段</b> → <b>${LIVE.mode === 'llm' ? '模型生成理由 + 规则逐维打分' : '规则启发式逐维打分'}</b> → <b>PII 脱敏</b> → <b>写回 ATS（需你确认）</b>
+        <span class="small muted" style="display:block;margin-top:6px">当前模式：${LIVE.mode === 'llm' ? '已接入模型（用量取自网关响应）' : '规则模式 —— 未配置模型，全程 0 token'}</span></div>
     </div>
 
     <div class="kpis">
@@ -636,8 +644,11 @@
         <div class="k-foot">其中 ${cut} 份被规则前置拦截（0 token）</div></div>
       <div class="kpi"><div class="k-label">已评分</div><div class="k-val">${scored.length}<small>/${cs.length}</small></div>
         <div class="k-foot">${scored.length ? '评分可逐条追溯' : '尚未运行 Agent'}</div></div>
-      <div class="kpi"><div class="k-label">本岗位模型成本</div><div class="k-val">¥${cost}</div>
-        <div class="k-foot">${tokens.toLocaleString()} tokens · 含 ${cut} 次规则节省</div></div>
+      <div class="kpi"><div class="k-label">本次模型用量</div>
+        <div class="k-val">${modelUsed ? usedTokens.toLocaleString() : '0'}<small>${modelUsed ? ' tokens' : ''}</small></div>
+        <div class="k-foot">${modelUsed
+          ? `真实用量 · 含 ${cut} 次规则节省（按 ¥35.7/1M tokens 试算 ¥${(usedTokens * 0.0000357).toFixed(2)}）`
+          : `未调用模型 · 含 ${cut} 次规则前置拦截`}</div></div>
     </div>
 
     <div class="card pad0">
@@ -1657,6 +1668,7 @@
   PAGES.model = () => `
     <div class="page-head"><h2>模型与用量</h2>
       <p>不是所有任务都该用最贵的模型。<b>便宜模型干粗活，强模型干细活</b>，并且每个 Agent 都要设预算上限。</p></div>
+    ${LIVE.mode !== 'llm' ? `<div class="callout" style="border-color:var(--pur)">⚠️ <b>本页数字是成本模型的示意，不是真实账单。</b>当前为<b>规则模式</b>（未配置模型）：真实调用次数 <b>0</b>、真实成本 <b>¥0</b>。表中「本月调用 / 成本」为方案推演用的示例值，接入模型后应替换为网关真实用量。</div>` : ''}
     <div class="card" style="margin-bottom:14px">
       <div class="card-h"><h3>模型路由配置</h3></div>
       ${tbl(['任务类型', '使用模型', '理由', '本月调用', '成本'], [
@@ -1769,6 +1781,8 @@
         try {
           const run = await apiFetch('POST', '/api/agent/screening/run', { jobId: job.id });
           if (run.status === 'error') { toast('运行失败：' + (run.msg || run.error), 'err'); closeDrawer(); return; }
+          /* 真实用量从本次运行的步骤里汇总（服务端已按 API 响应统计） */
+          state.runTokens = (run.steps || []).reduce((a, x) => a + (Number(x.tokens) || 0), 0);
           await renderLivePlan($('#agentHost'), run);
           if (run.status === 'waiting_approval') {
             $('#drawerFoot').innerHTML = `<span class="small muted">任务已挂起，等待你在审核中心确认</span>
@@ -1789,6 +1803,29 @@
           <button class="btn ghost" data-act="closeDrawer">稍后处理</button>
           <button class="btn primary" data-act="goApproval" data-id="AP-3391">去审核（需确认写回 ATS）</button>`;
       }
+    },
+    /* 重置本岗位评分后重跑。
+       「运行筛选」只处理还没有评分的候选人，所以重复演示同一岗位时
+       必须先清掉旧评分，否则第二次点击不会产生任何变化 —— 而这个按钮
+       正处在「该岗位都已有评分」这个状态下，是当时唯一的出路。 */
+    async resetJobScores(el) {
+      const id = (el && el.dataset && el.dataset.id) || (curJob() && curJob().id);
+      if (!id) { toast('未找到岗位。', 'warn'); return; }
+      if (!LIVE.on) {
+        let n = 0;
+        D.candidates.forEach(c => {
+          if (c.jobId === id && c.score != null) { c.score = null; c.grade = null; c.reasons = []; c.ruleHit = null; n++; }
+        });
+        closeDrawer(); render();
+        toast(`已重置 ${n} 份评分（离线演示），可以重新运行筛选。`);
+        return;
+      }
+      try {
+        const r = await apiFetch('POST', '/api/jobs/' + encodeURIComponent(id) + '/reset-scores');
+        closeDrawer();
+        await liveRefresh(); render();
+        toast(`已重置 ${(r && Number(r.reset)) || 0} 份评分，可以重新运行筛选。`);
+      } catch (e) { toast('重置失败：' + e.message, 'err'); }
     },
     /* ---- 岗位选择 / 岗位管理 ---- */
     pickJob(el) {

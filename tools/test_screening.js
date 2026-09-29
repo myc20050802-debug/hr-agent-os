@@ -1,5 +1,7 @@
 /**
- * 验证「模型用量只来自真实响应」—— 规则模式不得虚报，接入模式必须真调。
+ * 验证筛选运行的两件事：
+ *   ① 用量真实性 —— 规则模式不得虚报，接入模式必须真调
+ *   ② 可重复运行 —— 重置评分后能再跑一次（否则演示到第二轮就走不下去）
  *
  * 背景：修复前 runScreening 在**规则模式下**也会按 160 token/份 记一个常量，
  * 并把工具名写成 llm.score_resume，前端据此显示出一笔并未发生的模型成本。
@@ -12,7 +14,7 @@
  * 关键断言是 B 里的 `tokens / calls === 137`：
  * 137 是假网关**在响应里声明**的用量。若仍是那个 160 的常量，此断言必失败。
  *
- * 零依赖，直接：node tools/test_cost.js
+ * 零依赖，直接：node tools/test_screening.js
  *   两个实例各用独立 DB（DB_PATH 指向临时目录），不碰演示库 server/hr_agent.db。
  */
 'use strict';
@@ -190,6 +192,33 @@ function client(port) {
 
   /* 规则模式的实例不能被 B 的配置影响 */
   ok('两个实例互不干扰（规则实例仍报 rule）', (await waitHealthy(PORT_RULE, '规则实例')).mode === 'rule');
+
+  /* ================= C · 重置评分与可重复运行 =================
+     「运行筛选」只取 ai_score 为空的候选人，所以同一岗位第二次运行会无事发生。
+     重置接口是这个断点的解药，也是唯一能让演示重复进行的路径 —— 值得锁死。 */
+  section('C · 重置评分与可重复运行');
+
+  const noAbility = client(PORT_RULE);
+  const le = await noAbility('POST', '/api/auth/login', { identifier: 'U-003', password: 'Demo@2026' });
+  ok('员工账号 U-003 登录成功', le.status === 200, 'status=' + le.status);
+  const forb = await noAbility('POST', `/api/jobs/${jobId}/reset-scores`, {});
+  ok('★ 员工无 screen:run 能力 → 重置被拒（403）', forb.status === 403, 'status=' + forb.status);
+
+  const rs1 = await ca('POST', `/api/jobs/${jobId}/reset-scores`, {});
+  ok('HRD 重置评分成功', rs1.status === 200, 'status=' + rs1.status);
+  const n1 = rs1.json && Number(rs1.json.reset);
+  ok('★ 重置确实清掉了评分（reset > 0）', n1 > 0, 'reset=' + n1);
+
+  const rs2 = await ca('POST', `/api/jobs/${jobId}/reset-scores`, {});
+  ok('重复重置返回 0（幂等，不报错）', rs2.status === 200 && Number(rs2.json.reset) === 0,
+    'reset=' + (rs2.json && rs2.json.reset));
+
+  const runA2 = await ca('POST', '/api/agent/screening/run', { jobId });
+  ok('★ 重置后可以重新运行筛选', runA2.status === 200 && runA2.json && runA2.json.status === 'waiting_approval',
+    'status=' + runA2.status);
+  ok('重跑仍然产生完整步骤', ((runA2.json && runA2.json.steps) || []).length > 0);
+  ok('重跑仍不虚报用量（tokens 全为 0）',
+    ((runA2.json && runA2.json.steps) || []).every(x => Number(x.tokens) === 0));
 
   /* ---------- 结果 ---------- */
   console.log('\n================ 结果 ================');
