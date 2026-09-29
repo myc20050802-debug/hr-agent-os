@@ -371,6 +371,71 @@ JSDOM.fromFile(file, { runScripts: 'dangerously', pretendToBeVisual: true, virtu
       if (!/^file:/.test(window.location.href)) throw new Error('离线用例里发生了跳转：' + window.location.href);
     });
 
+    /* 岗位驱动的简历打分：把「关键词跟着岗位走」这条行为锁住。
+       背景：scoreResume 曾经写死一份 Java 技术词表（java/spring/kafka/mysql…），
+       岗位要求只用于判学历与年限。后果是任何非 Java 岗位的简历都是 0/40 ——
+       一份正文写着 LLM、RAG、Agent 的 AI 产品经理简历，评「了解LLM RAG」的岗位
+       拿到技能匹配 0 分、总分 16、判「不合适」。这是尺子拿错，不是严格。 */
+    await tryAsync('简历打分：关键词抽自岗位要求（换岗位换尺子）', async () => {
+      const A2 = window.Agent;
+      if (!A2 || typeof A2.scoreResume !== 'function') throw new Error('缺少 scoreResume');
+
+      const AI_RESUME = `马云冲 男 出生年月：2005/8/2 最高学历：本科（在读）
+2023/9-2027/6 大连东软信息学院 电子信息工程，GPA 专业前 10%
+自学方向：大模型评测方法、Badcase 归因、竞品分析、Prompt 工程、智能体搭建。
+个人技能：了解 LLM 原理与能力边界及机器学习、Agent、RAG、微调等概念；熟练 SQL/Python 数据分析`;
+
+      const hitReq = A2.scoreResume(AI_RESUME, '了解LLM RAG');
+      const kws = (hitReq.hits && hitReq.hits.kws) || [];
+      /* ① 关键词必须来自岗位要求本身 */
+      if (!kws.includes('LLM') || !kws.includes('RAG')) {
+        throw new Error('岗位关键词未从「了解LLM RAG」抽出 LLM/RAG，实得：' + JSON.stringify(kws));
+      }
+      if (kws.some(k => /^(java|spring|mysql|kafka|redis)$/i.test(k))) {
+        throw new Error('岗位关键词里混进了 Java 栈（说明写死的技术词表又回来了）：' + JSON.stringify(kws));
+      }
+      /* ② 简历正文写着 LLM/RAG，技能匹配不能是 0 */
+      const skill = hitReq.dims.find(d => d.dim === '技能匹配');
+      if (!skill || skill.score <= 0) throw new Error('技能匹配为 0：AI 简历评 AI 岗位不应该 0 分');
+      if (!/LLM/.test(skill.ev) || !/RAG/.test(skill.ev)) throw new Error('技能匹配依据未追溯到命中的关键词：' + skill.ev);
+
+      /* ③ 换岗位要求 → 同一份简历的分数必须变（这条是「跟着岗位走」的判据） */
+      const javaReq = A2.scoreResume(AI_RESUME, '3 年以上 Java 开发经验，熟悉 Spring 与 MySQL');
+      const javaSkill = javaReq.dims.find(d => d.dim === '技能匹配');
+      if (!javaSkill || javaSkill.score >= skill.score) {
+        throw new Error('同一份简历评 Java 岗没有掉分（关键词没跟着岗位走）：' + (javaSkill && javaSkill.score) + ' vs ' + skill.score);
+      }
+
+      /* ④ 依据文案不能与得分自相矛盾。
+         旧版稳定性维度写「简历未体现工作年限，记 0 分并说明」，实际给了 8 分。 */
+      [...hitReq.dims, ...javaReq.dims].forEach(d => {
+        if (/记\s*0\s*分/.test(d.ev) && d.score !== 0) {
+          throw new Error('维度「' + d.dim + '」文案说记 0 分但实得 ' + d.score + ' 分');
+        }
+      });
+
+      /* ⑤ 命中 0 项时必须如实说明是底分，而不是含糊说「未体现」却给分 */
+      const zero = A2.scoreResume('某某，大专，行政助理，负责会议安排与文件归档', '了解LLM RAG');
+      const zeroSkill = zero.dims.find(d => d.dim === '技能匹配');
+      if (zeroSkill.score !== 0 && !/底分/.test(zeroSkill.ev)) {
+        throw new Error('零命中却给了 ' + zeroSkill.score + ' 分，且未说明按底分计：' + zeroSkill.ev);
+      }
+
+      /* ⑥ 「2018 年毕业」是**年份**，不能被读成 2018 年工作经验 */
+      const years = A2.scoreResume('2018 年毕业，本科，参与过订单系统开发', '了解LLM RAG')
+        .dims.find(d => d.dim === '稳定性');
+      if (/2018/.test(years.ev)) throw new Error('把毕业年份当成了工作年限：' + years.ev);
+
+      /* ⑦ 短英文关键词要词边界：email 不能命中 AI、Django 不能命中 Go */
+      const RL = window.ReqLib;
+      if (!RL || typeof RL.kwContains !== 'function') throw new Error('缺少 ReqLib.kwContains');
+      if (RL.kwContains('email 邮箱', 'AI')) throw new Error('短英文关键词边界失效：email 命中了 AI');
+      if (RL.kwContains('Django 后端开发', 'Go')) throw new Error('短英文关键词边界失效：Django 命中了 Go');
+      /* 反过来：真实命中不能被边界规则误杀（顿号分隔是常见写法） */
+      if (!RL.kwContains('了解 LLM、RAG、Agent', 'RAG')) throw new Error('顿号分隔的 RAG 被判成无边界，漏命中');
+      if (!RL.kwContains('熟练 Go 语言', 'Go')) throw new Error('独立的 Go 被判成无边界，漏命中');
+    });
+
     log('\n================ 结果 ================');
     log('页面渲染异常：' + bad);
     log('运行时错误：' + errors.length);

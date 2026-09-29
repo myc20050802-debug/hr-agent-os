@@ -45,6 +45,30 @@
 
   const norm = s => String(s == null ? '' : s).toLowerCase().replace(/[\s·\-_/（）()：:、,，]/g, '');
 
+  /* 关键词包含判定（前后端共用；打分、技能标签、岗位关键词一律走这里）
+     为什么不能直接用 indexOf：抽词补了「拉丁技术名词兜底」之后，关键词里会出现
+     AI / Go / HR 这类两字母词。朴素子串匹配会误命中 —— 'email' 含 'ai'、
+     'Django' 含 'go'、'share' 含 'hr'。
+     规则：纯拉丁且长度 ≤3 的关键词，要求左右都不是字母/数字（即词边界）；
+     更长的词与中文词仍走子串匹配（中文无分词歧义，要求边界反而会漏）。
+
+     边界判定**必须用 normSoft（分隔符换成空格）而不是 norm（分隔符直接删掉）**：
+     norm 会把「Agent、RAG、微调」压成「agentrag微调」，'rag' 左边成了 't'，
+     于是「了解 LLM、RAG」这种最常见的写法反而判不出 RAG。
+     换成空格后是「agent rag 微调」，'rag' 左右都是空格 → 正常命中。 */
+  const RE_LATIN_KW = /^[a-z0-9+#.]+$/;
+  const normSoft = s => String(s == null ? '' : s).toLowerCase().replace(/[\s·\-_/（）()：:、,，]/g, ' ');
+  function kwContains(hay, needle) {
+    const k = norm(needle);
+    if (!k) return false;
+    if (RE_LATIN_KW.test(k) && k.length <= 3) {
+      const t = normSoft(hay);
+      const re = new RegExp('(^|[^a-z0-9])' + k.replace(/[.+#]/g, '\\$&') + '($|[^a-z0-9])');
+      return re.test(t);
+    }
+    return norm(hay).indexOf(k) >= 0;
+  }
+
   /* =========================================================
      一、职能族（补位与话术的主来源）
      kw      : 职能识别词（岗位名命中权重 ×3，正文命中 ×1）
@@ -52,6 +76,7 @@
      core    : 专业技能补位池（越通用的排越前，补位按顺序取）
      biz     : 业务语境标签
      plus    : 加分项素材
+     tags    : 可匹配的裸名词（只进技能全集，用于抽词/打分，不参与 JD 文案与职能识别）
      majors  : 学历专业口径
      expHint : 工作经验补充句
      general : 综合素质
@@ -73,6 +98,8 @@
          而纯「运维工程师」仍能识别为技术研发（它是唯一命中者）。 */
       kw: ['开发', '研发', '架构师', '程序员', '后端', '前端', '全栈', '测试', 'Java', 'Python', 'Golang', 'Go', 'C++', 'PHP', 'Node', 'DBA', 'SRE', '网络安全', '数据开发', '客户端', 'Android', 'iOS', '嵌入式', '软件开发', '系统设计'],
       weak: ['运维'],
+      tags: ['前端', '后端', '全栈', '架构', '数据库', '缓存', '消息队列', '并发', '分布式', '微服务',
+        '容器化', '接口', '性能优化', '单元测试', '代码评审', '服务端', '客户端', '移动端'],
       core: ['需求分析与技术方案设计', '代码规范与工程化实践', '常用开发框架与中间件', 'MySQL 等数据库设计与优化', '接口设计与联调', '版本控制与 CI/CD', '性能优化与问题定位', '单元测试与质量保障'],
       biz: ['高并发', '分布式', '微服务', '云原生', '中台', 'To B 系统', 'C 端产品'],
       plus: ['开源项目贡献或技术博客沉淀', '高并发、大流量系统实战经验', '技术带人或架构设计经验', '技术专利或论文发表'],
@@ -104,6 +131,17 @@
     product: {
       name: '产品',
       kw: ['产品经理', '产品', 'AI产品', '产品设计', '产品规划', 'PM', '需求分析', '需求管理', '商业化', '增长产品', 'B端产品', 'C端产品'],
+      /* weak：AI 技术名词在「AI 产品经理」与「算法工程师」两类 JD 里都会出现，
+         不能当强识别词，否则「算法工程师（RAG 方向）」会被判成产品岗。
+         放 weak 后：产品岗名照常 ×3 胜出；纯技术 JD 里算法强词（'算法'）也能反超。
+         注意「大模型」已归 data 族的强词，这里不再重复占用（一族一词）。 */
+      weak: ['LLM', 'RAG', 'Agent', 'Prompt', '多模态', '智能体'],
+      /* tags：**可匹配技能标签**（与 core 的区别见本文件第五节说明）。
+         这里补的是「裸名词」—— 任职要求里写的是这些词本身，
+         而 core 里是「AI 产品方案设计」这类措辞，两者对不上就会漏抽。 */
+      tags: ['大模型', 'LLM', 'RAG', 'Agent', 'Prompt', '智能体', '多模态', '微调', 'AIGC', 'AI 产品',
+        '模型评测', 'Badcase', '用户研究', '竞品分析', 'PRD', '埋点', 'A/B 实验', '留存率', '转化率',
+        'DAU', 'MAU', '知识库', '问答系统'],
       core: ['需求分析', 'PRD 撰写', '用户研究', '竞品分析', '原型设计', '需求优先级管理', '数据埋点与指标设计', 'A/B 实验设计', 'AI 产品方案设计', 'Prompt 工程', '模型评测', 'Badcase 归因', 'RAG 应用设计', 'Agent 流程设计'],
       biz: ['SaaS', 'B 端产品', 'C 端产品', '平台产品', '中台产品', '行业解决方案'],
       plus: ['有 AI 相关产品（大模型 / Agent / 推荐 / 搜索）落地经验', '有从 0 到 1 的新产品立项经历', '具备 SQL 或数据分析能力', '有 To B 行业解决方案经验'],
@@ -168,6 +206,9 @@
     data: {
       name: '数据与算法',
       kw: ['数据分析', '数据科学家', '算法', '机器学习', '深度学习', '数据挖掘', 'BI', '数据仓库', '数据治理', '建模', 'NLP', 'CV', '大模型'],
+      tags: ['机器学习', '深度学习', '算法', '模型训练', '特征工程', '数据挖掘', '数据建模', '指标体系', '数据仓库',
+        'ETL', 'Hive', 'Spark', 'Flink', 'TensorFlow', 'PyTorch', 'NLP', 'CV', '推荐算法', 'A/B 实验',
+        '埋点', '留存率', '转化率', 'DAU', 'MAU'],
       core: ['SQL 数据查询与处理', '指标体系与报表设计', '统计分析与假设检验', '数据可视化与看板搭建', '数据清洗与口径治理'],
       biz: ['用户行为分析', '经营分析', '风控建模', '推荐系统', '业务预测'],
       plus: ['有从数据到业务决策的完整闭环案例', '掌握 Python / R 等分析工具', '有机器学习或算法工程落地经验'],
@@ -1215,33 +1256,87 @@
      用途：① 从岗位要求文本里抽出「打分关键词」
           ② 新建岗位时的技能兜底池
      注意：只做「文本包含」匹配，不做语义猜测 —— 保证可复现。
+     组成：core（专业技能措辞） + biz（业务语境） + plus（加分项） + tags（裸名词）。
+     为什么要单独有 tags：core 是写给**人看的 JD 措辞**（「AI 产品方案设计」），
+     而任职要求与简历里写的是**裸名词**（「大模型」「RAG」「前端」）。
+     只放 core，这两者对不上 —— 实测「3 年以上 AI 产品经验」只能抽出一个 'AI'。
+     tags 只参与匹配与抽词，不进入 JD 文案生成，所以加词不会把 JD 写得奇怪。
      ========================================================= */
   function buildSkillUniverse(industrySkills) {
     const all = new Set();
     Object.keys(FUNCTIONS).forEach(k => {
       const f = FUNCTIONS[k];
-      [...f.core, ...f.biz, ...f.plus].forEach(v => all.add(v));
+      [...f.core, ...f.biz, ...f.plus, ...(f.tags || [])].forEach(v => all.add(v));
     });
     if (industrySkills) {
       Object.keys(industrySkills).forEach(ind => {
         const lib = industrySkills[ind];
-        [...(lib.core || []), ...(lib.biz || []), ...(lib.plus || [])].forEach(v => all.add(v));
+        [...(lib.core || []), ...(lib.biz || []), ...(lib.plus || []), ...(lib.tags || [])].forEach(v => all.add(v));
       });
     }
     return [...all];
   }
 
+  /* ---- 拉丁（英文）技术名词兜底 ----------------------------------------
+     为什么必须有这条兜底：
+       技能全集由「职能族的能力描述措辞（core/biz/plus）」与「行业词库英文技术栈」组成，
+       两者都抓不到下面两类词：
+         ① 词库尚未收录的**新技术词** —— 实测「了解LLM RAG」抽出 []，
+            「有大模型 / Agent 产品落地经验」抓不到 Agent（词库永远滞后于新词）；
+         ② 中文裸名词 —— 技能全集里只有「AI 产品方案设计」这类措辞，
+            没有「大模型」「前端」这样的裸词（后者已由 tags 字段补上）。
+       后果不只是关键词难看：keywords 为空时打分函数会走兜底分支，
+       该岗位所有候选人的「技能匹配」得分完全相同，整个维度失去区分度。
+
+     规则取舍：英文名词形态规整（字母开头、无分词歧义），用 token 规则更稳、
+     且能覆盖词库永远追不上的新技术词；中文术语歧义多（「运维」「交付」跨族），
+     仍然交给词库 —— 两种来源合并，词库优先。
+     -------------------------------------------------------------------- */
+  /* 英文虚词/单字母，避免把「To B 系统」的 To、Or、We 当成技术词 */
+  const LATIN_STOP = new Set(['to', 'of', 'in', 'on', 'at', 'by', 'for', 'and', 'or', 'the', 'a', 'an',
+    'is', 'are', 'be', 'with', 'from', 'as', 'it', 'we', 'you', 'our', 'all', 'new', 'per', 'via', 'vs', 'etc']);
+
+  function latinTokens(text) {
+    const m = String(text == null ? '' : text).match(/[A-Za-z][A-Za-z0-9+#.]{1,}/g) || [];
+    const seen = new Set(), out = [];
+    m.forEach(raw => {
+      const tok = raw.replace(/[.+#]+$/, '');          /* 去掉词尾标点，保留 C++ 这类词身 */
+      const low = tok.toLowerCase();
+      if (tok.length < 2 || LATIN_STOP.has(low) || seen.has(low)) return;
+      seen.add(low); out.push(tok);
+    });
+    return out;
+  }
+
   function extractKeywords(texts, industrySkills) {
-    const bag = norm(Array.isArray(texts) ? texts.join(' ') : (texts || ''));
+    const src = Array.isArray(texts) ? texts.join(' ') : (texts || '');
+    const bag = norm(src);
     if (!bag) return [];
     const hit = buildSkillUniverse(industrySkills).filter(k => bag.indexOf(norm(k)) >= 0);
+    const pairs = hit.map(k => ({ k: k, n: norm(k) }));
     /* 冗余裁剪：若某个被命中词是另一个被命中词的子串，只保留更短的那条。
        例：文本里同时含「需求分析」与「需求分析与技术方案设计」时，只留「需求分析」——
-       否则关键词列表会同时出现长短两条，简历技能标签也会变啰嗦。 */
-    const pairs = hit.map(k => ({ k: k, n: norm(k) }));
-    return pairs
-      .filter(a => !pairs.some(b => b.k !== a.k && b.n.length < a.n.length && a.n.indexOf(b.n) >= 0))
+       否则关键词列表会同时出现长短两条，简历技能标签也会变啰嗦。
+
+       但要区分两种「包含」：
+         · 真冗余：'PRD' ⊂ 'PRD 撰写'、'需求分析' ⊂ '需求分析与技术方案设计'
+           —— 短词本就是这个长词的一部分，留短的就够。
+         · 巧合：'UE' ⊂ 'Vue'、'SQL' ⊂ 'MySQL'、'Go' ⊂ 'Django'
+           —— 两个独立的技术名词恰好有公共子串，照搬会留下 'UE' 而把更该留的
+              'Vue' 裁掉、留下 'SQL' 而裁掉 'MySQL'。
+       所以：仅当「更短的那个词与更长的那个词都是纯拉丁词」时才跳过裁剪。 */
+    const isLatin = s => /^[a-z0-9+#.]+$/.test(s);
+    const lib = pairs
+      .filter(a => !pairs.some(b => b.k !== a.k && b.n.length < a.n.length
+        && !(isLatin(a.n) && isLatin(b.n)) && a.n.indexOf(b.n) >= 0))
       .map(a => a.k);
+    /* 拉丁名词只在「词库确实没覆盖」时补进来：若某个词库命中已包含它
+       （如词库命中「Prompt 工程」、文本里同时出现 Prompt），不再重复列出。 */
+    const extra = latinTokens(src).filter(tk => {
+      const n = norm(tk);
+      return !lib.some(l => norm(l).indexOf(n) >= 0);
+    });
+    return [...lib, ...extra];
   }
 
   /* =========================================================
@@ -1386,5 +1481,5 @@
   }
 
   return { FUNCTIONS, INDUSTRY_CTX, detectFunction, detectJunior, pickDuties, industryDuty, extractKeywords, buildSkillUniverse, norm,
-    parseReqText, paragraphize, renderReqDims };
+    kwContains, latinTokens, parseReqText, paragraphize, renderReqDims };
 });

@@ -2199,10 +2199,16 @@ GitHub 有开源项目 800 star。期望薪资 35k。</textarea>
         }
         const dims = r.dims.map(d => `<tr><td class="name">${d.dim}</td><td><b>${d.score}</b> / ${d.max}</td>
           <td class="small muted">${esc(d.ev)}</td></tr>`).join('');
+        const kws = (r.hits && r.hits.kws) || [];
         $('#psOut').innerHTML = `
           <div class="row" style="align-items:center;margin-bottom:10px">
             <div style="font-size:30px;font-weight:700;color:var(--${r.grade === 'strong' ? 'grn' : r.grade === 'ok' ? 'yel' : 'red'})">${r.score}</div>
             <div>${gradeTag(r.grade)}<div class="small muted">模型路由：推理模型 · 耗时约 1.2s</div></div>
+          </div>
+          <div class="callout" style="margin:0 0 10px">
+            <b>本次打分用的岗位关键词</b>（抽自你填写的岗位硬性要求，共 ${kws.length} 个）<br>
+            <span class="mono small">${kws.length ? kws.map(esc).join('、') : '— 要求里没识别出技术词，技能维度只能按底分计'}</span>
+            <div class="small muted" style="margin-top:6px">关键词跟着「岗位要求」走，不写死：换一个岗位要求，同一份简历的分数会变。这正是它能用在所有职能族上的原因。</div>
           </div>
           ${tbl(['维度', '得分', '依据（可追溯到原文）'], [dims])}
           <div class="hr-note">注意：这里没有出现性别、年龄、婚育、户籍任何一个字段 —— 不是模型「没考虑」，而是它们<b>根本没有进入输入</b>。</div>`;

@@ -497,41 +497,102 @@ window.Agent = (function () {
       keywords, industry, title };
   }
 
-  /* ============ 简历打分（规则 + 关键词模拟） ============ */
+  /* ============ 简历打分（规则 + 关键词模拟） ============
+     修正记录：旧版这里写死了一份 Java 技术词表（java/spring/kafka/mysql…），
+     岗位要求只用来判「学历 / 年限」两个闸门，**技术关键词完全不跟着岗位走**。
+     后果：任何非 Java 岗位的简历都是 0/40 —— 把一份 AI 产品经理简历
+     （正文明确写着 LLM、RAG、Agent、Prompt）拿去评「了解LLM RAG」的岗位，
+     技能匹配 0 分，总分 16，判「不合适」。这不叫严格，叫尺子拿错了。
+
+     现在：岗位关键词一律从「岗位硬性要求」里抽，复用 shared/req-lib.js
+     （与 server/engine.js 同源），四个维度的映射口径也与后端 scoreOne 对齐：
+       技能匹配 = 命中岗位关键词的比例 → 系数
+       业务匹配 = 命中的业务域标签条数
+       稳定性   = 工作年限 vs 岗位要求年限
+       加分项   = 开源 / 专利 / 带人 / 大厂等标签条数
+     ============================================================ */
+  /* 通用加分标签：与岗位无关的「额外亮点」，短词形态，可直接在简历原文里检索 */
+  const PLUS_GENERIC = ['开源', 'GitHub', '专利', '论文', '大厂', '团队管理', '带团队',
+    '技术负责人', 'star', '内推', '从 0 到 1', '获奖', '一等奖', '认证', '标杆'];
+
   function scoreResume(text, jobMust) {
-    const t = (text || '').toLowerCase();
-    const kw = {
-      skill: ['java', 'spring', 'spring boot', 'spring cloud', 'mysql', 'redis', 'kafka', '微服务', '分布式', '高并发', 'jvm', 'dubbo', '架构'],
-      plus: ['开源', 'github', '专利', '大厂', '团队管理', '技术负责人', 'star', '内推'],
-      biz: ['电商', '交易', '订单', '支付', '金融', 'saas', '供应链']
-    };
-    const hit = k => kw[k].filter(w => t.indexOf(w) > -1);
-    const skillHits = hit('skill'), plusHits = hit('plus'), bizHits = hit('biz');
+    const t = String(text || '');
+    const req = String(jobMust || '');
+    const RL = window.ReqLib;
+    const hit = (hay, needle) => RL ? RL.kwContains(hay, needle)
+      : hay.toLowerCase().indexOf(String(needle).toLowerCase()) >= 0;
+    const hitAny = (pool) => pool.filter(w => hit(t, w) || hit(w, t));
 
-    const m = t.match(/(\d+(\.\d+)?)\s*年/);
-    const years = m ? parseFloat(m[1]) : 0;
+    /* ① 岗位关键词：抽自岗位硬性要求（词库术语 + 拉丁技术名词兜底） */
+    const kws = RL ? RL.extractKeywords([req]) : [];
+    const kHit = kws.filter(w => hit(t, w));
+    const coverage = kws.length ? kHit.length / kws.length : 0;
+    const r1 = coverage >= 0.7 ? 0.95 : coverage >= 0.5 ? 0.85 : coverage >= 0.35 ? 0.7 : coverage >= 0.2 ? 0.55 : 0.35;
+    const s1 = Math.round(40 * r1);
+
+    /* ② 业务语境标签：取岗位所属职能族的业务标签（AI 产品经理 ≠ 后端研发） */
+    const fnKey = RL ? RL.detectFunction('', req) : null;
+    const fn = (fnKey && RL) ? RL.FUNCTIONS[fnKey] : null;
+    const bizHits = hitAny(fn ? fn.biz : []);
+    const r2 = bizHits.length >= 4 ? 1 : bizHits.length === 3 ? 0.9 : bizHits.length === 2 ? 0.72 : bizHits.length === 1 ? 0.55 : 0.2;
+    const s2 = Math.round(30 * r2);
+
+    /* ③ 加分项：职能族加分项 + 通用亮点标签 */
+    const plusHits = hitAny([...(fn ? fn.plus : []), ...PLUS_GENERIC]);
+    const r4 = plusHits.length >= 3 ? 1 : plusHits.length === 2 ? 0.85 : plusHits.length === 1 ? 0.55 : 0;
+    const s4 = Math.round(15 * r4);
+
+    /* ④ 稳定性：年限（岗位不设年限门槛时按 0.8 计，与后端一致）
+       识别顺序：明确的「N 年经验」→ 文本里的 N 年（0<N<60，排除「2018 年毕业」这类年份）
+       → 起止年份推算（2018-2022 / 2022 至今）。
+       旧版只做 /(\d+)\s*年/，会把「2018 年毕业」读成 2018 年工作经验。 */
+    const cleanYears = (v) => { const n = parseFloat(v); return (n > 0 && n < 60) ? n : 0; };
+    const explicit = t.match(/(\d+(?:\.\d+)?)\s*年(?:以上)?[^。\n；;]{0,8}?(?:经验|经历)/);
+    let years = explicit ? cleanYears(explicit[1]) : 0;
+    if (!years) {
+      const cands = [...t.matchAll(/(\d+(?:\.\d+)?)\s*年/g)].map(x => cleanYears(x[1])).filter(Boolean);
+      years = cands.length ? Math.max(...cands) : 0;
+    }
+    if (!years) {
+      let sum = 0;
+      [...t.matchAll(/((?:19|20)\d{2})\s*[-–—~至到]\s*((?:19|20)\d{2}|至今|现在|今)/g)].forEach(x => {
+        const a = +x[1], b = /^\d{4}$/.test(x[2]) ? +x[2] : 2026;
+        if (b > a && b - a < 40) sum += b - a;
+      });
+      years = sum;
+    }
+    const ny = req.match(/(\d+)\s*年/);
+    const needMust = ny ? parseFloat(ny[1]) : 0;
+    const r3 = needMust <= 0 ? 0.8 : years >= needMust * 2 ? 1 : years >= needMust * 1.3 ? 0.87 : years >= needMust ? 0.75 : 0.5;
+    const s3 = Math.round(15 * r3);
+
     const eduRank = /博士|硕士|研究生/.test(t) ? 3 : /本科|学士/.test(t) ? 2 : /大专|专科/.test(t) ? 1 : 0;
-    const needEdu = /本科/.test(jobMust || '') ? 2 : 0;
-    const needYears = (jobMust || '').match(/(\d+)\s*年/);
+    const needEdu = /本科/.test(req) ? 2 : /大专|专科/.test(req) ? 1 : 0;
 
-    // 硬性门槛：规则判定，不调模型
-    if (needYears && years && years < parseFloat(needYears[1]))
-      return { gate: true, reason: `工作年限 ${years} 年 < 岗位要求 ${needYears[1]} 年（规则判定，未调用模型）`, score: 0, grade: 'no', dims: [], hits: { skillHits, plusHits, bizHits } };
-    if (eduRank && eduRank < needEdu)
-      return { gate: true, reason: '学历不满足硬性要求（规则判定）', score: 0, grade: 'no', dims: [], hits: { skillHits, plusHits, bizHits } };
+    // 硬性门槛：规则判定，不调模型（命中即出局，不进入逐维打分）
+    if (needMust && years && years < needMust)
+      return { gate: true, reason: `工作年限 ${years} 年 < 岗位要求 ${needMust} 年（规则判定，未调用模型）`, score: 0, grade: 'no', dims: [], hits: { kws, kHit, bizHits, plusHits } };
+    if (eduRank && needEdu && eduRank < needEdu)
+      return { gate: true, reason: `学历不满足硬性要求（要求 ${needEdu === 2 ? '本科' : '大专'}及以上，规则判定）`, score: 0, grade: 'no', dims: [], hits: { kws, kHit, bizHits, plusHits } };
 
-    const s1 = Math.min(40, skillHits.length * 4.2);
-    const s2 = Math.min(30, bizHits.length * 7 + 8);
-    const s3 = years >= 5 ? 13 : years >= 3 ? 11 : 8;
-    const s4 = Math.min(15, plusHits.length * 5);
-    const total = Math.round(s1 + s2 + s3 + s4);
+    const total = Math.min(100, s1 + s2 + s3 + s4);
+    const 在读 = /在读|应届|在校|实习|202\d\s*[/\-．.]\s*\d+\s*[-–—]\s*202\d/.test(t);
     const dims = [
-      { dim: '技能匹配', score: Math.round(s1), max: 40, ev: `命中技术关键词 ${skillHits.length} 项：${skillHits.slice(0, 6).join('、') || '无'}` },
-      { dim: '业务匹配', score: Math.round(s2), max: 30, ev: `命中业务关键词 ${bizHits.length} 项：${bizHits.join('、') || '未体现相关业务经验'}` },
-      { dim: '稳定性', score: s3, max: 15, ev: years ? `总工作年限约 ${years} 年` : '简历未体现工作年限，记 0 分并说明' },
-      { dim: '加分项', score: Math.round(s4), max: 15, ev: plusHits.join('、') || '无开源/专利/大厂/管理经验' }
+      { dim: '技能匹配', score: s1, max: 40,
+        ev: !kws.length
+          ? '岗位要求里没识别出可打分的技术词，本维度按底分计（建议在要求里写明技术栈）'
+          : kHit.length
+            ? `命中岗位关键词 ${kHit.length}/${kws.length} 项：${kHit.slice(0, 6).join('、')}`
+            : `命中岗位关键词 0/${kws.length} 项（${kws.slice(0, 4).join('、')}）—— 完全未命中，本维度按底分计` },
+      { dim: '业务匹配', score: s2, max: 30,
+        ev: bizHits.length ? `业务语境命中：${bizHits.join('、')}` : `未命中${fnKey ? RL.FUNCTIONS[fnKey].name : ''}类业务标签，本维度按底分计` },
+      { dim: '稳定性', score: s3, max: 15,
+        ev: years ? `总工作年限约 ${years} 年（岗位要求 ${needMust || '未设'} 年）`
+          : 在读 ? `在校生 / 应届，简历无全职工作年限（岗位要求 ${needMust || '未设'} 年）`
+            : `简历未体现工作年限（岗位要求 ${needMust || '未设'} 年），按未达标计` },
+      { dim: '加分项', score: s4, max: 15, ev: plusHits.length ? plusHits.join('、') : '无开源/专利/大厂/带人经验' }
     ];
-    return { gate: false, score: total, grade: total >= 78 ? 'strong' : total >= 60 ? 'ok' : 'no', dims, hits: { skillHits, plusHits, bizHits } };
+    return { gate: false, score: total, grade: total >= 78 ? 'strong' : total >= 60 ? 'ok' : 'no', dims, hits: { kws, kHit, bizHits, plusHits } };
   }
 
   /* ============ 员工自助问答引擎 ============ */

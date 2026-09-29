@@ -23,8 +23,21 @@ const T = 'T-001';
    逐条编号 → 自然行文段落，老 JD 必须重算，否则新老两种排版会同时流通。
    v9：认不出职能族时不再用行业素材兜底（行业表是按「该行业主力职能」写的，
    互联网＝技术岗口径）。老 JD 必须重算 —— 凡识别不出职能的岗位，其「专业技能」
-   里都不应再出现该行业的技术栈（原本会出现「熟悉 Java」）。 */
-const REQ_LIB_VER = 9;
+   里都不应再出现该行业的技术栈（原本会出现「熟悉 Java」）。
+   v10：extractKeywords 增加「拉丁技术名词兜底」+ 职能族补 tags（裸名词）。
+   修复前，技能全集只有「能力描述」措辞与行业词库里的技术栈，于是：
+     · 中文裸名词抽不出来（前端 / 数据库 / 大模型 / 智能体 一个都抓不到）；
+     · 词库没收录的新技术英文词抽不出来 ——「了解LLM RAG」抽出 []，
+       「有大模型 / Agent 产品落地经验」也抓不到 Agent。
+   岗位 keywords 因此严重失真：AI 产品经理岗抽不到「大模型 / Agent」，
+   而打分正是拿 keywords 做命中的 —— 尺子和岗位对不上，非该类岗位必然 0 分。
+   老 JD 必须重算才能拿到新关键词。
+   附注：行业词库（INDUSTRY_SKILLS）本来就带了 Java / React / TypeScript 这类
+   英文技术栈，所以纯英文名词在多数岗位上一向没问题；缺的是「中文裸名词」与
+   「词库尚未收录的新词」。 */
+/* v11：冗余裁剪只对「含中文的词」生效 —— 拉丁词之间的子串关系是巧合
+   （ue ⊂ vue、sql ⊂ mysql、go ⊂ django），照搬会把该留的 Vue / MySQL 裁掉。 */
+const REQ_LIB_VER = 11;
 const now = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 19).replace('T', ' ');
 
 /* ---------- 工具函数 ---------- */
@@ -243,7 +256,11 @@ function kwHit(list, kws) {
     if (kws.some(k => {
       const b = norm(k);
       if (!b) return false;
-      return a.includes(b) || b.includes(a) || (a.length >= 4 && b.length >= 4 && a.slice(0, 4) === b.slice(0, 4));
+      /* 配对判定统一走 ReqLib.kwContains（短英文词要求词边界）：
+         a ⊂ b 或 b ⊂ a 任一成立即算命中，再加「前 4 字相同」容忍措辞差异
+         （如「高并发」与「高并发、大流量系统实战经验」）。 */
+      return ReqLib.kwContains(a, b) || ReqLib.kwContains(b, a)
+        || (a.length >= 4 && b.length >= 4 && a.slice(0, 4) === b.slice(0, 4));
     })) out.push(s);
   }
   return out;
