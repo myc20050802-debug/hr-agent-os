@@ -28,22 +28,31 @@ const OUT = path.join(HERE, 'index.html');
 const readLF = p => fs.readFileSync(p, 'utf8').replace(/\r\n/g, '\n');
 const readSrc = n => readLF(path.join(SRC, n));
 
+/* 注入一律走「函数式替换」。
+   为什么不能直接 shell.replace('__X__', 内容)：
+   String.replace 在第二个参数是**字符串**时，会把内容里的 $& / $' / $1 / $$ 
+   当成特殊替换模式 —— $& 代表「被匹配到的那段」。
+   源码里只要出现 $&（例如正则转义写法 k.replace(/[.+#]/g, '\\$&')），
+   注入后就会被还原成占位符本身，产物里残留 __REQLIB__、构建直接失败。
+   换成返回内容的函数后，内容原样插入，不再有任何 $ 语义。 */
+const put = (s, token, content) => s.replace(token, () => content);
+
 let shell = readSrc('shell.html');
-shell = shell.replace('__CSS__', readSrc('app.css'));
+shell = put(shell, '__CSS__', readSrc('app.css'));
 /* req-lib 必须最先注入：data.js / agent.js 都要用 window.ReqLib */
-shell = shell.replace('__REQLIB__', readLF(path.join(SHARED, 'req-lib.js')));
+shell = put(shell, '__REQLIB__', readLF(path.join(SHARED, 'req-lib.js')));
 /* 推翻原因枚举：与后端同一份 shared/override-codes.js（避免前端能选、后端不认） */
-shell = shell.replace('__OVERRIDECODES__', readLF(path.join(SHARED, 'override-codes.js')));
-shell = shell.replace('__DATA__', readSrc('data.js'));
-shell = shell.replace('__AGENT__', readSrc('agent.js'));
-shell = shell.replace('__APP__', readSrc('app.js'));
+shell = put(shell, '__OVERRIDECODES__', readLF(path.join(SHARED, 'override-codes.js')));
+shell = put(shell, '__DATA__', readSrc('data.js'));
+shell = put(shell, '__AGENT__', readSrc('agent.js'));
+shell = put(shell, '__APP__', readSrc('app.js'));
 
 /* 构建时间用北京时间（UTC+8），与全项目时间口径一致 */
 const bj = new Date(Date.now() + 8 * 3600 * 1000);
 const pad = n => String(n).padStart(2, '0');
 const built = bj.getUTCFullYear() + '-' + pad(bj.getUTCMonth() + 1) + '-' + pad(bj.getUTCDate())
   + ' ' + pad(bj.getUTCHours()) + ':' + pad(bj.getUTCMinutes());
-shell = shell.replace('__BUILT__', built);
+shell = put(shell, '__BUILT__', built);
 
 /* 占位符必须全部被替换。
    漏一个的后果是「页面打开一片空白」，而且只有打开浏览器才会发现 ——

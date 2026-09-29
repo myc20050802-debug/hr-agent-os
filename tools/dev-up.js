@@ -183,14 +183,22 @@ function spawnDetached() {
         emit({ started: false, reason: 'stale', stale: true, pid, url: ORIGIN, expectedSchema: want, actualSchema: h.schemaVersion });
         return;
       }
-      if (stale && RESTART) {
+      if (RESTART) {
+        /* --restart 的语义是**无条件重来**，不只在 schema 落后时。
+           为什么必须这样：改了 engine.js / 词库 / 打分口径但没改表结构时，
+           schema 版本号不变（都是 v6），靠 schema 比对压根发现不了
+           「进程比代码旧」—— 症状是「接口通、但跑的还是旧逻辑」，
+           比离线更难查。词库改版（REQ_LIB_VER）就属于这一类：
+           老进程不会重算老 JD，必须重启才生效。 */
         const pid = findListenerPid(PORT);
         if (!pid) {
-          warn('[!] 检测到版本落后，但拿不到监听进程的 pid（netstat 不可用），不冒险乱杀。');
-          emit({ started: false, reason: 'stale-no-pid', url: ORIGIN, expectedSchema: want, actualSchema: h.schemaVersion });
+          warn('[!] 要重启但拿不到监听进程的 pid（netstat 不可用），不冒险乱杀。');
+          emit({ started: false, reason: 'restart-no-pid', url: ORIGIN, actualSchema: h.schemaVersion });
           return;
         }
-        say(`[i] 版本落后（v${h.schemaVersion} → v${want}），重启 pid ${pid} …`);
+        say(stale
+          ? `[i] 版本落后（v${h.schemaVersion} → v${want}），重启 pid ${pid} …`
+          : `[i] 强制重启 pid ${pid}（--restart：后端代码有变，表结构没变）…`);
         const stopped = await stopPid(pid);
         if (!stopped) {
           warn('[X] 端口没释放，放弃重启（可能有别的程序占着）。');
