@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HR-Agent OS · M1 实现说明与验收报告</title>
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+  --line:#262c39; --line2:#323a4b;
+  --tx:#e7eaf1; --tx2:#a8b1c2; --tx3:#6f7a8d;
+  --ac:#4c8dff; --ac2:#7aa9ff; --grn:#3ddc97; --yel:#f5b942; --red:#ff6b6b; --pur:#a78bfa;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:15px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+header{position:sticky;top:0;z-index:50;background:rgba(13,15,20,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:14px 26px 0}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1.brand{font-size:17px;margin:0;letter-spacing:.3px}
+.sub{color:var(--tx3);font-size:12.5px}
+.searchbox{margin-left:auto;display:flex;align-items:center;gap:8px}
+input#q{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:9px;
+  padding:8px 12px;width:240px;font-size:13px;outline:none}
+input#q:focus{border-color:var(--ac)}
+.hint{font-size:12px;color:var(--tx3)}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx2);
+  padding:9px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac2);border-bottom-color:var(--ac);font-weight:600}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1560px;margin:0 auto}
+aside{position:sticky;top:112px;align-self:start;height:calc(100vh - 112px);overflow-y:auto;
+  padding:22px 14px 60px 26px;border-right:1px solid var(--line)}
+.tocgroup{display:flex;flex-direction:column;gap:1px}
+.toclink{display:block;color:var(--tx2);text-decoration:none;font-size:13px;padding:5px 9px;
+  border-radius:7px;line-height:1.45}
+.toclink:hover{background:var(--panel2);color:var(--tx)}
+.toclink.lvl2{padding-left:20px}
+.toclink.lvl3{padding-left:32px;font-size:12.5px;color:var(--tx3)}
+main{padding:26px 34px 120px;min-width:0}
+.docmeta{font:12px var(--mono);color:var(--tx3);margin-bottom:18px;
+  border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;display:inline-block}
+article h1{font-size:27px;margin:26px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+article h2{font-size:21px;margin:38px 0 14px;padding:9px 0 9px 13px;border-left:3px solid var(--ac);
+  background:linear-gradient(90deg,rgba(76,141,255,.09),transparent);border-radius:0 8px 8px 0}
+article h3{font-size:17px;margin:28px 0 10px;color:var(--ac2)}
+article h4{font-size:15px;margin:20px 0 8px;color:var(--tx2)}
+p{margin:9px 0}
+a{color:var(--ac2)}
+strong{color:#fff;font-weight:650}
+em{color:var(--yel);font-style:normal}
+code{font:12.6px var(--mono);background:var(--panel2);border:1px solid var(--line);
+  padding:1.5px 5px;border-radius:5px;color:#ffd479}
+.codeblock{margin:14px 0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0a0c11}
+.codetop{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);font:11.5px var(--mono);color:var(--tx3)}
+.copybtn{background:var(--panel2);border:1px solid var(--line2);color:var(--tx2);font-size:11.5px;
+  padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.copybtn:hover{color:var(--tx);border-color:var(--ac)}
+pre{margin:0;padding:14px 16px;overflow-x:auto}
+pre code{background:none;border:none;padding:0;color:#cfd8e6;font-size:12.6px;line-height:1.62}
+blockquote{margin:14px 0;padding:13px 16px;background:linear-gradient(90deg,rgba(167,139,250,.10),rgba(167,139,250,.02));
+  border-left:3px solid var(--pur);border-radius:0 10px 10px 0;color:#d9def0}
+blockquote p{margin:4px 0}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+th{background:var(--panel);text-align:left;padding:10px 12px;font-weight:640;color:var(--ac2);
+  border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(76,141,255,.05);color:var(--tx)}
+ul,ol{margin:9px 0;padding-left:24px}
+li{margin:5px 0;color:var(--tx2)}
+li strong{color:var(--tx)}
+hr.sep{border:none;border-top:1px solid var(--line);margin:26px 0}
+mark{background:rgba(245,185,66,.34);color:#fff;border-radius:3px;padding:0 2px}
+.hidden{display:none !important}
+footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-size:12.5px;text-align:center}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}aside{display:none}main{padding:20px 16px 90px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 class="brand">HR-Agent OS · M1 实现说明与验收报告</h1>
+    <span class="sub"></span>
+    <div class="searchbox">
+      <span class="hint" id="hint">全文搜索</span>
+      <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs"><button class="tab active" data-doc="doc0">09 · M1 实现说明与验收报告（可信底座）</button></div>
+</header>
+<div class="wrap">
+  <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--09-M1-实现说明与验收报告-可信底座" data-text="09 · M1 实现说明与验收报告（可信底座）">09 · M1 实现说明与验收报告（可信底座）</a><a class="toclink lvl2" href="#doc0--〇-一页速览" data-text="〇、一页速览">〇、一页速览</a><a class="toclink lvl2" href="#doc0--一-目标-范围与优先序" data-text="一、目标、范围与优先序">一、目标、范围与优先序</a><a class="toclink lvl3" href="#doc0--1-1-为什么先做-M1-而不是先灌数据-先接模型" data-text="1.1 为什么先做 M1（而不是先灌数据、先接模型）">1.1 为什么先做 M1（而不是先灌数据、先接模型）</a><a class="toclink lvl3" href="#doc0--1-2-本轮范围-In-Scope" data-text="1.2 本轮范围（In Scope）">1.2 本轮范围（In Scope）</a><a class="toclink lvl3" href="#doc0--1-3-非目标-本轮明确不做-避免范围蔓延" data-text="1.3 非目标（本轮明确不做，避免范围蔓延）">1.3 非目标（本轮明确不做，避免范围蔓延）</a><a class="toclink lvl2" href="#doc0--二-关键决策-我替你拍的板-理由-被否掉的方案" data-text="二、关键决策（我替你拍的板 + 理由 + 被否掉的方案）">二、关键决策（我替你拍的板 + 理由 + 被否掉的方案）</a><a class="toclink lvl2" href="#doc0--三-实现内容" data-text="三、实现内容">三、实现内容</a><a class="toclink lvl3" href="#doc0--3-1-分层落点-对齐-docs-08-的-L0-L5" data-text="3.1 分层落点（对齐 docs/08 的 L0–L5）">3.1 分层落点（对齐 docs/08 的 L0–L5）</a><a class="toclink lvl3" href="#doc0--3-2-认证与会话-D2-D3" data-text="3.2 认证与会话（D2 / D3）">3.2 认证与会话（D2 / D3）</a><a class="toclink lvl3" href="#doc0--3-3-三层权限-D4-D7" data-text="3.3 三层权限（D4 / D7）">3.3 三层权限（D4 / D7）</a><a class="toclink lvl3" href="#doc0--3-4-审计-append-only-D5" data-text="3.4 审计 append-only（D5）">3.4 审计 append-only（D5）</a><a class="toclink lvl3" href="#doc0--3-5-PIPL-数据治理-D6" data-text="3.5 PIPL 数据治理（D6）">3.5 PIPL 数据治理（D6）</a><a class="toclink lvl3" href="#doc0--3-6-版本化迁移-从空库一键建到最新" data-text="3.6 版本化迁移（从空库一键建到最新）">3.6 版本化迁移（从空库一键建到最新）</a><a class="toclink lvl3" href="#doc0--3-7-统一错误契约与可观测" data-text="3.7 统一错误契约与可观测">3.7 统一错误契约与可观测</a><a class="toclink lvl3" href="#doc0--3-8-前端配套-不让演示资产报废" data-text="3.8 前端配套（不让演示资产报废）">3.8 前端配套（不让演示资产报废）</a><a class="toclink lvl2" href="#doc0--四-异常处理覆盖清单" data-text="四、异常处理覆盖清单">四、异常处理覆盖清单</a><a class="toclink lvl2" href="#doc0--五-验收证据-可当场复现" data-text="五、验收证据（可当场复现）">五、验收证据（可当场复现）</a><a class="toclink lvl3" href="#doc0--5-1-三套回归-全部-0-失败" data-text="5.1 三套回归，全部 0 失败">5.1 三套回归，全部 0 失败</a><a class="toclink lvl3" href="#doc0--5-2-空库重建-一次硬验证" data-text="5.2 空库重建（一次硬验证）">5.2 空库重建（一次硬验证）</a><a class="toclink lvl3" href="#doc0--5-3-附带的两个真实行为验证" data-text="5.3 附带的两个真实行为验证">5.3 附带的两个真实行为验证</a><a class="toclink lvl2" href="#doc0--六-本轮抓到并修掉的真实缺陷" data-text="六、本轮抓到并修掉的真实缺陷">六、本轮抓到并修掉的真实缺陷</a><a class="toclink lvl3" href="#doc0--R1-空库启动崩溃-table-users-has-15-columns-but-8-values-were-suppl" data-text="R1 · 空库启动崩溃：table users has 15 columns but 8 values were supplied">R1 · 空库启动崩溃：table users has 15 columns but 8 values were supplied</a><a class="toclink lvl3" href="#doc0--R2-超大请求体返回-413-却伴随-ECONNRESET" data-text="R2 · 超大请求体返回 413 却伴随 ECONNRESET">R2 · 超大请求体返回 413 却伴随 ECONNRESET</a><a class="toclink lvl3" href="#doc0--R3-测试用例-假绿-403-用例被文案和种子数据糊过去" data-text="R3 · 测试用例「假绿」：403 用例被文案和种子数据糊过去">R3 · 测试用例「假绿」：403 用例被文案和种子数据糊过去</a><a class="toclink lvl3" href="#doc0--R4-匿名化候选人导致候选人库页面崩溃" data-text="R4 · 匿名化候选人导致候选人库页面崩溃">R4 · 匿名化候选人导致候选人库页面崩溃</a><a class="toclink lvl2" href="#doc0--七-已知边界与未做-诚实清单" data-text="七、已知边界与未做（诚实清单）">七、已知边界与未做（诚实清单）</a><a class="toclink lvl2" href="#doc0--八-后续可优化方向-按优先级" data-text="八、后续可优化方向（按优先级）">八、后续可优化方向（按优先级）</a><a class="toclink lvl2" href="#doc0--九-面试口径-可直接背" data-text="九、面试口径（可直接背）">九、面试口径（可直接背）</a><a class="toclink lvl2" href="#doc0--九-招聘链路闭环-把-已邀约-之后的断路接上-本轮追加" data-text="九、招聘链路闭环：把「已邀约」之后的断路接上（本轮追加）">九、招聘链路闭环：把「已邀约」之后的断路接上（本轮追加）</a><a class="toclink lvl3" href="#doc0--9-1-问题-一条-画得很完整-后端为零-的链路" data-text="9.1 问题：一条「画得很完整、后端为零」的链路">9.1 问题：一条「画得很完整、后端为零」的链路</a><a class="toclink lvl3" href="#doc0--9-2-做了什么-六件事" data-text="9.2 做了什么（六件事）">9.2 做了什么（六件事）</a><a class="toclink lvl3" href="#doc0--9-3-状态机-唯一一份-写在-hiring-js" data-text="9.3 状态机（唯一一份，写在 hiring.js）">9.3 状态机（唯一一份，写在 hiring.js）</a><a class="toclink lvl3" href="#doc0--9-4-两条硬红线-代码级-不是提示词" data-text="9.4 两条硬红线（代码级，不是提示词）">9.4 两条硬红线（代码级，不是提示词）</a><a class="toclink lvl3" href="#doc0--9-5-顺手修掉的两个真实缺陷" data-text="9.5 顺手修掉的两个真实缺陷">9.5 顺手修掉的两个真实缺陷</a><a class="toclink lvl3" href="#doc0--9-6-一致性收益-删掉-legacy-认证开关" data-text="9.6 一致性收益：删掉 legacy 认证开关">9.6 一致性收益：删掉 legacy 认证开关</a><a class="toclink lvl3" href="#doc0--9-7-验收-三套回归-全绿" data-text="9.7 验收（三套回归，全绿）">9.7 验收（三套回归，全绿）</a><a class="toclink lvl3" href="#doc0--9-8-还没做-诚实列表" data-text="9.8 还没做（诚实列表）">9.8 还没做（诚实列表）</a><a class="toclink lvl2" href="#doc0--十-JD-生成口径修正-从-零散堆砌-到-自然行文-2026-09-29" data-text="十、JD 生成口径修正：从「零散堆砌」到「自然行文」（2026-09-29）">十、JD 生成口径修正：从「零散堆砌」到「自然行文」（2026-09-29）</a><a class="toclink lvl3" href="#doc0--10-1-现象与根因" data-text="10.1 现象与根因">10.1 现象与根因</a><a class="toclink lvl3" href="#doc0--10-2-三步改造-shared-req-lib-js-第七节-前后端共用一份" data-text="10.2 三步改造（shared/req-lib.js 第七节，前后端共用一份）">10.2 三步改造（shared/req-lib.js 第七节，前后端共用一份）</a><a class="toclink lvl3" href="#doc0--10-3-关键取舍-条目边界-换行-行首符号" data-text="10.3 关键取舍：条目边界 = 换行 + 行首符号">10.3 关键取舍：条目边界 = 换行 + 行首符号</a><a class="toclink lvl3" href="#doc0--10-4-落地清单" data-text="10.4 落地清单">10.4 落地清单</a><a class="toclink lvl3" href="#doc0--10-5-验收-实跑" data-text="10.5 验收（实跑）">10.5 验收（实跑）</a><a class="toclink lvl3" href="#doc0--10-6-还没做-诚实列表" data-text="10.6 还没做（诚实列表）">10.6 还没做（诚实列表）</a><a class="toclink lvl2" href="#doc0--十一-行业兜底口径修正-认不出职能时不得注入行业技能-2026-09-29" data-text="十一、行业兜底口径修正：认不出职能时不得注入行业技能（2026-09-29）">十一、行业兜底口径修正：认不出职能时不得注入行业技能（2026-09-29）</a><a class="toclink lvl3" href="#doc0--11-1-问题-同一个-bug-换了条路又回来了" data-text="11.1 问题：同一个 bug 换了条路又回来了">11.1 问题：同一个 bug 换了条路又回来了</a><a class="toclink lvl3" href="#doc0--11-2-改法-认出职能才允许用行业素材" data-text="11.2 改法：认出职能才允许用行业素材">11.2 改法：认出职能才允许用行业素材</a><a class="toclink lvl3" href="#doc0--11-3-验收-实跑" data-text="11.3 验收（实跑）">11.3 验收（实跑）</a><a class="toclink lvl3" href="#doc0--11-4-本轮改动" data-text="11.4 本轮改动">11.4 本轮改动</a><a class="toclink lvl2" href="#doc0--附录-A-接口清单-45-条-public-need-一目了然" data-text="附录 A · 接口清单（45 条，public / need 一目了然）">附录 A · 接口清单（45 条，public / need 一目了然）</a><a class="toclink lvl2" href="#doc0--附录-B-本轮文件清单" data-text="附录 B · 本轮文件清单">附录 B · 本轮文件清单</a></div></aside>
+  <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">09_实现说明与验收报告.md</div><h1 id="doc0--09-M1-实现说明与验收报告-可信底座">09 · M1 实现说明与验收报告（可信底座）</h1>
+<blockquote><strong>本文回答一个问题</strong>：按「真实可上架产品」的标准，<code>docs/07</code> 定下的 M1（身份 / 权限 / 审计 / 数据治理）<strong>到底做完了没有、凭什么说做完了、还差什么</strong>。 <strong>事实纪律（沿用本项目既有口径，全文强制）</strong>：所有结论分三档标注 —— <strong>① 已实现</strong>（有代码路径、有实测输出、可当场复现）／<strong>② 设计目标</strong>（有设计但未实测，标「设计目标」）／<strong>③ 尚未具备</strong>（诚实列出，不粉饰）。 凡数字均可在仓库中定位出处；凡性能/效果类断言一律不冒充实测结果。</blockquote>
+<hr class="sep">
+<h2 id="doc0--〇-一页速览">〇、一页速览</h2>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>结论</th></tr></thead><tbody><tr><td>本轮做了什么</td><td>把项目从「功能可演示的 PoC」推进到「<strong>可信、可运维、可审计</strong>的 M1 可信底座」</td></tr><tr><td>最关键的修复</td><td>拔掉 <strong>P0 身份可伪造</strong>（原 <code>X-User</code> 请求头即身份）；并顺带补齐三层权限、审计不可篡改、PIPL 数据治理、版本化迁移</td></tr><tr><td>代码规模</td><td>后端 <strong>16 个模块 / 4,924 行</strong>（从 3 个文件拆成 L0–L5 分层）；前端 <code>app.js</code> 约 188KB；单文件原型 <strong>436,610 bytes（约 426KB）</strong></td></tr><tr><td>回归证据</td><td>在线（真鉴权）<strong>23 页 + 22 项</strong>、离线 <strong>23 页 + 18 项</strong>、后端集成 <strong>127 + 87 + 74 项断言</strong>，<strong>全部 0 失败</strong></td></tr><tr><td>一次硬验证</td><td><strong>删库重启</strong>：空 DB → 5 个迁移自动应用 → 种子写入 → 服务健康（<code>schemaVersion: 5</code>）全程无人工干预</td></tr><tr><td>一句话面试口径</td><td>「企业级的门槛不是数据量，是<strong>可信</strong>。我先把可以伪造的身份换成服务端签发的会话，再让权限落在服务端出数据之前，最后让审计在数据库层就改不动。」</td></tr><tr><td>还没做</td><td>换 PostgreSQL／多租户隔离／接真实模型／离线评测集（见 §七、§八）</td></tr></tbody></table></div>
+<blockquote><strong>补记（§九，招聘链路闭环）</strong>：M1 之后又补了一轮 —— 把「已邀约」之后<strong>断掉的招聘链路</strong>接上（面试表、Offer 表、真实面试官账号、状态机）。 内容见 §九、§十、§十一；本速览的「代码规模 / 回归证据」两行已按 §九 / §十 / §十一 之后的实测值刷新。</blockquote>
+<hr class="sep">
+<h2 id="doc0--一-目标-范围与优先序">一、目标、范围与优先序</h2>
+<h3 id="doc0--1-1-为什么先做-M1-而不是先灌数据-先接模型">1.1 为什么先做 M1（而不是先灌数据、先接模型）</h3>
+<p><code>docs/05</code> 已给出判断：<strong>企业级 ≠ 数据多，= 可信 + 可运维 + 可审计 + 可扩展</strong>。而本项目当时的状态是——</p>
+<div class="tablewrap"><table><thead><tr><th>现状（改造前）</th><th>问题性质</th></tr></thead><tbody><tr><td><code>server.js</code> 里 `DEMO_USER = req.headers['x-user'] \</td><td>\</td><td>'U-001'`</td><td><strong>身份由客户端指定</strong>。改一个请求头就能变成 HRD，全套「审计链 / 审批闸门 / 403 越权拦截」全部建立在可伪造的身份上</td></tr><tr><td>403 演示是<strong>硬编码</strong>的结论</td><td>有「越权被拦」的界面，没有「越权校验」的代码</td></tr><tr><td><code>consent_given</code> / <code>retain_until</code> 字段已设计</td><td>只有字段，<strong>没有逻辑</strong>（<code>docs/05</code> P1-3）</td></tr><tr><td>手写 <code>migrate()</code> 做 <code>ALTER TABLE</code></td><td>无法从空库一键建到最新版本，也就无法验证「新环境能不能跑起来」</td></tr></tbody></table></div>
+<p>所以 M1 的排序理由是：<strong>可信是一切的地基</strong>。审计、审批、合规这些「企业级感」如果建立在可伪造的身份上，就只是布景。</p>
+<h3 id="doc0--1-2-本轮范围-In-Scope">1.2 本轮范围（In Scope）</h3>
+<ul>
+<li>自建账号 + 口令登录 + 服务端会话（可吊销）</li>
+<li>三层权限：功能级（能力白名单）／行级（数据范围）／字段级（PII 脱敏）</li>
+<li>审计「只插不改」，并把约束下沉到数据库层</li>
+<li>PIPL 数据治理：留存策略、授权留痕、删除权（匿名化 / 物理删除）、主体数据导出、到期巡检</li>
+<li>版本化迁移（空库 → 最新版一键可建）</li>
+<li>统一错误契约 + requestId 全链路 + 结构化日志（含脱敏）</li>
+<li>限流、指标、优雅关闭</li>
+<li>前端配套：登录闸门、按能力裁剪导航、<strong>真会话</strong>越权演示</li>
+</ul>
+<h3 id="doc0--1-3-非目标-本轮明确不做-避免范围蔓延">1.3 非目标（本轮明确不做，避免范围蔓延）</h3>
+<ul>
+<li>❌ 不换 PostgreSQL（M1 验收口径里的「迁移到 PG」本轮<strong>未做</strong>，理由见 §七）</li>
+<li>❌ 不做多租户隔离（<code>tenant_id</code> 仍是服务端常量 <code>T-001</code>）</li>
+<li>❌ 不接任何真实大模型（保持规则模式）</li>
+<li>❌ 不引入任何 npm 依赖（保持零依赖：Node 22 原生 <code>http</code> + <code>node:sqlite</code>）</li>
+</ul>
+<hr class="sep">
+<h2 id="doc0--二-关键决策-我替你拍的板-理由-被否掉的方案">二、关键决策（我替你拍的板 + 理由 + 被否掉的方案）</h2>
+<blockquote>你说「需要拍板的你自行判断」。以下每条都按 <code>docs/07</code> 附录 A 的风格记录：<strong>原方案 → 为什么否掉 → 改后方案 → 影响范围</strong>。面试时「能讲出被否掉的方案」是证明「这是我做的」的唯一硬办法。</blockquote>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>决策</th><th>原方案</th><th>否掉的理由</th><th>改后方案</th></tr></thead><tbody><tr><td>D1</td><td><strong>技术栈</strong></td><td>直接迁 TypeScript + PostgreSQL + pgvector（<code>docs/07</code> 的推荐 A）</td><td><strong>本轮要交付的是「可信」，不是「换语言」。</strong> 迁库是高风险大工程，且<strong>不降低企业级门槛</strong>——身份照样可伪造。先把地基补上，迁移才有意义</td><td>保留零依赖 Node 22 + <code>node:sqlite</code>，但<strong>按 <code>docs/08</code> 的 L0–L5 分层重构</strong>；把「换 PG」降级为 M1 的<strong>未完成项</strong>并显式写出（§七）</td></tr><tr><td>D2</td><td><strong>会话形态</strong></td><td>纯 JWT（无状态、免存储）</td><td>JWT 的硬伤是<strong>无法吊销</strong>——HR 离职、口令泄露、批量改密，都无法立即踢下线</td><td>服务端<strong>会话表 + 不透明令牌</strong>（另有 HMAC 签名与指纹校验）。代价是多一张表、每次请求多一次查库（本地 SQLite 可忽略）</td></tr><tr><td>D3</td><td><strong>口令存储</strong></td><td>bcrypt（需引入 npm 依赖）</td><td>与「零依赖」硬约束冲突</td><td>Node 内置 <code>crypto.scrypt</code>，存成自描述格式 <code>scrypt$N$r$p$salt$hash</code>（将来换参数不影响老口令校验）</td></tr><tr><td>D4</td><td><strong>权限粒度</strong></td><td>只在路由上标一个 role</td><td>role 一个维度不够：同是 HRBP，只能看本部门；同是招聘，<strong>薪资字段不该可见</strong></td><td><strong>三层</strong>：功能级能力白名单（18 个能力）＋ 行级数据范围（<code>all</code>/<code>dept</code>/<code>self</code>）＋ 字段级脱敏（PII 字段集）</td></tr><tr><td>D5</td><td><strong>审计「不可篡改」的强度</strong></td><td>只靠「代码里不写 UPDATE/DELETE」</td><td>应用层纪律挡不住 <code>sqlite3</code> 直连、挡不住将来某次手滑；且<strong>无法自证</strong></td><td><strong>双层</strong>：应用层只暴露 insert + <strong>数据库层 <code>BEFORE UPDATE/DELETE</code> 触发器物理拒绝</strong>。验收时可当场尝试 UPDATE 被拒</td></tr><tr><td>D6</td><td><strong>匿名化 vs 物理删除</strong></td><td>一律物理删除（最彻底）</td><td>删掉整个人，审计链就断了——「某人曾被评估过」这个事实消失，劳动争议时举证会断</td><td>默认<strong>匿名化</strong>（抹掉 12 个可识别字段，保留存在性与审计上下文），显式请求 <code>hard</code> 才物理删除</td></tr><tr><td>D7</td><td><strong>字段级脱敏放在哪一层</strong></td><td>前端藏起来</td><td>前端藏 = 数据已到浏览器，抓包即得</td><td><strong>服务端在出数据之前裁剪</strong>（<code>scopeSnapshot</code>）。前端那层「按能力隐藏导航」只是界面减负，<strong>明写不承担安全职责</strong></td></tr><tr><td>D8</td><td><strong>错误返回形态</strong></td><td>各接口自己定 <code>{msg}</code> / 抛异常 / 返回 <code>false</code></td><td>前端要为每个接口写一套判断；排障时无法用一句话定位</td><td>统一契约 <code>{ ok, error:{code,message,details}, requestId }</code> + 错误码表（10 个 code）</td></tr><tr><td>D9</td><td><strong>本轮要不要前端一起改</strong></td><td>只改后端，前端等 M5</td><td>后端上鉴权后前端<strong>立刻全挂</strong>（全部 401），演示资产作废</td><td>同轮改前端：登录闸门 + 令牌注入 + 按能力裁剪导航 + <strong>越权演示改成真会话</strong>（不再伪造头）</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--三-实现内容">三、实现内容</h2>
+<h3 id="doc0--3-1-分层落点-对齐-docs-08-的-L0-L5">3.1 分层落点（对齐 <code>docs/08</code> 的 L0–L5）</h3>
+<div class="tablewrap"><table><thead><tr><th>层</th><th>文件</th><th>职责（一句话）</th><th>规模</th></tr></thead><tbody><tr><td><strong>L0 接入</strong></td><td><code>server/http-kernel.js</code></td><td>请求生命周期：requestId → 限流 → 路由匹配 → 鉴权 → 能力闸门 → 统一响应 → 访问日志 → 指标；静态文件与路径穿越防护</td><td>355 行</td></tr><tr><td><strong>L1 应用</strong></td><td><code>server/routes.js</code></td><td><strong>一张可审的路由表</strong>：36 条路由，每条显式标 <code>need</code>（能力）或 <code>public</code>。本层不写业务规则</td><td>501 行</td></tr><tr><td></td><td><code>server/server.js</code></td><td>纯装配：校验配置 → 开库 → 种子 → 建路由 → 建内核 → 维护定时器 → 优雅关闭</td><td>178 行</td></tr><tr><td><strong>L2 领域</strong></td><td><code>server/engine.js</code></td><td>Agent 引擎：8 步筛选、JD 生成、审批、问答、审计编排</td><td>1,201 行</td></tr><tr><td></td><td><code>server/auth.js</code></td><td>登录 / 会话解析 / 吊销 / 改密 / 锁定 / 过期清理</td><td>227 行</td></tr><tr><td></td><td><code>server/governance.js</code></td><td>PIPL：留存策略 / 授权 / 删除权 / 导出 / 到期巡检</td><td>228 行</td></tr><tr><td></td><td><code>server/audit.js</code></td><td>审计写入与查询（<strong>只有 insert，没有 update/delete 代码路径</strong>）</td><td>84 行</td></tr><tr><td><strong>L3 能力</strong></td><td><code>server/rbac.js</code></td><td>能力表 / 角色映射 / 数据范围 / 字段脱敏 / 上下文构建</td><td>199 行</td></tr><tr><td></td><td><code>server/security.js</code></td><td>scrypt 哈希、HMAC 签名、Cookie 解析、常量时间比较、随机 ID</td><td>122 行</td></tr><tr><td></td><td><code>shared/req-lib.js</code></td><td>词库唯一来源：30 职能族 / 242 句职责 / 17 行业语境（前后端同源 require）</td><td>—</td></tr><tr><td><strong>L4 数据</strong></td><td><code>server/db.js</code> + <code>server/migrations.js</code></td><td>种子数据、确定性简历合成、<strong>版本化迁移</strong>（v1–v4）</td><td>399 + 282 行</td></tr><tr><td><strong>L5 基础设施</strong></td><td><code>server/config.js</code></td><td>集中配置 + 启动校验；<code>.env</code> 极简解析；会话密钥生成并落盘</td><td>147 行</td></tr><tr><td></td><td><code>server/logger.js</code></td><td>结构化 JSON 日志 + requestId 绑定 + <strong>敏感字段脱敏</strong></td><td>75 行</td></tr><tr><td></td><td><code>server/errors.js</code></td><td><code>AppError</code> + 错误码表 + 统一响应体</td><td>83 行</td></tr><tr><td></td><td><code>server/metrics.js</code></td><td>滚动窗口指标：延迟分位、错误率、业务计数器</td><td>80 行</td></tr></tbody></table></div>
+<blockquote><strong>分层判据是「变化频率」</strong>（<code>docs/08</code> §3）：词库/配置改得最勤放上层，会话与存储最稳放下层。</blockquote>
+<h3 id="doc0--3-2-认证与会话-D2-D3">3.2 认证与会话（D2 / D3）</h3>
+<div class="tablewrap"><table><thead><tr><th>机制</th><th>实现要点</th></tr></thead><tbody><tr><td>口令存储</td><td><code>scrypt</code>，参数可配（N/r/p），存 <code>scrypt$N$r$p$salt$hash</code>；校验用 <code>crypto.timingSafeEqual</code>（防时序侧信道）</td></tr><tr><td>登录</td><td>失败<strong>文案统一</strong>（「账号或口令不正确」），不区分「用户不存在 / 口令错」——防用户枚举</td></tr><tr><td>锁定</td><td>同一账号连续失败 5 次锁定，锁定期间同样返回统一文案</td></tr><tr><td>会话</td><td>服务端 <code>sessions</code> 表；令牌 = 随机不透明串；同时校验 HMAC 签名 + 指纹 + 过期时间 + 是否已吊销</td></tr><tr><td>令牌下发</td><td><code>Bearer</code> 头 <strong>与</strong> 服务端下发的 Cookie 双通道（前端用 Bearer，浏览器可依赖 Cookie）</td></tr><tr><td>吊销</td><td>登出 / 改密 → <strong>吊销该用户全部会话</strong>；管理员可主动吊销某用户全部会话</td></tr><tr><td>过期清理</td><td>请求路径上<strong>节流写</strong> <code>last_seen_at</code>（不每次请求都写库——这是 <code>ADR-005</code> 那次 fsync 事故的直接教训）；进程内定时器清扫过期会话</td></tr><tr><td><strong>不再信任 <code>X-User</code></strong></td><td><code>strict</code> 模式下后端<strong>完全不读</strong>该请求头；仅 <code>legacy</code> 模式保留（横幅打印「⚠️ 演示用，不可上生产」）</td></tr></tbody></table></div>
+<h3 id="doc0--3-3-三层权限-D4-D7">3.3 三层权限（D4 / D7）</h3>
+<p><strong>① 功能级</strong>：18 个能力（<code>kebab:action</code> 风格，如 <code>job:write</code>、<code>approval:decide</code>、<code>employee:export</code>、<code>governance:write</code>、<code>admin:user</code>），7 个角色（<code>admin / hrd / recruiter / hrbp / interviewer / employee / auditor</code>）。</p>
+<p><strong>默认最小权限</strong>：角色→能力是<strong>白名单</strong>，新角色默认无能力，必须显式授予。</p>
+<p><strong>② 行级</strong>：数据范围三档 <code>all / dept / self</code>。部门按<strong>路径前缀匹配</strong>（<code>/制造中心/装配车间</code> 属 <code>/制造中心</code>）；<code>self</code> 仅本人。</p>
+<p><strong>③ 字段级</strong>：无 <code>pii:read</code> 能力的角色，命中 PII 字段集即脱敏；<strong>读取未脱敏的明细要写审计</strong>（<code>needsPiiAudit</code>）。</p>
+<p><strong>关键落点</strong>：<code>routes.js</code> 的 <code>scopeSnapshot(db, ctx)</code> —— 在最前面就把数据裁掉。</p>
+<blockquote>注释里写明了为什么不能「全量返回 + 前端隐藏」：<strong>数据已经到浏览器了，抓包即得</strong>。</blockquote>
+<h3 id="doc0--3-4-审计-append-only-D5">3.4 审计 append-only（D5）</h3>
+<div class="tablewrap"><table><thead><tr><th>层</th><th>做法</th></tr></thead><tbody><tr><td>应用层</td><td><code>audit.js</code> 只导出 <code>record</code>（INSERT）与只读查询，<strong>没有任何 UPDATE/DELETE 代码路径</strong></td></tr><tr><td>数据库层</td><td>迁移 v4 建 2 个触发器 <code>trg_audit_logs_no_update</code> / <code>trg_audit_logs_no_delete</code>，<code>BEFORE UPDATE</code> / <code>BEFORE DELETE</code> 直接 <code>RAISE(ABORT)</code></td></tr><tr><td>写什么</td><td>所有写操作；<strong>所有被拒绝的访问</strong>（<code>result = 'blocked'</code>，越权尝试本身是情报）；敏感数据访问；Agent 的每次判断</td></tr><tr><td>失败处理</td><td>审计写失败<strong>不让主业务崩</strong>，但落 <code>error</code> 级日志（审计断链是必须排查的严重问题）</td></tr><tr><td>401 vs 403</td><td><strong>401 不写审计，403 才写</strong>。理由写在代码注释里：401 是「还没登录」，浏览器首屏必然触发一次，写进去只会淹没真正的情报</td></tr></tbody></table></div>
+<h3 id="doc0--3-5-PIPL-数据治理-D6">3.5 PIPL 数据治理（D6）</h3>
+<div class="tablewrap"><table><thead><tr><th>能力</th><th>接口</th><th>说明</th></tr></thead><tbody><tr><td>留存策略</td><td><code>GET/PUT /api/governance/policies</code></td><td>三类数据默认 180/180/90 天，各带<strong>合规依据</strong>（法条口径）</td></tr><tr><td>授权留痕</td><td><code>POST /api/governance/consents</code>（+ <code>/revoke</code>）</td><td>授权/撤销/过期三种状态；<strong>转人才库需另行授权</strong></td></tr><tr><td>到期巡检</td><td><code>POST /api/governance/sweep</code></td><td>支持 <code>dryRun</code>；到期 → 匿名化；进程内每 10 分钟自动跑一次</td></tr><tr><td>删除权</td><td><code>POST /api/governance/erasure</code></td><td>默认匿名化（抹 12 个可识别字段 + <code>anonymized_at</code> 标记），可显式 <code>hard</code> 物理删除</td></tr><tr><td>主体数据导出</td><td><code>GET /api/governance/subject/:id/export</code></td><td>一次性导出该候选人全部留存数据</td></tr><tr><td>治理概览</td><td><code>GET /api/governance/summary</code></td><td>候选人数 / 已匿名化 / 无有效授权 / 到期待清</td></tr></tbody></table></div>
+<p><strong>匿名化字段清单</strong>（<code>governance.js</code> <code>IDENTIFYING_FIELDS</code>，共 12 项）：</p>
+<p><code>name→'已删除'</code>、<code>gender</code>、<code>birth_date</code>、<code>company</code>、<code>edu_text</code>、<code>skills</code>、<code>business_tags</code>、<code>plus_tags</code>、<code>ai_reasons</code>、<code>ai_note</code>、<code>override_reason</code>、<code>source</code>。</p>
+<h3 id="doc0--3-6-版本化迁移-从空库一键建到最新">3.6 版本化迁移（从空库一键建到最新）</h3>
+<div class="tablewrap"><table><thead><tr><th>版本</th><th>名称</th><th>内容</th></tr></thead><tbody><tr><td>v1</td><td><code>baseline</code></td><td>13 张基础表（<code>IF NOT EXISTS</code>，兼容既有库）</td></tr><tr><td>v2</td><td><code>auth_sessions</code></td><td>users 补 7 列（口令哈希、锁定计数等）+ 建 <code>sessions</code> 表</td></tr><tr><td>v3</td><td><code>governance</code></td><td><code>consents</code> / <code>retention_policies</code> / <code>erasure_requests</code> + candidates 补治理列</td></tr><tr><td>v4</td><td><code>audit_append_only</code></td><td>2 个 append-only 触发器</td></tr></tbody></table></div>
+<p>机制：<code>schema_migrations</code> 记录已应用版本；<code>run()</code> 按序应用并返回本次应用列表；提供 <code>withoutAuditGuards(db, fn)</code> 供「重置」临时摘掉触发器（否则清表会被自己的约束拒绝）。</p>
+<p><strong>当前实测</strong>：17 张表、2 个触发器、<code>schema_migrations</code> 4 条。</p>
+<h3 id="doc0--3-7-统一错误契约与可观测">3.7 统一错误契约与可观测</h3>
+<div class="tablewrap"><table><thead><tr><th>能力</th><th>落点</th><th>说明</th></tr></thead><tbody><tr><td>统一响应</td><td><code>errors.js</code></td><td><code>{ ok:false, error:{code,message,details}, requestId }</code>；10 个错误码：<code>BAD_REQUEST / UNAUTHENTICATED / FORBIDDEN / NOT_FOUND / CONFLICT / PAYLOAD_TOO_LARGE / UNPROCESSABLE / RATE_LIMITED / INTERNAL / UPSTREAM / UNAVAILABLE</code></td></tr><tr><td>requestId</td><td><code>http-kernel.js</code></td><td>每请求生成，进响应头、进 JSON、进日志、进审计 —— 用户报障时一句话定位</td></tr><tr><td>结构化日志</td><td><code>logger.js</code></td><td>单行 JSON；<code>redact()</code> 对 <code>password/token/secret/cookie</code> <strong>一律输出 <code>[REDACTED]</code></strong>（实测启动日志里 <code>seededCredentials</code> 即为 <code>[REDACTED]</code>）</td></tr><tr><td>限流</td><td><code>http-kernel.js</code></td><td>令牌桶按 IP + 路径；超限 → <code>429 RATE_LIMITED</code></td></tr><tr><td>指标</td><td><code>metrics.js</code></td><td>请求数、错误率、延迟 p50/p90/p95/p99（60 槽滚动窗口）、业务计数器（如 <code>rbac.denied</code>）</td></tr><tr><td>优雅关闭</td><td><code>server.js</code></td><td><code>SIGINT/SIGTERM</code> → 停止收新连接 → 等在途请求 → 关库 → 超时强制退出</td></tr></tbody></table></div>
+<h3 id="doc0--3-8-前端配套-不让演示资产报废">3.8 前端配套（不让演示资产报废）</h3>
+<div class="tablewrap"><table><thead><tr><th>改动</th><th>说明</th></tr></thead><tbody><tr><td>登录闸门</td><td>探测 <code>/api/health</code> 的 <code>authMode</code>；<code>strict</code> 且无会话 → 弹登录层（含演示账号提示），<strong>不白屏</strong></td></tr><tr><td>令牌注入</td><td>统一 <code>apiFetch()</code> 带 <code>Bearer</code>；<strong>不再发送可伪造的 <code>X-User</code></strong></td></tr><tr><td>导航裁剪</td><td>每个导航项标 <code>perm</code>，按当前能力过滤——员工登录后看不到「点进去全是 403」的菜单（代码注释已写明：<strong>这层不承担安全职责</strong>）</td></tr><tr><td>身份切换 / 登出</td><td>左下角 🔁 切换演示身份、⎋ 登出</td></tr><tr><td>越权演示改造</td><td>从「伪造 <code>X-User</code> 头」改成<strong>用当前会话真请求</strong>：HRD → 200；点「切换到员工身份重试」→ 真 403 且<strong>真写审计</strong></td></tr><tr><td>离线兜底不变</td><td><code>file://</code> 打开时<strong>不发任何网络请求</strong>，继续用内置演示数据（断网可演示这条能力被保住）</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--四-异常处理覆盖清单">四、异常处理覆盖清单</h2>
+<div class="tablewrap"><table><thead><tr><th>场景</th><th>行为</th><th>实测</th></tr></thead><tbody><tr><td>无会话访问任一业务 API</td><td><code>401 UNAUTHENTICATED</code>（<strong>不再默认 HRD</strong>）</td><td>✅ 集成测试 [2]/[3]</td></tr><tr><td>已登录但缺能力</td><td><code>403 FORBIDDEN</code> + <strong>写 blocked 审计</strong></td><td>✅ 集成测试 [11]</td></tr><tr><td>登录了但数据不在范围内（行级越权）</td><td><code>403</code> + 审计（<code>denyScope</code> 单独一条路径）</td><td>✅ 集成测试 [10]</td></tr><tr><td>未知接口</td><td><code>404 NOT_FOUND</code> + code + requestId</td><td>✅ [16]</td></tr><tr><td>方法不允许</td><td><code>405</code></td><td>✅ [16]</td></tr><tr><td>请求体非法 JSON</td><td><code>400 BAD_REQUEST</code></td><td>✅ [16]</td></tr><tr><td>请求体超大</td><td><code>413 PAYLOAD_TOO_LARGE</code>（<strong>读干而非掐断连接</strong>，见 §六 R2）</td><td>✅ [16]</td></tr><tr><td>高频请求</td><td><code>429 RATE_LIMITED</code></td><td>✅ [16]</td></tr><tr><td>静态文件路径穿越（<code>../</code>）</td><td>拒绝</td><td>✅ 已有</td></tr><tr><td>口令错误 5 次</td><td>锁定 + 统一文案（防枚举）</td><td>✅ [6]</td></tr><tr><td>令牌过期 / 被吊销</td><td><code>401</code>（不泄漏「过期还是吊销」）</td><td>✅ [15]</td></tr><tr><td>改密后旧会话</td><td><strong>全部失效</strong></td><td>✅ [14]</td></tr><tr><td>服务内部异常</td><td><code>500 INTERNAL</code>（不外泄堆栈）+ error 日志</td><td>✅</td></tr><tr><td>审计写入失败</td><td>不阻断主业务 + error 日志</td><td>✅ 代码路径</td></tr><tr><td>进程收到 SIGTERM</td><td>优雅关闭（等在途请求，超时强制）</td><td>✅ 代码路径</td></tr><tr><td>空库首次启动</td><td>自动跑 4 个迁移 + 种子 + 治理默认策略</td><td>✅ §五 实测</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--五-验收证据-可当场复现">五、验收证据（可当场复现）</h2>
+<h3 id="doc0--5-1-三套回归-全部-0-失败">5.1 三套回归，全部 0 失败</h3>
+<div class="tablewrap"><table><thead><tr><th>套件</th><th>命令</th><th>覆盖</th><th>结果</th></tr></thead><tbody><tr><td>后端集成（真 HTTP，无依赖）</td><td><code>node --experimental-sqlite tools/test_auth.js</code></td><td>认证 / 三层权限 / 治理 / 迁移 / 错误契约 / 限流 / 会话吊销 <strong>127 项断言</strong></td><td>✅ <strong>127 通过 / 0 失败</strong></td></tr><tr><td>在线端到端（真后端 + 真鉴权）</td><td><code>NODE_PATH=... node 平台原型/test_live.js</code></td><td><strong>23 页渲染 + 16 项真链路交互</strong></td><td>✅ <strong>0 异常 / 0 错误</strong></td></tr><tr><td>离线兜底（单文件 <code>file://</code>）</td><td><code>NODE_PATH=... node 平台原型/test_prototype.js</code></td><td><strong>23 页渲染 + 16 项离线交互</strong></td><td>✅ <strong>0 异常 / 0 错误</strong></td></tr></tbody></table></div>
+<p>在线回归的关键日志（原文摘录）：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>0. 身份认证
+  ✓ /api/health 无需登录：authMode=strict schema=v4
+  ✓ 匿名访问 /api/bootstrap → 401（不再默认 HRD）
+  ✓ 已登录：李静（人力资源总监）· 能力 16 项 · 数据范围 all
+  ✓ 导航项 23 个（HRD 应按能力显示全部页面）
+  ✓ 23 个页面渲染：异常 0 个
+  ✓ 越权导出被 403 拦截（切到员工身份）
+      员工身份：403 拦截 + 审计留痕
+  ✓ 审计 append-only 与越权留痕可查
+      审计：共 15 条，blocked 2 条；示例 → 被拦截：角色 employee 缺少能力 employee:export · requestId=96181a3…
+✅ 全部通过：LIVE 模式下 23 页渲染正常，16 项真实链路交互无错误。</code></pre></div>
+<blockquote>注意那行 <code>blocked 2 条</code>：1 条是种子里的演示记录（<code>actor_type='system'</code>），1 条是<strong>刚才那次真实越权</strong>。测试用例因此被特意收紧为「必须匹配到 <code>actor_type='user'</code> 且 <code>detail</code> 以『被拦截：』开头的那条」——<strong>否则种子数据会把用例糊过去</strong>（见 §六 R3）。</blockquote>
+<h3 id="doc0--5-2-空库重建-一次硬验证">5.2 空库重建（一次硬验证）</h3>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>1) 删除 server/hr_agent.db（含 -wal / -shm）
+2) node --experimental-sqlite server.js          # 全新启动，无 --reset
+3) 启动日志：{"msg":"数据库就绪","schemaVersion":4,"migrated":0}
+             {"msg":"初始化完成","seededCredentials":"[REDACTED]","backfilledRetention":0}
+             {"msg":"服务已启动","authMode":"strict","schemaVersion":4}
+4) GET /api/health → {"ok":true,"authMode":"strict","schemaVersion":4}
+5) 数据核对：jobs 21 | candidates 79 | approvals 0 | 表 17 | 触发器 2 | 迁移 4</code></pre></div>
+<p><strong>这条验证的价值</strong>：改造前「空库」是<strong>跑不起来</strong>的（种子用了位置化 INSERT，v2 加了 7 列后列数不匹配 —— 见 §六 R1）。现在空库路径是新环境部署的<strong>唯一入口</strong>，必须每次都验。</p>
+<h3 id="doc0--5-3-附带的两个真实行为验证">5.3 附带的两个真实行为验证</h3>
+<div class="tablewrap"><table><thead><tr><th>验证</th><th>怎么做</th><th>结果</th></tr></thead><tbody><tr><td>审计<strong>物理</strong>不可改</td><td>直连 SQLite 执行 <code>UPDATE audit_logs SET result='ok' WHERE id=?</code> 与 <code>DELETE FROM audit_logs</code></td><td>✅ 两条都被触发器 <code>RAISE(ABORT)</code> 拒绝</td></tr><tr><td>迁移脚本可空库一键建到最新</td><td>同 §5.2</td><td>✅ v1→v4 全部自动应用</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--六-本轮抓到并修掉的真实缺陷">六、本轮抓到并修掉的真实缺陷</h2>
+<blockquote>这 4 条<strong>全部是在验证过程中被测试抓出来的</strong>，不是「预想中的坑」。按「原方案 → 根因 → 改后 → 影响」记录。</blockquote>
+<h3 id="doc0--R1-空库启动崩溃-table-users-has-15-columns-but-8-values-were-suppl">R1 · 空库启动崩溃：<code>table users has 15 columns but 8 values were supplied</code></h3>
+<ul>
+<li><strong>原方案</strong>：种子用位置化 <code>INSERT INTO users VALUES(...)</code> 写 8 个值。</li>
+<li><strong>根因</strong>：迁移 v2 给 users 补了 7 列 → 列数变 15。<strong>只有全新库才会暴露</strong>（老库因为表早已建好、种子跳过，一直正常）。</li>
+<li><strong>改后</strong>：users 与 leave_balance 的种子改为<strong>显式列名</strong> INSERT。</li>
+<li><strong>影响</strong>：这是「本地跑得好好的，一到新环境就崩」的典型；教训是<strong>必须单独验空库路径</strong>，不能只信已有环境。</li>
+</ul>
+<h3 id="doc0--R2-超大请求体返回-413-却伴随-ECONNRESET">R2 · 超大请求体返回 413 却伴随 <code>ECONNRESET</code></h3>
+<ul>
+<li><strong>原方案</strong>：<code>readBody</code> 检测到超限即 <code>req.destroy()</code>。</li>
+<li><strong>根因</strong>：直接销毁连接，客户端还没读完响应就被重置 —— 表现为 <code>fetch failed</code>，用户看到「网络错误」而不是「请求体过大」。</li>
+<li><strong>改后</strong>：<strong>把剩余字节读完再丢弃</strong>，然后正常返回 <code>413</code>，让连接可复用。</li>
+<li><strong>影响</strong>：错误码能正确传给前端；也避免 keep-alive 连接池被污染。</li>
+</ul>
+<h3 id="doc0--R3-测试用例-假绿-403-用例被文案和种子数据糊过去">R3 · 测试用例「假绿」：403 用例被文案和种子数据糊过去</h3>
+<ul>
+<li><strong>原方案</strong>：① 断言 <code>drawer 文案里含 "403"</code>；② 断言 <code>存在 result='blocked' 的审计</code>。</li>
+<li><strong>根因</strong>（两处，都很隐蔽）：</li>
+<li>前端 200 分支的说明文案里<strong>本来就写着</strong>「换个身份就会变成 403」→ 子串匹配永远为真；</li>
+<li>种子数据里<strong>本来就有一条</strong> <code>blocked</code> 的演示审计（<code>actor_type='system'</code>）→ 计数永远 &gt; 0。</li>
+<li>更关键：测试脚手架注入的 <code>window.fetch</code> <strong>无条件覆盖</strong> <code>Authorization</code>，导致「切换到员工身份」那一步被测试自己的 HRD 令牌顶掉 —— 服务端看到的仍是 HRD，返回 200，<strong>根本没发生越权</strong>。</li>
+<li><strong>改后</strong>：① 断言改为检查<strong>渲染分支</strong>（存在 <code>.scanwarn</code> 且含 <code>403 Forbidden</code>）；② 审计断言收紧为「<code>actor_type='user'</code> + <code>detail</code> 以『被拦截：』开头 + <code>object_id</code> 命中 <code>employees/export</code>」；③ 脚手架改为<strong>只在前端未显式设置时才注入</strong>令牌。</li>
+<li><strong>影响</strong>：<strong>这是本轮最有价值的一条。</strong> 一个「永远是绿的」安全用例比没有用例更危险——它会让团队误以为越权已被拦住。安全断言必须<strong>指向唯一的、真实的证据</strong>。</li>
+</ul>
+<h3 id="doc0--R4-匿名化候选人导致候选人库页面崩溃">R4 · 匿名化候选人导致候选人库页面崩溃</h3>
+<ul>
+<li><strong>现象</strong>：<code>[render:candidates] Cannot read properties of null (reading 'split')</code>（时有时无，取决于库里有没有被匿名化过的候选人）。</li>
+<li><strong>根因</strong>：PIPL 匿名化会把 <code>edu_text</code> 置为 <code>NULL</code>；前端该单元格直接 <code>c.edu.split('·')</code>（同一文件里另一处早已写成 <code>(c.edu || '')</code>，这一处漏了）。</li>
+<li><strong>改后</strong>：① 前端做空值防御；② <strong>后端</strong>把匿名化候选人显式标为 <code>edu: '已匿名化'</code>、<code>company: '（已匿名化）'</code> —— 比让 UI 显示空白更诚实，也更符合「保留存在性」的治理意图。</li>
+<li><strong>影响</strong>：治理功能与展示功能之间的<strong>隐式契约</strong>（「字段可能为空」）被显式化。</li>
+</ul>
+<hr class="sep">
+<h2 id="doc0--七-已知边界与未做-诚实清单">七、已知边界与未做（诚实清单）</h2>
+<blockquote>这一节是面试时<strong>最该主动讲</strong>的部分。声称「全做完了」反而会被追问到塌。</blockquote>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>未做 / 边界</th><th>为什么</th><th>补齐路径</th></tr></thead><tbody><tr><td>1</td><td><strong>没换 PostgreSQL</strong></td><td>风险高、且不降低门槛；先把可信补上（D1）</td><td>见 <code>docs/08</code> §八 迁移路径阶段 ②；字段映射表已在 <code>docs/05</code> P1-1 给出</td></tr><tr><td>2</td><td><strong>仍是单租户</strong></td><td><code>tenant_id</code> 是服务端常量，不是从请求读（这是<strong>安全</strong>的默认值，但也不是真隔离）</td><td>每查询强制带 <code>tenant_id</code> + 行级策略；先把常量改成「从会话取」再谈多租户</td></tr><tr><td>3</td><td><strong>模型层仍空转</strong></td><td>无 API Key、无国内备案模型接入</td><td><code>docs/07</code> M3 / <code>docs/08</code> §6.2 模型网关设计已在，属于「接线」而非「设计」工作</td></tr><tr><td>4</td><td><strong>无离线评测集</strong></td><td>这是项目<strong>最硬的短板</strong>（一直未补）</td><td><code>docs/07</code> M4：3–5 类任务 × 20 样本（含对抗样本）+ 阈值 + 回归门槛</td></tr><tr><td>5</td><td><strong>候选人是合成数据</strong></td><td>无真实简历</td><td><code>docs/07</code> M2：真实 PDF/DOCX 链路</td></tr><tr><td>6</td><td><strong>字段级加密未做</strong></td><td>本轮做的是「脱敏 + 访问留痕」，<strong>不是</strong>加密存储</td><td>需要密钥管理（KMS / 本地密钥文件）+ 加解密中间层</td></tr><tr><td>7</td><td><strong>限流是单机内存态</strong></td><td>单进程场景够用</td><td>多实例需换 Redis 令牌桶</td></tr><tr><td>8</td><td><strong>无 CI</strong></td><td>三套测试是手动跑</td><td>接 GitHub Actions：三套命令即为流水线内容（成本极低，收益高）</td></tr><tr><td>9</td><td><strong><code>legacy</code> 模式仍保留</strong></td><td>用于「对比演示身份可伪造有多危险」</td><td>生产构建时<strong>直接删掉</strong>该分支，不留开关（留开关就是留后门）</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--八-后续可优化方向-按优先级">八、后续可优化方向（按优先级）</h2>
+<div class="tablewrap"><table><thead><tr><th>优先级</th><th>事项</th><th>为什么这么排</th></tr></thead><tbody><tr><td><strong>P0</strong></td><td>把三套测试接进 CI，并在 <code>docs/</code> 里写明「回归门槛」</td><td>已有资产零成本变现；「我建了回归门槛并阻断合并」是 AI PM 与工程师的分水岭</td></tr><tr><td><strong>P0</strong></td><td>补离线评测集（M4）</td><td>目前唯一无法自证的能力；没有它，「AI 判断准不准」全靠嘴说</td></tr><tr><td><strong>P1</strong></td><td>接一个国内已备案模型，跑通一条真链路 + 记 token/成本</td><td>把「规则为主 + 模型兜底」从设计变成实测；同时验证降级路径</td></tr><tr><td><strong>P1</strong></td><td>删掉 <code>legacy</code> 认证分支</td><td>不留后门</td></tr><tr><td><strong>P1</strong></td><td>会话表加「设备/UA + 最近活跃」，管理端可逐个踢下线</td><td>可信故事的自然延伸，成本低</td></tr><tr><td><strong>P2</strong></td><td>换 PostgreSQL + 版本化迁移平移</td><td>需先有真实并发/数据量诉求，否则是「为技术而技术」</td></tr><tr><td><strong>P2</strong></td><td>多租户隔离落地</td><td>需要真实多客户场景驱动</td></tr><tr><td><strong>P2</strong></td><td>前端把「按能力裁剪」升级为「按能力渲染 + 空态引导」</td><td>体验优化，非安全项</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--九-面试口径-可直接背">九、面试口径（可直接背）</h2>
+<p><strong>30 秒版</strong></p>
+<blockquote>「这个项目我把它从『能演示的 PoC』推进到了『可信底座』。原来最致命的问题是<strong>身份可以由客户端伪造</strong>——请求头写谁就是谁，那我的审计链、审批闸门、越权拦截全是布景。所以我做三件事：<strong>身份换成服务端签发的可吊销会话</strong>、<strong>权限做成功能/行/字段三层并且全部在服务端出数据之前生效</strong>、<strong>审计在数据库层就用触发器锁成只插不改</strong>。验证方式是三套回归，127 项后端断言加两套 23 页端到端，全绿；还做了一次删库重启，证明新环境能从空库一键建起来。」</blockquote>
+<p><strong>被追问「为什么先做这个而不是先接大模型 / 先扩数据」时</strong></p>
+<blockquote>「因为<strong>企业级的门槛不是数据量，是可信</strong>。数据再多，只要身份能伪造，那所有合规叙事都不成立。而且换数据库这件事风险高、又不降低门槛——先把地基补上，迁移才有意义。」</blockquote>
+<p><strong>被追问「你怎么知道越权真的被拦住了」时</strong>（最容易被考的一题）</p>
+<blockquote>「我踩过一个坑：最初那条 403 用例<strong>永远是绿的，但其实什么都没验证到</strong>。原因有两个——前端 200 分支的文案里本来就写着『换个身份就会变成 403』，子串匹配永远为真；种子数据里本来就有一条演示用的 blocked 审计记录，计数永远大于零。更隐蔽的是我的测试脚手架把 <code>Authorization</code> 头无条件覆盖了，所以『切换成员工身份』那一步其实还是用 HRD 的令牌在请求，服务端压根没拦。后来我把断言改成指向<strong>唯一证据</strong>：必须匹配到 <code>actor_type='user'</code>、<code>detail</code> 以『被拦截：』开头、且路径命中那次导出的那条审计。<strong>一个永远绿的用例比没有用例更危险</strong>，它会让人以为已经拦住了。」</blockquote>
+<p><strong>被追问「这一步做完了，下一步做什么」时</strong></p>
+<blockquote>「两件：一是把这三套测试接进 CI 并设回归门槛，二是补离线评测集——这是我目前唯一不能自证的能力。模型的接入反而是小事，设计已经在了，是接线工作。」</blockquote>
+<hr class="sep">
+<h2 id="doc0--九-招聘链路闭环-把-已邀约-之后的断路接上-本轮追加">九、招聘链路闭环：把「已邀约」之后的断路接上（本轮追加）</h2>
+<h3 id="doc0--9-1-问题-一条-画得很完整-后端为零-的链路">9.1 问题：一条「画得很完整、后端为零」的链路</h3>
+<p>用户连着问了两个很朴素的问题：</p>
+<blockquote>「如果我是招聘专员，接受了 AI 的判断、简历进入下一阶段，下一阶段到谁了？」 「人力资源总监接受了 AI 的判断，进入下一步，下一步是给谁看？」</blockquote>
+<p>顺着这两个问题查代码，得到的是一个<strong>不好看但必须承认</strong>的结论（实测，非推断）：</p>
+<div class="tablewrap"><table><thead><tr><th>现状（本轮之前）</th><th>性质</th></tr></thead><tbody><tr><td><code>/api/approvals</code> 的批准人只有 <code>hrd</code>；<code>recruiter</code> 能力表里只有 <code>approval:read</code></td><td>招聘专员<strong>根本没有「接受 AI 判断」这个动作</strong>（实测 U-002 调 approve → 403 <code>approval:decide</code>）</td></tr><tr><td>批准后 <code>strong → 已邀约</code>、<code>ok → 原地不动</code>、<code>no → 已淘汰</code>（<code>engine.js</code>）</td><td>「接受」不是统一前进，是三档分流</td></tr><tr><td>没有 <code>interviews</code> / <code>offers</code> 表，没有任何写入 <code>待面试 / 面试中 / 已入职</code> 的代码路径</td><td><strong>「已邀约」是终点值，链路在这里断了</strong></td></tr><tr><td><code>interviewer</code> 角色在 <code>rbac.js</code> 里有定义，但种子用户<strong>无人担任</strong></td><td>面试官是「有角色、没有真人」的幽灵</td></tr><tr><td>原型 23 页里 <code>invite</code> / <code>interview</code> / <code>offer</code> 三页画得最完整</td><td><strong>全是静态演示</strong>：面试官「王磊」在用户表里查无此人</td></tr></tbody></table></div>
+<p>一句话：<strong>这条链的前 60% 是可信的（真鉴权、真审批、真审计），后 40% 是布景。</strong></p>
+<h3 id="doc0--9-2-做了什么-六件事">9.2 做了什么（六件事）</h3>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>做了什么</th><th>关键文件</th></tr></thead><tbody><tr><td>1</td><td><strong>迁移 v5 <code>hiring_pipeline</code></strong>：新增 <code>interviews</code>、<code>offers</code> 两张表 + 索引</td><td><code>server/migrations.js</code></td></tr><tr><td>2</td><td><strong>新增 L2 领域模块 <code>hiring.js</code></strong>：状态机、轮次规则、合规校验、Offer 编排<strong>只有这一份</strong></td><td><code>server/hiring.js</code>（新）</td></tr><tr><td>3</td><td><strong>RBAC 扩 6 项能力</strong>：<code>interview:read/schedule/feedback</code>、<code>offer:read/create/decide</code>（18 → 24 项）</td><td><code>server/rbac.js</code></td></tr><tr><td>4</td><td><strong>补 2 个真实面试官账号</strong>：U-007 王磊（后端组）、U-008 孙倩（产品）</td><td><code>server/auth.js</code></td></tr><tr><td>5</td><td><strong>9 条新路由</strong> + 领域错误 → HTTP 的映射（<code>hiringError</code>）</td><td><code>server/routes.js</code></td></tr><tr><td>6</td><td><strong>前端三页接真数据</strong> + 12 个动作处理器（排期 / 开场 / 结论 / 起草 / 批准 / 驳回 / 应答）</td><td><code>平台原型/src/app.js</code></td></tr></tbody></table></div>
+<h3 id="doc0--9-3-状态机-唯一一份-写在-hiring-js">9.3 状态机（唯一一份，写在 <code>hiring.js</code>）</h3>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>已邀约 ──排期──▶ 待面试 ──面试官开场──▶ 面试中 ──┬─ 未通过 ─▶ 已淘汰
+                                                   ├─ 待定   ─▶ 待复试
+                                                   └─ 通过   ─┬─ 第 1 轮 ─▶ 待复试
+                                                              └─ 第 2 轮 ─▶ 待发offer
+待发offer ──招聘专员起草──▶ 待 HRD 审批 ──批准──▶ 已发offer ──候选人接受──▶ 已入职
+                                        └─驳回──▶ 仍留 待发offer（可改后重起草）
+                                        └─候选人拒绝──▶ 已淘汰</code></pre></div>
+<p>三条刻意的规则（都写在代码里、都有注释说明为什么）：</p>
+<ol>
+<li><strong>一个人同时只能有 1 场未完成的面试</strong>。否则「这一轮到底算不算过了」说不清，阶段流转会失真。要改约就先取消。</li>
+<li><strong>轮次 = 已完成的面试数 + 1，取消不占轮次号</strong>。否则「取消一次 → 重排」会把第 1 轮变成第 2 轮，于是「第 1 轮通过只进复试」这条规则被跳过 —— 人还没复面就直接进了 Offer。</li>
+<li><strong>时间必须是 <code>YYYY-MM-DD HH:MM</code></strong>，模糊写法一律拒绝。排期是人的动作，时间不猜。</li>
+</ol>
+<h3 id="doc0--9-4-两条硬红线-代码级-不是提示词">9.4 两条硬红线（代码级，不是提示词）</h3>
+<div class="tablewrap"><table><thead><tr><th>红线</th><th>实现位置</th><th>违反时</th></tr></thead><tbody><tr><td><strong>起草人不能批自己起草的 Offer</strong></td><td><code>offer:create</code> 与 <code>offer:decide</code> 分离，HRD 独占后者；招聘专员在前端<strong>看不到</strong>批准按钮，即便手改 DOM 也会被服务端 403</td><td>403 <code>Forbidden</code></td></tr><tr><td><strong>Offer 合规底线</strong>：月薪 ≥ 北京市最低工资 <strong>2,420 元</strong>；试用期 ≤ <strong>6 个月</strong></td><td><code>hiring.checkOffer()</code> 在<strong>创建前</strong>校验，<code>block</code> 非空直接拒绝落库</td><td><strong>422</strong> <code>UNPROCESSABLE</code>，且<strong>不产生</strong> <code>offers</code> 记录</td></tr></tbody></table></div>
+<p>第 2 条是这一轮的「产品立场」样本：<strong>合规不是「提示一下让人自己决定」，是校验失败直接不让创建</strong>。</p>
+<p>关键区分 —— <em>警告（warn）</em> 会返回给用户但仍创建；<em>阻断（block）</em> 则一行都不写。测试里专门验证了「1000 元被阻断后 <code>offers</code> 表仍为空」。</p>
+<h3 id="doc0--9-5-顺手修掉的两个真实缺陷">9.5 顺手修掉的两个真实缺陷</h3>
+<p>排查链路时发现的、与本轮同源的两个缺陷，一并修掉：</p>
+<div class="tablewrap"><table><thead><tr><th>缺陷</th><th>症状</th><th>修法</th></tr></thead><tbody><tr><td><strong>审批按钮没有能力守卫</strong></td><td>招聘专员在「审核中心」看得见「✓ 批准并执行」，点下去才 403 —— 事后报错，不是权限设计</td><td>前端加 <code>canDo(ability)</code>，无能力时<strong>隐藏按钮并显示锁定说明</strong>；明确定位为「体验层，不承担安全职责」</td></tr><tr><td><strong>403 文案把功能级当成行级</strong></td><td>「缺少能力 interview:read」被说成「<strong>数据范围</strong>权限不足」，排查时误导</td><td>功能级 403 带 <code>details.level='ability'</code>（附 <code>need</code>/<code>role</code>）；行级 403 带 <code>details.level='scope'</code>；文案分别措辞</td></tr></tbody></table></div>
+<h3 id="doc0--9-6-一致性收益-删掉-legacy-认证开关">9.6 一致性收益：删掉 legacy 认证开关</h3>
+<p>M1 留下了 <code>AUTH_MODE=legacy</code> 作为「可回退」的对比模式，并且当时就自我标注了一句：</p>
+<p><strong>「留开关 = 留后门」</strong>。本轮把它<strong>整个删掉</strong>（<code>config.js</code> 里写死 <code>strict</code>，<code>server.js</code> 里删掉旧 <code>authenticate()</code> 分支）。</p>
+<p>理由：一个「能让身份退化成可伪造」的开关，哪怕默认关闭，也是攻击面与被质疑点。<strong>删掉它比守护它便宜。</strong></p>
+<h3 id="doc0--9-7-验收-三套回归-全绿">9.7 验收（三套回归，全绿）</h3>
+<div class="tablewrap"><table><thead><tr><th>套件</th><th>命令</th><th>结果</th></tr></thead><tbody><tr><td>后端招聘链路集成</td><td><code>tools/test_hiring.js</code></td><td><strong>87 项断言 / 0 失败</strong>（含功能级 + 行级 403、合规阻断、权限分离、审计留痕）</td></tr><tr><td>在线（真鉴权）回归</td><td><code>test_live.js</code></td><td><strong>23 页 + 22 项 / 0 异常</strong>（新增 2 项：招聘链路闭环、面试官行级隔离）</td></tr><tr><td>离线（断网）回归</td><td><code>test_prototype.js</code></td><td><strong>23 页 + 18 项 / 0 异常</strong>（新增 1 项：离线态链路烟测）</td></tr></tbody></table></div>
+<p>在线用例用<strong>三个真人身份</strong>把整条链走完，并逐步断言数据库阶段：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>HRD 批准 → 已邀约  →  招聘专员排期 → 待面试  →  面试官开场 → 面试中
+  → 第 1 轮通过 → 待复试  →  第 2 轮通过 → 待发offer
+  → 【合规】1000 元被阻断、offers 表为空  →  起草 32000 → 待审批
+  → 起草人看不到批准按钮 ✓  →  HRD 批准 → 已发offer  →  登记接受 → 已入职
+面试官行级隔离：U-007 看到 2 条 / U-008 看到 0 条（服务端过滤，前端无「隐藏」逻辑）</code></pre></div>
+<h3 id="doc0--9-8-还没做-诚实列表">9.8 还没做（诚实列表）</h3>
+<ul>
+<li><strong>面试日历 / 忙闲冲突检测</strong>：目前只校验「同一候选人不能有两场未完成面试」，<strong>不校验面试官是否撞期</strong>。真实排期需要日历与冲突消解。</li>
+<li><strong>Offer 模板与审批链</strong>：只有单级 HRD 审批。多级审批（法务 / 财务 / 薪酬委员会）未实现。</li>
+<li><strong>Offer 撤回与失效</strong>：发出后没有「撤回」与「有效期到期自动失效」。</li>
+<li><strong>入职前置只是「阶段」</strong>：<code>已入职</code> 触发了 <code>onboarding</code> 页的演示，但<strong>没有真正的入职手续实体</strong>（材料清单、账号开通、合同签署）。</li>
+<li><strong>前端 Offline 与 Live 是两套动作处理器</strong>：为「断网可演示」付的代价是同一动作写了两遍。可考虑抽一层「本地适配器」统一。</li>
+</ul>
+<hr class="sep">
+<h2 id="doc0--十-JD-生成口径修正-从-零散堆砌-到-自然行文-2026-09-29">十、JD 生成口径修正：从「零散堆砌」到「自然行文」（2026-09-29）</h2>
+<h3 id="doc0--10-1-现象与根因">10.1 现象与根因</h3>
+<p>HR 把一份 15 行的校招 JD <strong>整段粘进「任职要求」</strong>框，点「生成 JD」后拿到的是：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>**（一）专业技能**
+1. Agent产品经理我们在找一个对AI Agent充满热情的校招产品经理你是不是那种——Claude、Codex、Cursor一个不落
+2. 天天琢磨"这玩意儿还能怎么用"?看到Agent自己规划、自己干活、自己交结果
+...
+6. • 从0到1定义一个真正"会思考、会干活"的Agent
+7. • 把模糊的用户场景
+8. 拆成能落地的产品方案
+...
+19. 有这些更香
+20. AI产品实习经历 / 懂点技术能和工程对话 / ...</code></pre></div>
+<p><code>20</code> 条碎片。根因不在排版，在<strong>切条规则本身写错了</strong>：</p>
+<div class="tablewrap"><table><thead><tr><th>现象</th><th>根因</th></tr></thead><tbody><tr><td>一句话被劈成两三条</td><td>切条表达式是 <code>split(/[,，;；\n]/)</code> —— <strong>逗号、分号是句中标点，不是条目边界</strong>。「和顶尖算法、工程团队并肩，把想法快速上线」因此在逗号处断成两条</td></tr><tr><td>行首多出一个 <code>·</code></td><td>原文里已有的 <code>•</code> 没被剥掉，渲染时又叠了一层编号（<code>6. ·从0到1…</code>）</td></tr><tr><td>「你会做什么」自己成了一条</td><td>小标题没被识别，当成了普通要求</td></tr><tr><td>加分项内容混进「专业技能」</td><td>没有按小标题归位，所有内容都堆进第一个维度</td></tr></tbody></table></div>
+<h3 id="doc0--10-2-三步改造-shared-req-lib-js-第七节-前后端共用一份">10.2 三步改造（<code>shared/req-lib.js</code> 第七节，前后端共用一份）</h3>
+<div class="tablewrap"><table><thead><tr><th>步骤</th><th>做什么</th></tr></thead><tbody><tr><td><strong>A 还原</strong></td><td>剥掉行首残留符号（<code>·</code> <code>•</code> <code>-</code> <code>1.</code> <code>（1）</code> <code>①</code> <code>##</code>）；把「上一行没说完」的断行合并回去（补上该有的逗号）</td></tr><tr><td><strong>B 归位</strong></td><td>认出「你会做什么 / 我们想找这样的你 / 有这些更香 / 我们提供」这类小标题，内容分别落到 <strong>职责 / 任职要求 / 加分项 / 福利</strong> 四个桶；<code>≥2</code> 个小标题时，标题前的内容视为<strong>引言</strong></td></tr><tr><td><strong>C 成段</strong></td><td>同一维度不再逐条编号，用「；」串成一整段自然行文（<code>paragraphize</code>），维度名做粗体小标题</td></tr></tbody></table></div>
+<p>同时把「已填条目」的归位补了一路：软素质话术（热爱 / 同理心 / 主动…）单列一桶进「软技能」，</p>
+<p>不再塞进「专业技能」。</p>
+<h3 id="doc0--10-3-关键取舍-条目边界-换行-行首符号">10.3 关键取舍：条目边界 = 换行 + 行首符号</h3>
+<ul>
+<li><strong>逗号、分号、顿号一律不再当分隔符。</strong> 这条同时解决了「表单往返」问题：</li>
+</ul>
+<p>条目在入库前已被 <code>cleanReq</code> 剥掉尾部标点，只要表单从「用逗号拼接」改成「一行一条」，</p>
+<p><code>载入岗位 → 保存</code> 就不会把多条要求黏成一条（实测往返条数不变）。</p>
+<ul>
+<li><strong>断行合并故意保守</strong>：只在「上一行以句中标点结尾」或「上一行是列表项却没写完」时合并。</li>
+</ul>
+<p>若原文从<strong>没有标点的地方</strong>断开（<code>…会忍不住想这要是我来做</code> + <code>会做得更好。</code>），</p>
+<p>平台保持两条、用「；」衔接 —— <strong>宁可少合，不可错合</strong>。</p>
+<ul>
+<li><strong>小标题启发式收紧到 8 字以内</strong>，并加了「要求句式」黑名单：</li>
+</ul>
+<p><code>拆成能落地的产品方案</code>（10 字、无标点、下一行是条目）在开发过程中就曾被误判为小标题而<strong>整条吞掉</strong>，</p>
+<p><code>有相关证书要求</code>、<code>3 年以上后端经验</code>、<code>熟悉Java</code> 同理 —— 这四条都已进回归用例。</p>
+<h3 id="doc0--10-4-落地清单">10.4 落地清单</h3>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>内容</th><th>文件</th></tr></thead><tbody><tr><td>1</td><td>新增 <code>parseReqText / paragraphize / renderReqDims</code>，作为<strong>前后端唯一一份</strong>实现</td><td><code>shared/req-lib.js</code>（+147 行）</td></tr><tr><td>2</td><td><code>toReqs</code> 不再按逗号切条；新增 <code>parseReqInput / splitReqInput</code>；维度归位加「软素质」桶；<code>renderReqs</code> 改为委托共用实现；<code>buildJD</code> 支持引言段 + 用户自写职责（≥3 条不再叠加模板）</td><td><code>server/engine.js</code></td></tr><tr><td>3</td><td>同上，保持离线/在线产出一致</td><td><code>平台原型/src/agent.js</code></td></tr><tr><td>4</td><td>任职要求框与加分项框改为<strong>一行一条</strong>（<code>join('\n')</code>），并在 LIVE 态回填真实数组</td><td><code>平台原型/src/app.js</code></td></tr><tr><td>5</td><td><code>REQ_LIB_VER</code> <strong>7 → 8</strong>（触发老 JD 按新口径重算）</td><td><code>server/engine.js</code></td></tr><tr><td>6</td><td>新增 JD 生成口径回归（含端到端 HTTP 验证）</td><td><code>tools/test_jd.js</code></td></tr></tbody></table></div>
+<h3 id="doc0--10-5-验收-实跑">10.5 验收（实跑）</h3>
+<div class="tablewrap"><table><thead><tr><th>套件</th><th>结果</th></tr></thead><tbody><tr><td><code>tools/test_jd.js</code>（新增）</td><td><strong>53 / 53</strong>（该套件在 §十一 后扩至 <strong>74 项</strong>）</td></tr><tr><td><code>tools/test_auth.js</code> 可信底座</td><td><strong>127 / 127</strong></td></tr><tr><td><code>tools/test_hiring.js</code> 招聘链路</td><td><strong>87 / 87</strong></td></tr><tr><td><code>平台原型/test_live.js</code> 在线</td><td><strong>23 页 + 22 项 / 0 异常</strong></td></tr><tr><td><code>平台原型/test_prototype.js</code> 离线</td><td><strong>23 页 + 18 项 / 0 异常</strong></td></tr><tr><td>库内 21 个岗位重算</td><td><code>jd_ver=8</code>，任职要求<strong>仍带编号的 0 个</strong></td></tr></tbody></table></div>
+<p>同一份输入的产出：<code>20</code> 条碎片 → 引言 1 段 + 职责 4 条（HR 自己写的，未叠加模板）+ 5 个维度各一段 + 加分项 1 段。</p>
+<p>端到端（真登录 → 生成 → 存岗 → 编辑往返）另验 12 项，<strong>库内 <code>must_have</code> 无残留符号、条数往返不变</strong>。</p>
+<h3 id="doc0--10-6-还没做-诚实列表">10.6 还没做（诚实列表）</h3>
+<ul>
+<li><strong>职责与引言的归位只发生在「生成这一刻」</strong>：JD 正文会原样入库，但若将来再次批量重算 JD，</li>
+</ul>
+<p>这两项会退回模板（<code>must_have</code> 数组里已不含小标题结构）。彻底固化需给 <code>jobs</code> 加一列存结构，</p>
+<p>本轮判断属 YAGNI，未做。</p>
+<ul>
+<li><strong>小标题只认常见的十几种说法</strong>：遇到没见过的写法会当普通条目处理（不会丢字），但不会归位。</li>
+<li><strong>断行合并的保守边界</strong>（见 10.3）会在极端输入下留下两条，用「；」衔接。</li>
+</ul>
+<hr class="sep">
+<h2 id="doc0--十一-行业兜底口径修正-认不出职能时不得注入行业技能-2026-09-29">十一、行业兜底口径修正：认不出职能时不得注入行业技能（2026-09-29）</h2>
+<h3 id="doc0--11-1-问题-同一个-bug-换了条路又回来了">11.1 问题：同一个 bug 换了条路又回来了</h3>
+<p>§十 修的是「JD 被逗号切成碎片」。紧接着查词库规模时发现，<strong>「AI 产品经理带 Java」这个老 bug 并没有真正消失，只是被赶到了另一条路径上</strong>：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>输入：储备干部 / 互联网
+fnKey = null（职能识别不出）→ 走行业兜底
+专业技能维度：
+   · 熟悉 Java，能独立应用于实际业务场景
+   · 熟悉 Spring Boot，能独立应用于实际业务场景
+   · 熟悉 Spring Cloud，能独立应用于实际业务场景
+   · 熟悉 MySQL，能独立应用于实际业务场景</code></pre></div>
+<p>v0.9.2 引入「职能族优先」时，只堵住了「认出职能」的那条路；<strong>认不出职能时仍然回落到行业库</strong>，而行业库整份是按「该行业的主力职能」写的：</p>
+<div class="tablewrap"><table><thead><tr><th>行业</th><th><code>INDUSTRY_SKILLS[行业].core</code> 实际内容</th></tr></thead><tbody><tr><td>互联网</td><td>Java · Spring Boot · Spring Cloud · MySQL · Redis · 微服务 · 高并发 · Kafka …</td></tr><tr><td>医疗健康</td><td>护理管理 · 院感控制 · 护理质控 · 临床护理 · 急救技能 …</td></tr><tr><td>制造业</td><td>精益生产 · 5S · 排产 · TPM · 标准工时 · 工艺优化 …</td></tr><tr><td>金融</td><td>风险识别 · 信贷审核 · 反欺诈 · SQL · 尽职调查 · 反洗钱 …</td></tr></tbody></table></div>
+<p>于是「城市经理 / 医疗健康」被补上「熟悉护理管理」，「跟单员 / 金融」被补上「熟悉反洗钱」—— 与「储备干部 / 互联网 → 熟悉 Java」是<strong>同一个错误的三种表现形式</strong>。</p>
+<p>同一个错误的波及面更大：<code>INDUSTRY_REQ[行业]</code> 的 <code>majors / general / soft / nice</code> 同样是「该行业主力职能」的口径（互联网那一份写的是「技术方案」「技术栈」「开源 / 专利」），所以<strong>综合素质、软技能、学历专业、加分项</strong>都会被同一个错误污染。</p>
+<p><strong>影响面实测</strong>：现有 <strong>21 个种子岗位全部命中职能族（21/21）</strong>，所以这是<strong>潜在缺陷而非活跃缺陷</strong> —— 但只要新建一个「储备干部」「城市经理」就会触发。</p>
+<h3 id="doc0--11-2-改法-认出职能才允许用行业素材">11.2 改法：认出职能才允许用行业素材</h3>
+<p>用一条规则替换掉原先的「职能族优先、行业兜底」写法：</p>
+<div class="tablewrap"><table><thead><tr><th>情况</th><th>专业技能</th><th>加分项</th><th>综合素质 / 软技能 / 学历专业</th></tr></thead><tbody><tr><td><strong>认出职能族</strong></td><td>按职能族 <code>core</code> 补位（不变）</td><td>按职能族 <code>nice</code>（不变）</td><td>按职能族（不变）</td></tr><tr><td><strong>认不出职能族</strong></td><td><strong>一律不补硬技能</strong>，写「掌握 {岗位} 所需的核心专业技能，能独立完成岗位交付」</td><td><strong>不从行业库取</strong>；空则 JD 写「暂无特别加分项，如有相关经历欢迎在面试中说明」</td><td>退回 <code>INDUSTRY_REQ['通用']</code> 的中性口径</td></tr></tbody></table></div>
+<p><strong>为什么行业维度没有被丢掉</strong>：行业对 JD 的正当贡献是 <code>INDUSTRY_CTX</code> 那句「在什么赛道做、盯什么指标、说什么行话」（见 §三 行业语境句），由 <code>industryDuty()</code> 拼在<strong>岗位职责</strong>之后，与「补什么技能」是两条独立路径。丢掉的是「凭行业猜技能」，留下的是「凭行业说行话」。</p>
+<p><strong>前后端同源</strong>：<code>server/engine.js</code> 的 <code>expandRequirements</code> 与 <code>平台原型/src/agent.js</code> 的 <code>expandReqs</code> 是同构的两份实现，必须一起改 —— 否则离线演示态与真实后端态产出的 JD 会不一致。</p>
+<h3 id="doc0--11-3-验收-实跑">11.3 验收（实跑）</h3>
+<div class="tablewrap"><table><thead><tr><th>套件</th><th>结果</th></tr></thead><tbody><tr><td><code>tools/test_jd.js</code>（新增第 8 节：5 用例 × 4 断言 + 反向回归 5 项）</td><td><strong>74 / 74</strong></td></tr><tr><td><code>tools/test_auth.js</code> 可信底座</td><td><strong>127 / 127</strong></td></tr><tr><td><code>tools/test_hiring.js</code> 招聘链路</td><td><strong>87 / 87</strong></td></tr><tr><td><code>平台原型/test_live.js</code> 在线</td><td><strong>23 页 + 22 项 / 0 异常</strong></td></tr><tr><td><code>平台原型/test_prototype.js</code> 离线</td><td><strong>23 页 + 18 项 / 0 异常</strong></td></tr><tr><td>库内 21 个岗位重算</td><td><code>jd_ver=9</code>；非技术岗 JD 里出现「熟悉 Java」的 <strong>0 个</strong></td></tr></tbody></table></div>
+<p>新增用例刻意<strong>跨五个行业</strong>（互联网 / 制造业 / 金融 / 医疗健康 + 互联网），并对每个用例<strong>强制断言 <code>fnKey === null</code></strong> —— 防止将来有人把用例换成「识别得出职能」的岗位名（如「综合助理」→ <code>admin</code>），让整条用例静默失效。这一条是写完用例第一次跑就踩到的：第一版用了「综合助理」，它其实能识别为 <code>admin</code>，于是 4 项断言报了假失败。</p>
+<h3 id="doc0--11-4-本轮改动">11.4 本轮改动</h3>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>内容</th><th>文件</th></tr></thead><tbody><tr><td>1</td><td><code>R</code> / <code>lib</code> 去掉行业分支，认不出职能时退回「通用」</td><td><code>server/engine.js</code></td></tr><tr><td>2</td><td>专业技能补位加 <code>fn</code> 前置条件（认不出不补硬技能）</td><td><code>server/engine.js</code></td></tr><tr><td>3</td><td>加分项补位加 <code>fn</code> 前置条件（不从行业库取）</td><td><code>server/engine.js</code></td></tr><tr><td>4</td><td>同上三处，保持离线 / 在线产出一致</td><td><code>平台原型/src/agent.js</code></td></tr><tr><td>5</td><td><code>REQ_LIB_VER</code> <strong>8 → 9</strong>（触发老 JD 按新口径重算）</td><td><code>server/engine.js</code></td></tr><tr><td>6</td><td>新增第 8 节回归（5 用例 × 4 断言 + 反向回归 5 项）</td><td><code>tools/test_jd.js</code></td></tr><tr><td>7</td><td>重新打包单文件原型</td><td><code>平台原型/index.html</code></td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--附录-A-接口清单-45-条-public-need-一目了然">附录 A · 接口清单（45 条，<code>public</code> / <code>need</code> 一目了然）</h2>
+<div class="tablewrap"><table><thead><tr><th>方法</th><th>路径</th><th>权限</th></tr></thead><tbody><tr><td>GET</td><td><code>/api/health</code></td><td>public</td></tr><tr><td>GET</td><td><code>/api/metrics</code></td><td><code>metrics:read</code></td></tr><tr><td>POST</td><td><code>/api/auth/login</code></td><td>public</td></tr><tr><td>POST</td><td><code>/api/auth/logout</code></td><td>任意登录用户</td></tr><tr><td>GET</td><td><code>/api/auth/me</code></td><td>任意登录用户</td></tr><tr><td>POST</td><td><code>/api/auth/change-password</code></td><td>任意登录用户</td></tr><tr><td>GET</td><td><code>/api/permissions</code></td><td>任意登录用户（返回能力表与角色映射，供前端裁剪导航）</td></tr><tr><td>GET</td><td><code>/api/bootstrap</code></td><td>任意登录用户（<strong>按角色裁剪后的快照</strong>）</td></tr><tr><td>GET / POST</td><td><code>/api/jobs</code></td><td><code>job:read</code> / <code>job:write</code></td></tr><tr><td>PUT, PATCH / DELETE</td><td><code>/api/jobs/:id</code></td><td><code>job:write</code></td></tr><tr><td>POST</td><td><code>/api/jobs/:id/seed-candidates</code></td><td><code>job:write</code></td></tr><tr><td>POST</td><td><code>/api/agent/screening/run</code></td><td><code>screen:run</code></td></tr><tr><td>POST</td><td><code>/api/agent/jd/generate</code></td><td><code>job:write</code></td></tr><tr><td>POST</td><td><code>/api/chat</code></td><td>任意登录用户（越权代答会写审计）</td></tr><tr><td>POST</td><td><code>/api/approvals/:id/approve</code> · <code>/reject</code></td><td><code>approval:decide</code></td></tr><tr><td>POST</td><td><code>/api/candidates/:id/override</code></td><td><code>screen:run</code></td></tr><tr><td>GET</td><td><code>/api/interviews</code></td><td><code>interview:read</code>（<strong>面试官只返回自己的那几场</strong>）</td></tr><tr><td>POST</td><td><code>/api/interviews</code></td><td><code>interview:schedule</code>（另有硬规则：同候选人不得有两场未完成）</td></tr><tr><td>POST</td><td><code>/api/interviews/:id/start</code></td><td><code>interview:feedback</code></td></tr><tr><td>POST</td><td><code>/api/interviews/:id/feedback</code></td><td><code>interview:feedback</code>（<strong>仅本场面试官本人</strong>，行级再判一次）</td></tr><tr><td>POST</td><td><code>/api/interviews/:id/cancel</code></td><td><code>interview:schedule</code>（取消退回阶段，不占轮次号）</td></tr><tr><td>GET</td><td><code>/api/offers</code></td><td><code>offer:read</code></td></tr><tr><td>POST</td><td><code>/api/offers</code></td><td><code>offer:create</code>（合规 block → <strong>422</strong>，且不落库）</td></tr><tr><td>POST</td><td><code>/api/offers/:id/decide</code></td><td><code>offer:decide</code>（<strong>HRD 独占</strong>，起草人不能自批）</td></tr><tr><td>POST</td><td><code>/api/offers/:id/respond</code></td><td><code>offer:create</code>（接受 → 已入职 / 拒绝 → 已淘汰）</td></tr><tr><td>GET</td><td><code>/api/candidates/:id/detail</code></td><td><code>candidate:read</code>（<strong>读未脱敏 PII 会写审计</strong>）</td></tr><tr><td>GET</td><td><code>/api/audit</code></td><td><code>audit:read</code></td></tr><tr><td>GET</td><td><code>/api/governance/summary</code> · <code>/policies</code> · <code>/consents</code> · <code>/erasure</code></td><td><code>governance:read</code></td></tr><tr><td>PUT</td><td><code>/api/governance/policies</code></td><td><code>governance:write</code></td></tr><tr><td>POST</td><td><code>/api/governance/sweep</code> · <code>/consents</code> · <code>/consents/revoke</code> · <code>/erasure</code></td><td><code>governance:write</code></td></tr><tr><td>GET</td><td><code>/api/governance/subject/:id/export</code></td><td><code>governance:read</code></td></tr><tr><td>POST</td><td><code>/api/employees/export</code></td><td><code>employee:export</code></td></tr><tr><td>GET</td><td><code>/api/users</code></td><td><code>admin:user</code></td></tr><tr><td>POST</td><td><code>/api/users/:id/revoke-sessions</code> · <code>/activate</code></td><td><code>admin:user</code></td></tr><tr><td>POST</td><td><code>/api/reset</code></td><td><code>admin:policy</code></td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--附录-B-本轮文件清单">附录 B · 本轮文件清单</h2>
+<p><strong>新增（后端 15 个模块）</strong>：<code>config.js</code> <code>errors.js</code> <code>logger.js</code> <code>migrations.js</code> <code>security.js</code> <code>audit.js</code> <code>rbac.js</code> <code>auth.js</code> <code>governance.js</code> <code>metrics.js</code> <code>http-kernel.js</code> <code>routes.js</code>（<code>server.js</code> 重写为纯装配，<code>db.js</code> / <code>engine.js</code> 就地改造）。</p>
+<p><strong>新增（测试与文档）</strong>：<code>tools/test_auth.js</code>、<code>docs/09_实现说明与验收报告.md</code>。</p>
+<p><strong>改造</strong>：<code>平台原型/src/app.js</code>（登录闸门 / 令牌 / 导航裁剪 / 真会话越权演示）、<code>src/shell.html</code>（身份切换与登出）、<code>test_live.js</code>（真登录 + 收紧断言 + 脚手架修复）、<code>平台原型/index.html</code>（重新打包，389,471 bytes）。</p>
+<p><strong>运行期产物</strong>：<code>server/hr_agent.db</code>、<code>server/.session_secret</code>（自动生成）、<code>server/logs/app.log</code>。</p>
+<p><strong>本轮追加（§九 · 招聘链路闭环）</strong>：</p>
+<ul>
+<li><strong>新增</strong>：<code>server/hiring.js</code>（L2 领域模块，状态机唯一来源）、<code>tools/test_hiring.js</code>（87 项断言）。</li>
+<li><strong>改造</strong>：<code>server/migrations.js</code>（+v5 <code>hiring_pipeline</code>）、<code>server/rbac.js</code>（+6 能力 → 24 项）、<code>server/auth.js</code>（+U-007 / U-008 面试官）、<code>server/routes.js</code>（+9 路由、<code>hiringError</code>、行级 403 带 <code>details.level</code>）、<code>server/http-kernel.js</code>（功能级 403 带 <code>details.level='ability'</code>）、<code>server/config.js</code>（<strong>删掉 <code>legacy</code> 认证分支</strong>）、<code>server/db.js</code>（重置清理新表）、<code>server/server.js</code>（去掉旧 <code>authenticate()</code>），<code>平台原型/src/app.js</code>（三页接真数据 + 12 个动作处理器 + <code>canDo()</code> 按钮守卫）、<code>test_live.js</code> / <code>test_prototype.js</code>（各加链路用例）、<code>平台原型/index.html</code>（重新打包，423,020 bytes）。</li>
+<li><strong>运行期产物</strong>：<code>server/hr_agent.db</code>（<strong>19 表</strong> / 2 触发器 / 迁移 <strong>v1–v5</strong>）。</li>
+</ul>
+<p><strong>本轮追加（§十 · JD 生成口径修正）</strong>：</p>
+<ul>
+<li><strong>新增</strong>：<code>shared/req-lib.js</code> 第七节（<code>parseReqText</code> / <code>paragraphize</code> / <code>renderReqDims</code>，前后端唯一一份实现）、<code>tools/test_jd.js</code>。</li>
+<li><strong>改造</strong>：<code>server/engine.js</code>（<code>splitReqInput</code> / 维度归位含软素质桶 / <code>buildJD</code> 支持引言段）、<code>平台原型/src/agent.js</code>（同源）、<code>平台原型/src/app.js</code>（任职要求与加分项改「一行一条」）、<code>REQ_LIB_VER</code> 7 → 8。</li>
+</ul>
+<p><strong>本轮追加（§十一 · 行业兜底口径修正）</strong>：</p>
+<ul>
+<li><strong>改造</strong>：<code>server/engine.js</code>（<code>expandRequirements</code> 的 <code>R</code> / <code>lib</code> 去掉行业分支；专业技能与加分项补位加 <code>fn</code> 前置条件）、<code>平台原型/src/agent.js</code>（同源三处）、<code>REQ_LIB_VER</code> 8 → 9、<code>tools/test_jd.js</code>（+第 8 节回归）、<code>平台原型/index.html</code>（重新打包，436,904 bytes）。</li>
+<li><strong>运行期产物</strong>：<code>server/hr_agent.db</code>（21 个岗位全部重算至 <code>jd_ver=9</code>）。</li>
+</ul>
+<hr class="sep">
+<p><em>配套阅读：<code>docs/07_项目计划书.md</code>（里程碑与决策）、<code>docs/08_架构设计文档.md</code>（L0–L5 与 ADR）、<code>docs/05_从PoC到企业级的差距清单.md</code>（本轮的立项依据）。凡本报告与代码冲突，<strong>以代码实测为准</strong>。</em></p></article></main>
+</div>
+<footer>生成时间：2026-09-29 11:00（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<script>
+const docs = [{"key": "doc0", "name": "09 · M1 实现说明与验收报告（可信底座）"}];
+
+function copyCode(btn) {
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1400);
+  });
+}
+
+function showDoc(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.doc === key));
+  document.querySelectorAll('article.doc').forEach(a => a.style.display = (a.dataset.doc === key ? '' : 'none'));
+  document.querySelectorAll('.tocgroup').forEach(g => g.style.display = (g.dataset.doc === key ? '' : 'none'));
+  resetHighlight();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showDoc(t.dataset.doc));
+
+// 滚动高亮目录
+const links = () => Array.from(document.querySelectorAll('.tocgroup:not([style*="none"]) .toclink'));
+window.addEventListener('scroll', () => {
+  const actives = links();
+  let cur = null;
+  for (const a of actives) {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el && el.getBoundingClientRect().top < 180) cur = a;
+  }
+  actives.forEach(a => a.style.color = '');
+  if (cur) { cur.style.color = 'var(--ac2)'; }
+});
+
+// 全文搜索 + 高亮
+let marks = [];
+function resetHighlight() {
+  document.querySelectorAll('mark').forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  marks = [];
+  document.getElementById('hint').textContent = '全文搜索';
+  document.getElementById('hint').style.color = 'var(--tx3)';
+}
+document.getElementById('q').addEventListener('input', e => {
+  const kw = e.target.value.trim();
+  resetHighlight();
+  if (kw.length < 2) return;
+  const activeArt = document.querySelector('article.doc:not([style*="none"])') || document.body;
+  let count = 0, first = null;
+  const walker = document.createTreeWalker(activeArt, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.trim().length > 1 && !/^(SCRIPT|STYLE|MARK)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const low = node.nodeValue.toLowerCase(), k = kw.toLowerCase();
+    if (low.indexOf(k) === -1) return;
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    while (true) {
+      const idx = rest.toLowerCase().indexOf(k); if (idx === -1) break;
+      frag.appendChild(document.createTextNode(rest.slice(0, idx)));
+      const m = document.createElement('mark'); m.textContent = rest.slice(idx, idx + kw.length);
+      frag.appendChild(m); marks.push(m); count++;
+      rest = rest.slice(idx + kw.length);
+    }
+    frag.appendChild(document.createTextNode(rest));
+    node.parentNode.replaceChild(frag, node);
+  });
+  const h = document.getElementById('hint');
+  h.textContent = count ? `命中 ${count} 处` : '无匹配';
+  h.style.color = count ? 'var(--grn)' : 'var(--red)';
+  if (count) { first = marks[0]; first.scrollIntoView({behavior:'smooth', block:'center'}); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.id !== 'q') { e.preventDefault(); document.getElementById('q').focus(); }
+  if (e.key === 'Escape') { document.getElementById('q').value = ''; resetHighlight(); }
+});
+</script>
+</body>
+</html>

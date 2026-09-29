@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HR-Agent OS · 从 PoC 到企业级</title>
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+  --line:#262c39; --line2:#323a4b;
+  --tx:#e7eaf1; --tx2:#a8b1c2; --tx3:#6f7a8d;
+  --ac:#4c8dff; --ac2:#7aa9ff; --grn:#3ddc97; --yel:#f5b942; --red:#ff6b6b; --pur:#a78bfa;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:15px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+header{position:sticky;top:0;z-index:50;background:rgba(13,15,20,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:14px 26px 0}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1.brand{font-size:17px;margin:0;letter-spacing:.3px}
+.sub{color:var(--tx3);font-size:12.5px}
+.searchbox{margin-left:auto;display:flex;align-items:center;gap:8px}
+input#q{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:9px;
+  padding:8px 12px;width:240px;font-size:13px;outline:none}
+input#q:focus{border-color:var(--ac)}
+.hint{font-size:12px;color:var(--tx3)}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx2);
+  padding:9px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac2);border-bottom-color:var(--ac);font-weight:600}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1560px;margin:0 auto}
+aside{position:sticky;top:112px;align-self:start;height:calc(100vh - 112px);overflow-y:auto;
+  padding:22px 14px 60px 26px;border-right:1px solid var(--line)}
+.tocgroup{display:flex;flex-direction:column;gap:1px}
+.toclink{display:block;color:var(--tx2);text-decoration:none;font-size:13px;padding:5px 9px;
+  border-radius:7px;line-height:1.45}
+.toclink:hover{background:var(--panel2);color:var(--tx)}
+.toclink.lvl2{padding-left:20px}
+.toclink.lvl3{padding-left:32px;font-size:12.5px;color:var(--tx3)}
+main{padding:26px 34px 120px;min-width:0}
+.docmeta{font:12px var(--mono);color:var(--tx3);margin-bottom:18px;
+  border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;display:inline-block}
+article h1{font-size:27px;margin:26px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+article h2{font-size:21px;margin:38px 0 14px;padding:9px 0 9px 13px;border-left:3px solid var(--ac);
+  background:linear-gradient(90deg,rgba(76,141,255,.09),transparent);border-radius:0 8px 8px 0}
+article h3{font-size:17px;margin:28px 0 10px;color:var(--ac2)}
+article h4{font-size:15px;margin:20px 0 8px;color:var(--tx2)}
+p{margin:9px 0}
+a{color:var(--ac2)}
+strong{color:#fff;font-weight:650}
+em{color:var(--yel);font-style:normal}
+code{font:12.6px var(--mono);background:var(--panel2);border:1px solid var(--line);
+  padding:1.5px 5px;border-radius:5px;color:#ffd479}
+.codeblock{margin:14px 0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0a0c11}
+.codetop{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);font:11.5px var(--mono);color:var(--tx3)}
+.copybtn{background:var(--panel2);border:1px solid var(--line2);color:var(--tx2);font-size:11.5px;
+  padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.copybtn:hover{color:var(--tx);border-color:var(--ac)}
+pre{margin:0;padding:14px 16px;overflow-x:auto}
+pre code{background:none;border:none;padding:0;color:#cfd8e6;font-size:12.6px;line-height:1.62}
+blockquote{margin:14px 0;padding:13px 16px;background:linear-gradient(90deg,rgba(167,139,250,.10),rgba(167,139,250,.02));
+  border-left:3px solid var(--pur);border-radius:0 10px 10px 0;color:#d9def0}
+blockquote p{margin:4px 0}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+th{background:var(--panel);text-align:left;padding:10px 12px;font-weight:640;color:var(--ac2);
+  border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(76,141,255,.05);color:var(--tx)}
+ul,ol{margin:9px 0;padding-left:24px}
+li{margin:5px 0;color:var(--tx2)}
+li strong{color:var(--tx)}
+hr.sep{border:none;border-top:1px solid var(--line);margin:26px 0}
+mark{background:rgba(245,185,66,.34);color:#fff;border-radius:3px;padding:0 2px}
+.hidden{display:none !important}
+footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-size:12.5px;text-align:center}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}aside{display:none}main{padding:20px 16px 90px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 class="brand">HR-Agent OS · 从 PoC 到企业级</h1>
+    <span class="sub">差距清单 · 8 项按 P0/P1/P2 分级 · 含改法与验收口径</span>
+    <div class="searchbox">
+      <span class="hint" id="hint">全文搜索</span>
+      <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs"><button class="tab active" data-doc="doc0">HR-Agent OS · 从 PoC 到企业级的差距清单</button></div>
+</header>
+<div class="wrap">
+  <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--HR-Agent-OS-从-PoC-到企业级的差距清单" data-text="HR-Agent OS · 从 PoC 到企业级的差距清单">HR-Agent OS · 从 PoC 到企业级的差距清单</a><a class="toclink lvl2" href="#doc0--结论先行-30-秒" data-text="结论先行（30 秒）">结论先行（30 秒）</a><a class="toclink lvl2" href="#doc0--一-先纠正一个误解-数据库不是缺的" data-text="一、先纠正一个误解：数据库不是缺的">一、先纠正一个误解：数据库不是缺的</a><a class="toclink lvl2" href="#doc0--二-企业级的判据" data-text="二、企业级的判据">二、企业级的判据</a><a class="toclink lvl2" href="#doc0--三-差距清单-按优先级" data-text="三、差距清单（按优先级）">三、差距清单（按优先级）</a><a class="toclink lvl3" href="#doc0--P0-1-身份认证-最大的缺口" data-text="P0-1 · 身份认证 —— 最大的缺口">P0-1 · 身份认证 —— 最大的缺口</a><a class="toclink lvl3" href="#doc0--P0-2-权限-授权" data-text="P0-2 · 权限（授权）">P0-2 · 权限（授权）</a><a class="toclink lvl3" href="#doc0--P1-1-数据库形态" data-text="P1-1 · 数据库形态">P1-1 · 数据库形态</a><a class="toclink lvl3" href="#doc0--P1-2-多租户隔离" data-text="P1-2 · 多租户隔离">P1-2 · 多租户隔离</a><a class="toclink lvl3" href="#doc0--P1-3-数据治理-HR-数据是敏感个人信息" data-text="P1-3 · 数据治理（HR 数据是敏感个人信息）">P1-3 · 数据治理（HR 数据是敏感个人信息）</a><a class="toclink lvl3" href="#doc0--P2-1-数据库迁移" data-text="P2-1 · 数据库迁移">P2-1 · 数据库迁移</a><a class="toclink lvl3" href="#doc0--P2-2-可运维" data-text="P2-2 · 可运维">P2-2 · 可运维</a><a class="toclink lvl3" href="#doc0--P2-3-模型层" data-text="P2-3 · 模型层">P2-3 · 模型层</a><a class="toclink lvl2" href="#doc0--四-实施顺序与理由" data-text="四、实施顺序与理由">四、实施顺序与理由</a><a class="toclink lvl2" href="#doc0--五-如果只做一件事" data-text="五、如果只做一件事">五、如果只做一件事</a><a class="toclink lvl2" href="#doc0--六-面试口径-可直接背" data-text="六、面试口径（可直接背）">六、面试口径（可直接背）</a><a class="toclink lvl2" href="#doc0--附录-A-已经做对的部分-不该被-企业级-否定" data-text="附录 A · 已经做对的部分（不该被「企业级」否定）">附录 A · 已经做对的部分（不该被「企业级」否定）</a><a class="toclink lvl2" href="#doc0--附录-B-验收口径汇总" data-text="附录 B · 验收口径汇总">附录 B · 验收口径汇总</a></div></aside>
+  <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">05_从PoC到企业级的差距清单.md</div><h1 id="doc0--HR-Agent-OS-从-PoC-到企业级的差距清单">HR-Agent OS · 从 PoC 到企业级的差距清单</h1>
+<blockquote><strong>这份文档回答一个问题：这个已经能跑的产品，离「企业级」还差什么，以及先补哪一件。</strong> 写作口径：第一人称述职体，可直接用于面试陈述、项目答辩、架构评审。 <strong>事实纪律</strong>：所有「现状」都标注了可核验的出处（文件 / 行号 / 实测数据）；所有「企业级要求」是行业通行标准，不含本产品专属假设。本文<strong>不含任何未实测的性能或规模数字</strong>。</blockquote>
+<hr class="sep">
+<h2 id="doc0--结论先行-30-秒">结论先行（30 秒）</h2>
+<blockquote>「我的判断是：<strong>这个项目不缺数据库，也不缺数据。</strong> 它已经有 13 张表、真写库、审计链、审批闸门。 缺的是<strong>「可信」</strong>——可信身份、可信权限、可信审计、可信恢复。 所以下一步的第一优先级<strong>不是灌更多数据</strong>，而是把 <code>x-user</code> 请求头换成正经验签的会话。 <strong>因为没有可信身份，审计链再完整也证不了「是谁做的」。</strong>」</blockquote>
+<p><strong>一句话定位</strong>：企业级 ≠ 数据多；企业级 = <strong>可信 + 可运维 + 可审计 + 可扩展</strong>。</p>
+<hr class="sep">
+<h2 id="doc0--一-先纠正一个误解-数据库不是缺的">一、先纠正一个误解：数据库不是缺的</h2>
+<p>很多人在这个阶段的第一反应是「要先建库、灌数据」。但实测下来，这一步<strong>已经过了</strong>。</p>
+<p><strong>实测</strong>（<code>server/hr_agent.db</code>，SQLite，159,744 bytes，13 张表）：</p>
+<div class="tablewrap"><table><thead><tr><th>表</th><th>行数</th><th>作用</th></tr></thead><tbody><tr><td><code>tenants</code></td><td>1</td><td>租户（含 <code>plan</code> / <code>region</code> 字段）</td></tr><tr><td><code>users</code></td><td>5</td><td>用户 + 角色（hrd / recruiter / hrbp / employee）</td></tr><tr><td><code>jobs</code></td><td>11</td><td>岗位（8 行业 / 11 岗位，含 JD / 关键词 / 编制 / 薪资）</td></tr><tr><td><code>candidates</code></td><td>40</td><td>候选人（含 PII 字段、<code>consent_given</code>、<code>retain_until</code>）</td></tr><tr><td><code>kb_documents</code> / <code>kb_chunks</code></td><td>5 / 9</td><td>知识库（RAG 检索用）</td></tr><tr><td><code>audit_logs</code></td><td>5</td><td>审计链（<strong>只插入、不更新</strong>）</td></tr><tr><td><code>agent_tasks</code> / <code>tool_calls</code> / <code>approvals</code></td><td>0 / 0 / 0</td><td>Agent 任务 / 工具调用 / 审批闸门</td></tr><tr><td><code>leave_balance</code> / <code>unanswered_questions</code></td><td>2 / 0</td><td>假期余额 / 未答问题池</td></tr></tbody></table></div>
+<p><strong>而且它是真在写的</strong>（不是只读的假数据）：</p>
+<div class="tablewrap"><table><thead><tr><th>行为</th><th>落库位置</th><th>出处</th></tr></thead><tbody><tr><td>跑一次筛选 Agent</td><td><code>agent_tasks</code> + <code>tool_calls</code>，含 token 成本</td><td><code>engine.js</code> <code>runScreening()</code></td></tr><tr><td>高风险动作（ATS 写回）</td><td>进 <code>approvals</code> 排队，<strong>等人批才执行</strong></td><td><code>engine.js</code> 闸门</td></tr><tr><td>审批驳回</td><td><strong>服务端硬校验</strong>必须填原因，否则 400</td><td><code>server.js:122</code></td></tr><tr><td>越权导出</td><td>写 <code>audit_logs</code>（result=blocked）并返回 403</td><td><code>server.js:146-151</code></td></tr><tr><td>人工推翻 AI 结论</td><td>推翻原因入库，进优化数据集</td><td><code>server.js:128-137</code></td></tr></tbody></table></div>
+<p>种子数据也不是写死的假数据——是<strong>确定性随机生成</strong>（<code>db.js:140</code> <code>rng(seedStr)</code>，同一 <code>job.id</code> 每次生成同一批人），所以可复现、可回归。</p>
+<blockquote><strong>结论：</strong>「建库、存数据」不是待办项。把它当成待办项，是把「工程问题」误判成「数据问题」。</blockquote>
+<hr class="sep">
+<h2 id="doc0--二-企业级的判据">二、企业级的判据</h2>
+<p>我给「企业级」定的四条判据（这也是企业采购时会逐条问的）：</p>
+<div class="tablewrap"><table><thead><tr><th>判据</th><th>要回答的问题</th><th>反例（做到功能≠企业级）</th></tr></thead><tbody><tr><td><strong>可信</strong></td><td>数据给谁看、谁能改，是不是<strong>可证明</strong>的？</td><td>有登录页，但身份能被客户端指定</td></tr><tr><td><strong>可运维</strong></td><td>数据丢了能不能恢复？出问题能不能定位？</td><td>能跑，但无备份、无监控、无告警</td></tr><tr><td><strong>可审计</strong></td><td>事后能不能说清「谁、在什么时候、做了什么」？</td><td>有日志，但日志本身可被篡改</td></tr><tr><td><strong>可扩展</strong></td><td>从 1 个客户到 100 个客户，架构要不要推倒？</td><td>单机单库，多租户靠「约定」不靠约束</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--三-差距清单-按优先级">三、差距清单（按优先级）</h2>
+<h3 id="doc0--P0-1-身份认证-最大的缺口">P0-1 · 身份认证 —— 最大的缺口</h3>
+<p><strong>现状（可核验）</strong></p>
+<div class="codeblock"><div class="codetop"><span class="lang">js</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>// server/server.js:39
+const DEMO_USER = req =&gt; (req.headers['x-user'] || 'U-001');   // 演示态：当前登录人由请求头指定</code></pre></div>
+<p><strong>当前登录人由请求头决定。</strong> 任何人发一句 <code>X-User: U-001</code>，就变成了 HRD 李静，能看到全公司候选人。</p>
+<p>全库检索确认：<strong>没有任何认证逻辑</strong>——没有登录接口、没有密码、没有会话、没有 token 校验。唯一出现 <code>Authorization</code> 的地方是 <code>engine.js:48</code>，那是<strong>调用外部 LLM 时带的 Bearer</strong>，与用户认证无关。</p>
+<p><strong>为什么它是 P0</strong>：现有全部「企业级感」——审计链、审批闸门、403 拦越权——<strong>都建立在这个可伪造的身份之上</strong>。身份是假的，审计就证明不了任何事。</p>
+<p><strong>企业级要求</strong></p>
+<ul>
+<li>接入企业身份源（企业微信 / 钉钉 / LDAP / OIDC），<strong>不自己存密码</strong></li>
+<li>服务端签发会话（HttpOnly + Secure + SameSite Cookie，或短期 JWT）</li>
+<li>身份<strong>只能由服务端从会话里取</strong>，客户端不可指定</li>
+<li>会话可失效（登出 / 权限变更即踢下线）</li>
+</ul>
+<p><strong>改法（最小实现）</strong></p>
+<ol>
+<li>加 <code>POST /api/auth/login</code>：接企微/钉钉回调或 OIDC 授权码</li>
+<li>服务端签发 HMAC 签名 Cookie（密钥放环境变量，不进代码库）</li>
+<li>加一个中间件：<code>const uid = sessionOf(req)</code>，把全库 <code>DEMO_USER(req)</code> 替换为它</li>
+<li>删掉对 <code>x-user</code> 请求头的信任</li>
+</ol>
+<p><strong>验收口径</strong></p>
+<ul>
+<li>伪造 <code>X-User: U-001</code> <strong>不再生效</strong>（回归用例：无 Cookie 时所有写接口 401）</li>
+<li>审计日志里的 <code>actor_id</code> 来自会话，不由请求方指定</li>
+<li>登出后旧 Cookie 立即失效</li>
+</ul>
+<hr class="sep">
+<h3 id="doc0--P0-2-权限-授权">P0-2 · 权限（授权）</h3>
+<p><strong>现状</strong>：<code>users</code> 表有 <code>role</code> 字段，产品里也有 403 演示页，但<strong>没有真正的权限校验</strong>——403 是硬编码的演示路径（<code>server.js:146-151</code>，只有员工导出全公司数据这一条被拦）。</p>
+<p><strong>企业级要求</strong>，三层都要：</p>
+<div class="tablewrap"><table><thead><tr><th>层级</th><th>要控制什么</th><th>例子</th></tr></thead><tbody><tr><td><strong>功能级（RBAC）</strong></td><td>能不能做这个动作</td><td>只有 <code>hrd</code> 能改薪资区间</td></tr><tr><td><strong>行级</strong></td><td>能看到哪些行的数据</td><td>HRBP 只能看自己支持的部门</td></tr><tr><td><strong>字段级</strong></td><td>能看到哪些字段</td><td>普通 HR 看不到身份证号 / 薪资</td></tr></tbody></table></div>
+<p><strong>改法</strong></p>
+<ol>
+<li>定义权限矩阵（角色 × 动作），落成配置表，<strong>不散落在代码里</strong></li>
+<li>所有读接口加行级过滤：<code>WHERE tenant_id = ? AND dept_path LIKE ?</code></li>
+<li>敏感字段在<strong>查询层就剔除</strong>（而不是前端隐藏）——这条产品里已做对一半：<code>db.js:40</code> 注释写明 PII「存储保留，但送入打分前物理剔除」</li>
+<li>把演示用的 403 升级成<strong>通用拦截中间件</strong></li>
+</ol>
+<p><strong>验收口径</strong></p>
+<ul>
+<li>权限矩阵每条有对应回归用例</li>
+<li>用 employee 身份调任意管理接口 → 403 + 写审计</li>
+<li>行级：HRBP A 查不到 HRBP B 部门的候选人</li>
+</ul>
+<hr class="sep">
+<h3 id="doc0--P1-1-数据库形态">P1-1 · 数据库形态</h3>
+<p><strong>现状</strong>：SQLite（<code>node:sqlite</code> 的 <code>DatabaseSync</code>），<strong>单文件、单写入者</strong>。</p>
+<p><strong>问题</strong>：两个 HR 同时点「运行筛选 Agent」，第二个会遇到 <code>database is locked</code>。这不是 bug，是 SQLite 的架构特性——它适合单机/嵌入式，不适合多用户并发写。</p>
+<p><strong>企业级要求</strong>：PostgreSQL（或 MySQL）+ 连接池 + 备份 + 只读副本。</p>
+<p><strong>好消息</strong>：迁移路径是现成的。<code>db.js:1-8</code> 注释已写明「表结构与 <code>docs/02_搭建实操教程.md</code> 第 2 步的 PostgreSQL 版本<strong>同源</strong>，字段做了 SQLite 适配（JSONB → TEXT，UUID → TEXT）」。也就是说<strong>表结构不用重新设计，只需把适配层换回去</strong>：</p>
+<div class="tablewrap"><table><thead><tr><th>SQLite 写法</th><th>PostgreSQL 写法</th></tr></thead><tbody><tr><td><code>TEXT</code> 存 JSON</td><td><code>JSONB</code></td></tr><tr><td><code>TEXT</code> 存 ID</td><td><code>UUID</code></td></tr><tr><td><code>datetime('now')</code></td><td><code>now()</code></td></tr><tr><td><code>INTEGER 0/1</code> 布尔</td><td><code>BOOLEAN</code></td></tr></tbody></table></div>
+<p><strong>改法</strong>：加一层 <code>db.js</code> 的 PG 适配实现（保持同名导出），SQL 用参数化占位符差异抹平（<code>?</code> → <code>$1</code>）。</p>
+<p><strong>验收口径</strong></p>
+<ul>
+<li>双模式回归脚本在 PG 上全绿（23 页 + 16 项）</li>
+<li>并发压测：10 个并发筛选请求，0 个 <code>locked</code> 错误</li>
+<li>备份恢复演练：破坏数据后能恢复到上一备份点</li>
+</ul>
+<hr class="sep">
+<h3 id="doc0--P1-2-多租户隔离">P1-2 · 多租户隔离</h3>
+<p><strong>现状</strong>：<code>tenants</code> 表已建（<code>db.js:17</code>），但<strong>只有 1 行</strong>，且<strong>多数查询没带 <code>tenant_id</code> 过滤</strong>。</p>
+<p>可核验的例子：</p>
+<ul>
+<li><code>server.js:150</code> —— <code>SELECT COUNT(*) FROM users</code>（无租户条件）</li>
+<li><code>server.js:67</code> —— <code>/api/jobs</code> 的查询 <code>SELECT * FROM jobs ORDER BY ...</code>（无租户条件）</li>
+</ul>
+<p><strong>风险</strong>：真做 SaaS，<strong>任何一个漏掉租户条件的查询 = 客户之间的数据泄漏</strong>。这是企业采购的必查项，也是 SaaS 最典型的事故来源。</p>
+<p><strong>企业级要求</strong></p>
+<ul>
+<li>查询层强制租户过滤（ORM 全局 Scope / 数据库行级安全 RLS）</li>
+<li>跨租户查询必须<strong>显式声明</strong>并留审计</li>
+<li>租户隔离要有<strong>自动化测试</strong>（用 A 租户身份去查 B 租户数据，必须查不到）</li>
+</ul>
+<p><strong>改法</strong>：推荐用 PostgreSQL 的 <strong>RLS（Row Level Security）</strong>——把隔离约束下沉到数据库，而不是靠每个开发者「记得加 WHERE」。这是「靠约束不靠约定」的典型做法。</p>
+<p><strong>验收口径</strong></p>
+<ul>
+<li>隔离测试：每个读接口都有「A 租户查 B 租户」的负向用例</li>
+<li>审计：跨租户访问全部落 <code>audit_logs</code></li>
+</ul>
+<hr class="sep">
+<h3 id="doc0--P1-3-数据治理-HR-数据是敏感个人信息">P1-3 · 数据治理（HR 数据是敏感个人信息）</h3>
+<p><strong>现状</strong>：<strong>字段设计是对的，但逻辑没实现</strong>。</p>
+<p>表里已经有这两个字段（说明设计时想到了）：</p>
+<ul>
+<li><code>db.js:46</code> —— <code>consent_given INTEGER DEFAULT 1</code>（告知同意）</li>
+<li><code>db.js:46</code> —— <code>retain_until TEXT</code>（留存期限）</li>
+</ul>
+<p>但代码里<strong>没有读取/执行它们的逻辑</strong>：没有到期自动清理、没有 PII 加密、没有数据主体权利接口。</p>
+<p><strong>企业级要求</strong>（对齐《个人信息保护法》）</p>
+<div class="tablewrap"><table><thead><tr><th>要求</th><th>现状</th><th>要做</th></tr></thead><tbody><tr><td>告知同意</td><td>有字段，默认 1</td><td>记录同意来源、时间、版本；未同意不进入处理</td></tr><tr><td>最小必要</td><td>已做（打分前剔除 PII）</td><td>保持，并扩展到导出/日志</td></tr><tr><td>留存期限</td><td>有字段，无逻辑</td><td>定时任务按 <code>retain_until</code> 清理</td></tr><tr><td>数据主体权利</td><td>无</td><td>提供查询 / 更正 / 删除接口</td></tr><tr><td>存储安全</td><td>明文</td><td>敏感字段加密（含备份加密）</td></tr></tbody></table></div>
+<p><strong>改法</strong>：先在 <code>candidates</code> 上做闭环——同意校验 + 到期清理（一个定时任务）+ 删除接口。</p>
+<p><strong>验收口径</strong></p>
+<ul>
+<li>到期的候选人被自动清理，且清理本身留审计</li>
+<li>未同意的候选人不进入打分链路</li>
+<li>删除接口生效，且删除动作不可逆但可追溯（留审计摘要，不留 PII）</li>
+</ul>
+<hr class="sep">
+<h3 id="doc0--P2-1-数据库迁移">P2-1 · 数据库迁移</h3>
+<p><strong>现状</strong>：手写 <code>ALTER TABLE</code>（<code>db.js:90-104</code> <code>migrate()</code>）。</p>
+<div class="codeblock"><div class="codetop"><span class="lang">js</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>const add = (name, ddl) =&gt; { if (!cols.includes(name)) db.exec(`ALTER TABLE jobs ADD COLUMN ${ddl}`); };</code></pre></div>
+<p><strong>问题</strong>：没有版本号、没有回滚、没有顺序保证。多人协作时会冲突。</p>
+<p><strong>企业级要求</strong>：版本化迁移工具（Prisma Migrate / Flyway / Alembic），每个变更是一个<strong>有序、可追溯、可回滚</strong>的文件。</p>
+<p><strong>验收口径</strong>：空库能从 0 跑到最新；能从任意历史版本升到最新；迁移有 dry-run。</p>
+<hr class="sep">
+<h3 id="doc0--P2-2-可运维">P2-2 · 可运维</h3>
+<p><strong>现状</strong>（诚实盘点，不夸大）：</p>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>现状</th><th>说明</th></tr></thead><tbody><tr><td>健康检查</td><td>✅ 有</td><td><code>server.js:51</code> <code>/api/health</code></td></tr><tr><td>请求体大小限制</td><td>✅ 有</td><td><code>server.js:36</code> 上限 1MB</td></tr><tr><td>路径穿越防护</td><td>✅ 有</td><td><code>server.js:163</code> <code>startsWith(STATIC_ROOT)</code> 否则 403</td></tr><tr><td>备份</td><td>❌ 无</td><td>库文件被删即全丢</td></tr><tr><td>监控 / 指标</td><td>❌ 无</td><td>无 QPS、延迟、错误率采集</td></tr><tr><td>告警</td><td>❌ 无</td><td>出错只在控制台打印</td></tr><tr><td>限流</td><td>❌ 无</td><td>单机可被刷</td></tr><tr><td>优雅关闭</td><td>❌ 无</td><td>重启会中断在途请求</td></tr><tr><td>结构化日志</td><td>❌ 无</td><td><code>console.log</code>，不可检索</td></tr></tbody></table></div>
+<p><strong>企业级要求</strong>：结构化日志（JSON）+ 指标（Prometheus 口径）+ 告警 + 每日备份 + 限流 + 优雅关闭（<code>SIGTERM</code> 处理）。</p>
+<p><strong>验收口径</strong>：能回答「过去 24 小时失败率多少、最慢的接口是哪个」。</p>
+<hr class="sep">
+<h3 id="doc0--P2-3-模型层">P2-3 · 模型层</h3>
+<p><strong>现状</strong>：规则模式运行（<code>/api/health</code> 实测 <code>mode: "rule"</code>）。<code>LLM_API_URL</code> / <code>LLM_API_KEY</code> / <code>LLM_MODEL</code> 三个环境变量已预留，<code>engine.js:44-52</code> 有调用骨架，但<strong>未接入</strong>。</p>
+<p>需要说明的是，骨架里<strong>已经做对了两件事</strong>（不是全空白）：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">js</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>// engine.js:44-52
+if (!url || !key) return null;                       // 无配置 → 规则模式（降级）
+signal: AbortSignal.timeout(20000)                   // 调用有超时
+...
+if (!r.ok) return null;                              // 失败 → 返回 null 由上层兜底</code></pre></div>
+<p><strong>已有</strong>：超时（20s）、失败降级（返回 null 让调用方回退到规则路径）、可换模型（走环境变量，不写死）。</p>
+<p><strong>接入后仍必须要补的</strong>：</p>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>为什么</th></tr></thead><tbody><tr><td>模型网关（多供应商可切）</td><td>私有化客户要求换模型；现在是单 URL，缺供应商级抽象</td></tr><tr><td>重试 + 退避</td><td>现在一次失败即降级，没有重试；限流抖动会直接掉到规则路径</td></tr><tr><td>成本核算</td><td><code>agent_tasks.token_cost</code> 字段已建，需真实累加并对账</td></tr><tr><td>输出审计</td><td>模型输出要留痕，否则出问题无法复盘</td></tr><tr><td>提示词版本化</td><td>Prompt 改了要能回归</td></tr></tbody></table></div>
+<p><strong>验收口径</strong>：拔掉网络，产品降级到规则模式而不是报错；每次调用都有 token 记账；换供应商只改配置不改代码。</p>
+<hr class="sep">
+<h2 id="doc0--四-实施顺序与理由">四、实施顺序与理由</h2>
+<div class="tablewrap"><table><thead><tr><th>阶段</th><th>做什么</th><th>为什么是这个顺序</th></tr></thead><tbody><tr><td><strong>① 认证 + 权限</strong></td><td>SSO + 会话验签 + RBAC/行级/字段级</td><td><strong>没有它，数据灌到 10 万条也只是一个「更多数据的裸奔 demo」。</strong> 且它不动数据层，改动可控</td></tr><tr><td><strong>② PostgreSQL + 迁移 + 备份</strong></td><td>换库、版本化迁移、每日备份、恢复演练</td><td>解决并发写；同时给数据兜底。表结构同源，成本比想象低</td></tr><tr><td><strong>③ 多租户 + 数据治理</strong></td><td>RLS 强制隔离、PII 加密、留存清理</td><td>到这一步才敢卖给第二个客户</td></tr><tr><td><strong>④ 规模化</strong></td><td>对象存储（简历 PDF）、监控告警、限流、模型网关</td><td>性能与运营问题，最后一个做</td></tr></tbody></table></div>
+<p><strong>为什么认证排在换库前面？</strong> 两个原因：</p>
+<ol>
+<li><strong>风险</strong>：换库是高风险动作（数据迁移可能丢数据），认证是叠加式的（不改数据结构）</li>
+<li><strong>门槛</strong>：换库之后如果身份还能伪造，你依然是「一个有更好数据库的裸奔 demo」——<strong>门槛没有降低</strong></li>
+</ol>
+<hr class="sep">
+<h2 id="doc0--五-如果只做一件事">五、如果只做一件事</h2>
+<p><strong>做认证。</strong></p>
+<p>因为它是<strong>唯一一个「不做就不成立」的项</strong>——其余所有项（审计链、审批闸门、403、数据治理）的价值，都建立在「身份是真的」这个前提上。</p>
+<p>一个具体的最小闭环：<strong>删掉对 <code>x-user</code> 请求头的信任</strong>（这一步甚至不需要接 SSO，先用服务端签发的最小会话即可），然后跑一遍回归验证：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>回归用例：无有效会话时
+  - POST /api/agent/screening/run   → 401
+  - POST /api/jobs                  → 401
+  - POST /api/employees/export      → 401（而非 403）
+  - audit_logs 中 actor_id 不再出现 'U-001'（除非真登录为 U-001）</code></pre></div>
+<hr class="sep">
+<h2 id="doc0--六-面试口径-可直接背">六、面试口径（可直接背）</h2>
+<p><strong>问：「你这个项目离企业级还差什么？」</strong></p>
+<blockquote>「差的不是数据库和数据——那两块我已经是真跑的了：13 张表、真写库、审计只插入不更新、高风险动作真的挂在审批闸门后面。 差的是<strong>可信</strong>。具体说，我的身份认证现在是这样的（<code>server.js:39</code>）：当前登录人由请求头 <code>x-user</code> 决定。也就是说任何人加一个请求头就能变成 HRD。 所以我下一步的第一优先级不是扩数据，是把请求头换成正经验签的会话——<strong>因为没有可信身份，审计链再完整也证不了「是谁做的」</strong>，这条链的价值会归零。 之后才是换 PostgreSQL 解决并发写（现在两人同时点筛选会锁库），再做多租户隔离和数据治理。 顺序上我把认证排在换库前面，是因为换库是高风险的数据迁移，而认证是纯叠加；而且换完库如果身份还能伪造，我的门槛其实一点没降低。」</blockquote>
+<p><strong>为什么这段话值钱</strong>：它证明你能<strong>分清「功能」和「工程」</strong>——这是 AI 产品经理和「会做 demo 的人」之间最本质的差别。</p>
+<hr class="sep">
+<h2 id="doc0--附录-A-已经做对的部分-不该被-企业级-否定">附录 A · 已经做对的部分（不该被「企业级」否定）</h2>
+<p>做差距分析时容易全盘否定自己，但这些是<strong>真正的加分项</strong>，评审时要主动说：</p>
+<div class="tablewrap"><table><thead><tr><th>已做对的</th><th>出处</th><th>为什么这是对的</th></tr></thead><tbody><tr><td>审计日志<strong>只插入不更新</strong></td><td><code>db.js:77-82</code></td><td>审计链不可篡改是合规底线</td></tr><tr><td>高风险动作<strong>必须人工审批</strong>才执行</td><td><code>approvals</code> 表 + <code>engine.js</code> 闸门</td><td>责任不可转移，产品形态由责任设计决定</td></tr><tr><td>驳回<strong>必须填原因</strong>（服务端硬校验）</td><td><code>server.js:122</code></td><td>把「数据飞轮」变成强制流程，而非靠自觉</td></tr><tr><td>删岗位<strong>不物理删除</strong>，有候选人则转「已关闭」</td><td><code>engine.js</code> <code>deleteJob</code></td><td>保护审计链的完整性</td></tr><tr><td>PII <strong>在打分前物理剔除</strong>，而非前端隐藏</td><td><code>engine.js:117-120</code> + <code>db.js:40</code> 注释</td><td>前端隐藏 = 没有防护；查询层不 SELECT 才是</td></tr><tr><td>合规规则<strong>带法条依据</strong>（歧视 11 + 违法 9）</td><td>规则表</td><td>能向法务举证，不是「模型觉得不行」</td></tr><tr><td>种子数据<strong>确定性可复现</strong></td><td><code>db.js:140</code> <code>rng(seed)</code></td><td>可回归、可演示、可复现缺陷</td></tr><tr><td>岗位库<strong>驱动单一数据链</strong>，不硬编码</td><td><code>jobs</code> 表 → 关键词 → 打分 → JD</td><td>岗位是 HR 业务里变化最快的对象</td></tr><tr><td>路径穿越防护</td><td><code>server.js:163</code></td><td>零依赖手写 HTTP 也没漏这个</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--附录-B-验收口径汇总">附录 B · 验收口径汇总</h2>
+<div class="tablewrap"><table><thead><tr><th>编号</th><th>项</th><th>验收标准</th></tr></thead><tbody><tr><td>P0-1</td><td>身份认证</td><td>伪造 <code>X-User</code> 失效；无会话时写接口 401；<code>actor_id</code> 来自会话</td></tr><tr><td>P0-2</td><td>权限</td><td>权限矩阵每条有回归；行级隔离负向用例通过；字段级在查询层剔除</td></tr><tr><td>P1-1</td><td>数据库形态</td><td>PG 上回归全绿；10 并发 0 锁错误；备份恢复演练成功</td></tr><tr><td>P1-2</td><td>多租户</td><td>每读接口有「A 查 B」负向用例；跨租户访问留审计</td></tr><tr><td>P1-3</td><td>数据治理</td><td>到期自动清理且留痕；未同意不进链路；删除接口生效</td></tr><tr><td>P2-1</td><td>迁移</td><td>空库跑到最新；任意版本可升级；支持 dry-run</td></tr><tr><td>P2-2</td><td>可运维</td><td>能回答「过去 24h 失败率、最慢接口」；SIGTERM 优雅关闭</td></tr><tr><td>P2-3</td><td>模型层</td><td>断网降级到规则模式不报错；每次调用有 token 记账</td></tr></tbody></table></div>
+<hr class="sep">
+<p><em>本文档为差距分析，不含实施承诺。所有「现状」均可在本仓库核验；所有「验收口径」均为可执行的测试条件。</em></p></article></main>
+</div>
+<footer>生成时间：2026-09-24 14:54（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<script>
+const docs = [{"key": "doc0", "name": "HR-Agent OS · 从 PoC 到企业级的差距清单"}];
+
+function copyCode(btn) {
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1400);
+  });
+}
+
+function showDoc(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.doc === key));
+  document.querySelectorAll('article.doc').forEach(a => a.style.display = (a.dataset.doc === key ? '' : 'none'));
+  document.querySelectorAll('.tocgroup').forEach(g => g.style.display = (g.dataset.doc === key ? '' : 'none'));
+  resetHighlight();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showDoc(t.dataset.doc));
+
+// 滚动高亮目录
+const links = () => Array.from(document.querySelectorAll('.tocgroup:not([style*="none"]) .toclink'));
+window.addEventListener('scroll', () => {
+  const actives = links();
+  let cur = null;
+  for (const a of actives) {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el && el.getBoundingClientRect().top < 180) cur = a;
+  }
+  actives.forEach(a => a.style.color = '');
+  if (cur) { cur.style.color = 'var(--ac2)'; }
+});
+
+// 全文搜索 + 高亮
+let marks = [];
+function resetHighlight() {
+  document.querySelectorAll('mark').forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  marks = [];
+  document.getElementById('hint').textContent = '全文搜索';
+  document.getElementById('hint').style.color = 'var(--tx3)';
+}
+document.getElementById('q').addEventListener('input', e => {
+  const kw = e.target.value.trim();
+  resetHighlight();
+  if (kw.length < 2) return;
+  const activeArt = document.querySelector('article.doc:not([style*="none"])') || document.body;
+  let count = 0, first = null;
+  const walker = document.createTreeWalker(activeArt, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.trim().length > 1 && !/^(SCRIPT|STYLE|MARK)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const low = node.nodeValue.toLowerCase(), k = kw.toLowerCase();
+    if (low.indexOf(k) === -1) return;
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    while (true) {
+      const idx = rest.toLowerCase().indexOf(k); if (idx === -1) break;
+      frag.appendChild(document.createTextNode(rest.slice(0, idx)));
+      const m = document.createElement('mark'); m.textContent = rest.slice(idx, idx + kw.length);
+      frag.appendChild(m); marks.push(m); count++;
+      rest = rest.slice(idx + kw.length);
+    }
+    frag.appendChild(document.createTextNode(rest));
+    node.parentNode.replaceChild(frag, node);
+  });
+  const h = document.getElementById('hint');
+  h.textContent = count ? `命中 ${count} 处` : '无匹配';
+  h.style.color = count ? 'var(--grn)' : 'var(--red)';
+  if (count) { first = marks[0]; first.scrollIntoView({behavior:'smooth', block:'center'}); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.id !== 'q') { e.preventDefault(); document.getElementById('q').focus(); }
+  if (e.key === 'Escape') { document.getElementById('q').value = ''; resetHighlight(); }
+});
+</script>
+</body>
+</html>

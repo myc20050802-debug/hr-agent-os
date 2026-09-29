@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HR-Agent OS · 项目计划书与架构设计</title>
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+  --line:#262c39; --line2:#323a4b;
+  --tx:#e7eaf1; --tx2:#a8b1c2; --tx3:#6f7a8d;
+  --ac:#4c8dff; --ac2:#7aa9ff; --grn:#3ddc97; --yel:#f5b942; --red:#ff6b6b; --pur:#a78bfa;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:15px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+header{position:sticky;top:0;z-index:50;background:rgba(13,15,20,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:14px 26px 0}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1.brand{font-size:17px;margin:0;letter-spacing:.3px}
+.sub{color:var(--tx3);font-size:12.5px}
+.searchbox{margin-left:auto;display:flex;align-items:center;gap:8px}
+input#q{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:9px;
+  padding:8px 12px;width:240px;font-size:13px;outline:none}
+input#q:focus{border-color:var(--ac)}
+.hint{font-size:12px;color:var(--tx3)}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx2);
+  padding:9px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac2);border-bottom-color:var(--ac);font-weight:600}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1560px;margin:0 auto}
+aside{position:sticky;top:112px;align-self:start;height:calc(100vh - 112px);overflow-y:auto;
+  padding:22px 14px 60px 26px;border-right:1px solid var(--line)}
+.tocgroup{display:flex;flex-direction:column;gap:1px}
+.toclink{display:block;color:var(--tx2);text-decoration:none;font-size:13px;padding:5px 9px;
+  border-radius:7px;line-height:1.45}
+.toclink:hover{background:var(--panel2);color:var(--tx)}
+.toclink.lvl2{padding-left:20px}
+.toclink.lvl3{padding-left:32px;font-size:12.5px;color:var(--tx3)}
+main{padding:26px 34px 120px;min-width:0}
+.docmeta{font:12px var(--mono);color:var(--tx3);margin-bottom:18px;
+  border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;display:inline-block}
+article h1{font-size:27px;margin:26px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+article h2{font-size:21px;margin:38px 0 14px;padding:9px 0 9px 13px;border-left:3px solid var(--ac);
+  background:linear-gradient(90deg,rgba(76,141,255,.09),transparent);border-radius:0 8px 8px 0}
+article h3{font-size:17px;margin:28px 0 10px;color:var(--ac2)}
+article h4{font-size:15px;margin:20px 0 8px;color:var(--tx2)}
+p{margin:9px 0}
+a{color:var(--ac2)}
+strong{color:#fff;font-weight:650}
+em{color:var(--yel);font-style:normal}
+code{font:12.6px var(--mono);background:var(--panel2);border:1px solid var(--line);
+  padding:1.5px 5px;border-radius:5px;color:#ffd479}
+.codeblock{margin:14px 0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0a0c11}
+.codetop{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);font:11.5px var(--mono);color:var(--tx3)}
+.copybtn{background:var(--panel2);border:1px solid var(--line2);color:var(--tx2);font-size:11.5px;
+  padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.copybtn:hover{color:var(--tx);border-color:var(--ac)}
+pre{margin:0;padding:14px 16px;overflow-x:auto}
+pre code{background:none;border:none;padding:0;color:#cfd8e6;font-size:12.6px;line-height:1.62}
+blockquote{margin:14px 0;padding:13px 16px;background:linear-gradient(90deg,rgba(167,139,250,.10),rgba(167,139,250,.02));
+  border-left:3px solid var(--pur);border-radius:0 10px 10px 0;color:#d9def0}
+blockquote p{margin:4px 0}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+th{background:var(--panel);text-align:left;padding:10px 12px;font-weight:640;color:var(--ac2);
+  border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(76,141,255,.05);color:var(--tx)}
+ul,ol{margin:9px 0;padding-left:24px}
+li{margin:5px 0;color:var(--tx2)}
+li strong{color:var(--tx)}
+hr.sep{border:none;border-top:1px solid var(--line);margin:26px 0}
+mark{background:rgba(245,185,66,.34);color:#fff;border-radius:3px;padding:0 2px}
+.hidden{display:none !important}
+footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-size:12.5px;text-align:center}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}aside{display:none}main{padding:20px 16px 90px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 class="brand">HR-Agent OS · 项目计划书与架构设计</h1>
+    <span class="sub"></span>
+    <div class="searchbox">
+      <span class="hint" id="hint">全文搜索</span>
+      <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs"><button class="tab active" data-doc="doc0">07 · HR-Agent OS 项目计划书</button><button class="tab" data-doc="doc1">08 · HR-Agent OS 架构设计文档</button></div>
+</header>
+<div class="wrap">
+  <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--07-HR-Agent-OS-项目计划书" data-text="07 · HR-Agent OS 项目计划书">07 · HR-Agent OS 项目计划书</a><a class="toclink lvl2" href="#doc0--〇-本文档怎么读" data-text="〇、本文档怎么读">〇、本文档怎么读</a><a class="toclink lvl2" href="#doc0--一-项目定位与目标形态" data-text="一、项目定位与目标形态">一、项目定位与目标形态</a><a class="toclink lvl3" href="#doc0--1-1-一句话定位" data-text="1.1 一句话定位">1.1 一句话定位</a><a class="toclink lvl3" href="#doc0--1-2-目标形态-已与你确认" data-text="1.2 目标形态（已与你确认）">1.2 目标形态（已与你确认）</a><a class="toclink lvl3" href="#doc0--1-3-与现有资产的关系" data-text="1.3 与现有资产的关系">1.3 与现有资产的关系</a><a class="toclink lvl2" href="#doc0--二-用户-场景与目标" data-text="二、用户、场景与目标">二、用户、场景与目标</a><a class="toclink lvl3" href="#doc0--2-1-用户角色" data-text="2.1 用户角色">2.1 用户角色</a><a class="toclink lvl3" href="#doc0--2-2-As-Is-真实的一天-To-Be" data-text="2.2 As-Is（真实的一天）→ To-Be">2.2 As-Is（真实的一天）→ To-Be</a><a class="toclink lvl3" href="#doc0--2-3-产品原则-这四条决定了后面所有取舍" data-text="2.3 产品原则（这四条决定了后面所有取舍）">2.3 产品原则（这四条决定了后面所有取舍）</a><a class="toclink lvl2" href="#doc0--三-范围与非目标" data-text="三、范围与非目标">三、范围与非目标</a><a class="toclink lvl3" href="#doc0--3-1-本期范围-In-Scope" data-text="3.1 本期范围（In Scope）">3.1 本期范围（In Scope）</a><a class="toclink lvl3" href="#doc0--3-2-非目标-Out-of-Scope-明确不做" data-text="3.2 非目标（Out of Scope，明确不做）">3.2 非目标（Out of Scope，明确不做）</a><a class="toclink lvl2" href="#doc0--四-功能清单-含当前完成度" data-text="四、功能清单（含当前完成度）">四、功能清单（含当前完成度）</a><a class="toclink lvl3" href="#doc0--4-1-模块与状态" data-text="4.1 模块与状态">4.1 模块与状态</a><a class="toclink lvl3" href="#doc0--4-2-核心资产-岗位与-JD-的确定性生成" data-text="4.2 核心资产：岗位与 JD 的确定性生成">4.2 核心资产：岗位与 JD 的确定性生成</a><a class="toclink lvl2" href="#doc0--五-GitHub-对标调研-禁闭门造车" data-text="五、GitHub 对标调研（禁闭门造车）">五、GitHub 对标调研（禁闭门造车）</a><a class="toclink lvl3" href="#doc0--5-1-简历-招聘-AI-方向" data-text="5.1 简历 / 招聘 AI 方向">5.1 简历 / 招聘 AI 方向</a><a class="toclink lvl3" href="#doc0--5-2-全功能-HRMS-方向-用于界定非目标" data-text="5.2 全功能 HRMS 方向（用于界定非目标）">5.2 全功能 HRMS 方向（用于界定非目标）</a><a class="toclink lvl3" href="#doc0--5-3-LLM-应用平台方向-用于定架构分层" data-text="5.3 LLM 应用平台方向（用于定架构分层）">5.3 LLM 应用平台方向（用于定架构分层）</a><a class="toclink lvl3" href="#doc0--5-4-我们与对标的差异-面试必答" data-text="5.4 我们与对标的差异（面试必答）">5.4 我们与对标的差异（面试必答）</a><a class="toclink lvl2" href="#doc0--六-里程碑与阶段交付" data-text="六、里程碑与阶段交付">六、里程碑与阶段交付</a><a class="toclink lvl3" href="#doc0--M0-计划与架构评审-本轮交付" data-text="M0 · 计划与架构评审（本轮交付）">M0 · 计划与架构评审（本轮交付）</a><a class="toclink lvl3" href="#doc0--M1-可信底座-身份-权限-审计-已完成-2026-09-24" data-text="M1 · 可信底座（身份 / 权限 / 审计）　✅ 已完成（2026-09-24）">M1 · 可信底座（身份 / 权限 / 审计）　✅ 已完成（2026-09-24）</a><a class="toclink lvl3" href="#doc0--M2-真实简历链路" data-text="M2 · 真实简历链路">M2 · 真实简历链路</a><a class="toclink lvl3" href="#doc0--M3-知识库-RAG" data-text="M3 · 知识库 RAG">M3 · 知识库 RAG</a><a class="toclink lvl3" href="#doc0--M4-评测与可观测" data-text="M4 · 评测与可观测">M4 · 评测与可观测</a><a class="toclink lvl3" href="#doc0--M5-演示与面试弹药" data-text="M5 · 演示与面试弹药">M5 · 演示与面试弹药</a><a class="toclink lvl2" href="#doc0--七-交付物清单" data-text="七、交付物清单">七、交付物清单</a><a class="toclink lvl2" href="#doc0--八-风险与依赖" data-text="八、风险与依赖">八、风险与依赖</a><a class="toclink lvl2" href="#doc0--九-拍板结果-本轮已由用户授权-自行判断-并落地" data-text="九、拍板结果（本轮已由用户授权「自行判断」并落地）">九、拍板结果（本轮已由用户授权「自行判断」并落地）</a><a class="toclink lvl2" href="#doc0--十-验收口径-整体" data-text="十、验收口径（整体）">十、验收口径（整体）</a></div><div class="tocgroup" data-doc="doc1" style="display:none"><a class="toclink lvl1" href="#doc1--08-HR-Agent-OS-架构设计文档" data-text="08 · HR-Agent OS 架构设计文档">08 · HR-Agent OS 架构设计文档</a><a class="toclink lvl2" href="#doc1--一-架构目标与约束" data-text="一、架构目标与约束">一、架构目标与约束</a><a class="toclink lvl3" href="#doc1--1-1-架构目标-按优先级" data-text="1.1 架构目标（按优先级）">1.1 架构目标（按优先级）</a><a class="toclink lvl3" href="#doc1--1-2-硬约束" data-text="1.2 硬约束">1.2 硬约束</a><a class="toclink lvl2" href="#doc1--二-现状架构-As-Built-①-已实现" data-text="二、现状架构（As-Built，① 已实现）">二、现状架构（As-Built，① 已实现）</a><a class="toclink lvl2" href="#doc1--三-目标架构-分层设计-②-设计目标" data-text="三、目标架构：分层设计（② 设计目标）">三、目标架构：分层设计（② 设计目标）</a><a class="toclink lvl3" href="#doc1--3-1-分层总览" data-text="3.1 分层总览">3.1 分层总览</a><a class="toclink lvl3" href="#doc1--3-2-各层职责与关键接口" data-text="3.2 各层职责与关键接口">3.2 各层职责与关键接口</a><a class="toclink lvl3" href="#doc1--3-3-关键数据流-以-简历筛选-为例" data-text="3.3 关键数据流（以「简历筛选」为例）">3.3 关键数据流（以「简历筛选」为例）</a><a class="toclink lvl2" href="#doc1--四-关键设计决策-ADR" data-text="四、关键设计决策（ADR）">四、关键设计决策（ADR）</a><a class="toclink lvl3" href="#doc1--ADR-001-分类轴用-职能族优先-行业兜底" data-text="ADR-001 · 分类轴用「职能族优先、行业兜底」">ADR-001 · 分类轴用「职能族优先、行业兜底」</a><a class="toclink lvl3" href="#doc1--ADR-002-规则先行-模型兜底-硬判断永不下放" data-text="ADR-002 · 规则先行、模型兜底（硬判断永不下放）">ADR-002 · 规则先行、模型兜底（硬判断永不下放）</a><a class="toclink lvl3" href="#doc1--ADR-003-PII-物理剔除-而非在提示词里请求" data-text="ADR-003 · PII 物理剔除，而非在提示词里请求">ADR-003 · PII 物理剔除，而非在提示词里请求</a><a class="toclink lvl3" href="#doc1--ADR-004-词库前后端同源-UMD-单文件-版本自愈" data-text="ADR-004 · 词库前后端同源（UMD 单文件）+ 版本自愈">ADR-004 · 词库前后端同源（UMD 单文件）+ 版本自愈</a><a class="toclink lvl3" href="#doc1--ADR-005-批量写库必须单事务-一次真实的线上级故障" data-text="ADR-005 · 批量写库必须单事务（一次真实的线上级故障）">ADR-005 · 批量写库必须单事务（一次真实的线上级故障）</a><a class="toclink lvl3" href="#doc1--ADR-006-技术栈选-单一-TypeScript-pgvector-我的推荐" data-text="ADR-006 · 技术栈选「单一 TypeScript + pgvector」（我的推荐）">ADR-006 · 技术栈选「单一 TypeScript + pgvector」（我的推荐）</a><a class="toclink lvl3" href="#doc1--ADR-007-审计日志-append-only" data-text="ADR-007 · 审计日志 append-only">ADR-007 · 审计日志 append-only</a><a class="toclink lvl3" href="#doc1--ADR-008-离线-在线双模式同源" data-text="ADR-008 · 离线 / 在线双模式同源">ADR-008 · 离线 / 在线双模式同源</a><a class="toclink lvl3" href="#doc1--ADR-009-权限做三层-注册即最小权限" data-text="ADR-009 · 权限做三层，注册即最小权限">ADR-009 · 权限做三层，注册即最小权限</a><a class="toclink lvl3" href="#doc1--ADR-010-模型走适配器-业务不感知供应商" data-text="ADR-010 · 模型走适配器，业务不感知供应商">ADR-010 · 模型走适配器，业务不感知供应商</a><a class="toclink lvl2" href="#doc1--五-数据模型与权限模型-②-设计目标" data-text="五、数据模型与权限模型（② 设计目标）">五、数据模型与权限模型（② 设计目标）</a><a class="toclink lvl3" href="#doc1--5-1-核心实体-现状-13-张表-①-已实现" data-text="5.1 核心实体（现状 13 张表，① 已实现）">5.1 核心实体（现状 13 张表，① 已实现）</a><a class="toclink lvl3" href="#doc1--5-2-权限模型" data-text="5.2 权限模型">5.2 权限模型</a><a class="toclink lvl2" href="#doc1--六-AI-能力层设计-L3-细化" data-text="六、AI 能力层设计（L3 细化）">六、AI 能力层设计（L3 细化）</a><a class="toclink lvl3" href="#doc1--6-1-能力边界-谁做什么" data-text="6.1 能力边界：谁做什么">6.1 能力边界：谁做什么</a><a class="toclink lvl3" href="#doc1--6-2-模型网关" data-text="6.2 模型网关">6.2 模型网关</a><a class="toclink lvl3" href="#doc1--6-3-检索-RAG-M3" data-text="6.3 检索 / RAG（M3）">6.3 检索 / RAG（M3）</a><a class="toclink lvl3" href="#doc1--6-4-可评测性-M4" data-text="6.4 可评测性（M4）">6.4 可评测性（M4）</a><a class="toclink lvl2" href="#doc1--七-安全与合规-横切" data-text="七、安全与合规（横切）">七、安全与合规（横切）</a><a class="toclink lvl2" href="#doc1--八-迁移路径-从现有-PoC-演进" data-text="八、迁移路径：从现有 PoC 演进">八、迁移路径：从现有 PoC 演进</a><a class="toclink lvl2" href="#doc1--九-可观测性与运维-②-设计目标" data-text="九、可观测性与运维（② 设计目标）">九、可观测性与运维（② 设计目标）</a><a class="toclink lvl2" href="#doc1--十-技术选型对照与未定项" data-text="十、技术选型对照与未定项">十、技术选型对照与未定项</a><a class="toclink lvl3" href="#doc1--10-1-选型对照-含备选与理由" data-text="10.1 选型对照（含备选与理由）">10.1 选型对照（含备选与理由）</a><a class="toclink lvl3" href="#doc1--10-2-待定项-已拍板结果-2026-09-24-更新" data-text="10.2 待定项 → 已拍板结果（2026-09-24 更新）">10.2 待定项 → 已拍板结果（2026-09-24 更新）</a><a class="toclink lvl2" href="#doc1--附录-A-架构自检清单-面试前逐条过" data-text="附录 A · 架构自检清单（面试前逐条过）">附录 A · 架构自检清单（面试前逐条过）</a></div></aside>
+  <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">07_项目计划书.md</div><h1 id="doc0--07-HR-Agent-OS-项目计划书">07 · HR-Agent OS 项目计划书</h1>
+<blockquote><strong>文档定位</strong>：把现有的「可运行原型 + 零依赖全栈 PoC」升级为一个<strong>按真实产品标准交付的单租户私有化产品</strong>，用于<strong>求职作品集与面试演示</strong>。 <strong>事实纪律</strong>（沿用本项目其他文档）：本文所有信息分三档标注 —— <strong>① 已实现</strong>（可在本仓库跑出来）、<strong>② 设计目标</strong>（未实测）、<strong>③ 尚未具备</strong>。不把设计目标写成既成结果。 <strong>修订时间</strong>：2026-09-24（北京时间 UTC+8）。 <strong>最新状态（2026-09-24 更新）</strong>：<strong>M0 已完成 → M1「可信底座」已实现并验收</strong>（身份/三层权限/审计不可篡改/PIPL 治理/版本化迁移/可观测），详见 <strong><code>docs/09_实现说明与验收报告.md</code></strong>。§九 的待定项已按用户授权拍板并落地。</blockquote>
+<hr class="sep">
+<h2 id="doc0--〇-本文档怎么读">〇、本文档怎么读</h2>
+<div class="tablewrap"><table><thead><tr><th>你想知道</th><th>看第几节</th></tr></thead><tbody><tr><td>这产品到底做什么、给谁用</td><td>一、二</td></tr><tr><td>为什么这么定、不做什么</td><td>三</td></tr><tr><td>别人怎么做的、我们学了什么</td><td>五（GitHub 对标）</td></tr><tr><td>什么时候做完、每步交什么</td><td>六（里程碑）</td></tr><tr><td><strong>有哪些事我替你留了决定权</strong></td><td><strong>九（拍板结果）</strong> ← 重点</td></tr><tr><td><strong>M1 到底做完了没有、凭什么</strong></td><td><strong><code>docs/09</code> 实现说明与验收报告</strong></td></tr><tr><td>怎么算做完了</td><td>十（验收口径）</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--一-项目定位与目标形态">一、项目定位与目标形态</h2>
+<h3 id="doc0--1-1-一句话定位">1.1 一句话定位</h3>
+<p><strong>一个可私有化部署的「HR 数字员工平台」</strong>：HR 在系统里建立岗位库，AI Agent 承接<strong>简历初筛、JD 生成、审批留痕、员工自助问答</strong>四类高频工作；所有涉及判断的环节都给出<strong>可追溯的证据</strong>，所有涉及合规的环节都由<strong>确定性代码</strong>兜底。</p>
+<h3 id="doc0--1-2-目标形态-已与你确认">1.2 目标形态（已与你确认）</h3>
+<div class="tablewrap"><table><thead><tr><th>维度</th><th>结论</th><th>说明</th></tr></thead><tbody><tr><td>产品形态</td><td><strong>单租户 · 可私有化部署的产品</strong></td><td>不背多租户 SaaS 与计费的包袱</td></tr><tr><td>使用目的</td><td><strong>求职作品集 / 面试演示</strong></td><td>结论：技术纵深与「讲得清取舍」优先于运营完备度</td></tr><tr><td>身份体系</td><td><strong>自建账号 + RBAC</strong></td><td>不接企业 SSO，不做组织架构同步</td></tr><tr><td>部署方式</td><td>单机 / 单容器，数据不出本机（私有化）</td><td>与「简历属敏感个人信息」的定位自洽</td></tr></tbody></table></div>
+<p><strong>为什么这个组合是自洽的</strong>：作品集要的是「能被追问的深度」，不是「能扛多少租户」。因此把工程量投在<strong>可信（身份/权限/审计）、可控（确定性规则边界）、可讲（架构分层与取舍）</strong>三件事上，而不是多租户计费。</p>
+<h3 id="doc0--1-3-与现有资产的关系">1.3 与现有资产的关系</h3>
+<div class="tablewrap"><table><thead><tr><th>现有资产</th><th>现状</th><th>在目标形态里的角色</th></tr></thead><tbody><tr><td><code>平台原型/index.html</code></td><td>✅ 已实现：单文件 366KB、23 页、零依赖、双击即开</td><td><strong>演示主入口</strong>（离线可演示，不怕现场没网）</td></tr><tr><td><code>server/</code> 零依赖后端</td><td>✅ 已实现：Node 22 原生 http + <code>node:sqlite</code>、13 张表、真写库/真闸门/真审计</td><td><strong>演进基座</strong>（保留其「零依赖可交付」的卖点，逐步换骨架）</td></tr><tr><td><code>shared/req-lib.js</code></td><td>✅ 已实现：30 职能族 / 242 句职责 / 18 类行业词库，前后端唯一来源</td><td><strong>核心资产</strong>，产品差异化所在（详见 §4.2）</td></tr><tr><td>双模式回归测试</td><td>✅ 已实现：离线 / 在线各 23 页 + 16 项，0 错误</td><td><strong>质量证据</strong>，面试可直接演示</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--二-用户-场景与目标">二、用户、场景与目标</h2>
+<h3 id="doc0--2-1-用户角色">2.1 用户角色</h3>
+<div class="tablewrap"><table><thead><tr><th>角色</th><th>核心诉求</th><th>当前权限诉求</th></tr></thead><tbody><tr><td><strong>HRD / 招聘负责人</strong></td><td>看清全盘、控风险、要审批权</td><td>全量读 + 审批 + 配置</td></tr><tr><td><strong>招聘专员</strong></td><td>快：少翻简历、少写 JD</td><td>岗位维护 + 筛选台 + 候选人库</td></tr><tr><td><strong>HRBP</strong></td><td>掌握所支持团队的人员情况</td><td>本部门行级读</td></tr><tr><td><strong>员工</strong></td><td>自助查年假、社保、开证明</td><td><strong>仅本人数据</strong>（越权一律拒答）</td></tr><tr><td><strong>系统管理员</strong></td><td>账号、权限、审计</td><td>用户与角色管理</td></tr><tr><td><strong>数据保护负责人</strong>（新增角色建议）</td><td>谁看过敏感数据、留存多久</td><td>只读审计（详见 §9-④）</td></tr></tbody></table></div>
+<h3 id="doc0--2-2-As-Is-真实的一天-To-Be">2.2 As-Is（真实的一天）→ To-Be</h3>
+<div class="tablewrap"><table><thead><tr><th>痛点（As-Is）</th><th>量化</th><th>To-Be</th></tr></thead><tbody><tr><td>翻 80 份简历要 3–4 小时</td><td><strong>设计目标：初筛人效 +70%</strong>（未实测）</td><td>Agent 按「规则门槛 → 打分 → 证据」跑完，人只审闸门</td></tr><tr><td>被员工问社保/年假反复打断</td><td>20 次/天</td><td>员工自助，越权明确拒答并留痕</td></tr><tr><td>每月手工拼周报 ~4 小时</td><td><strong>设计目标：4 小时 → 5 分钟</strong>（未实测）</td><td>报表与问数直连业务库</td></tr><tr><td>JD 靠抄旧模板，条款带歧视风险</td><td>风险不可控</td><td>合规扫描按法条命中并<strong>阻止发布</strong></td></tr></tbody></table></div>
+<blockquote><strong>口径提醒</strong>：上表右列凡标「设计目标」者均为<strong>未实测值</strong>，面试时应说「我设定的目标是 X，验证方式是 Y」，不要当成已达成结果。</blockquote>
+<h3 id="doc0--2-3-产品原则-这四条决定了后面所有取舍">2.3 产品原则（这四条决定了后面所有取舍）</h3>
+<ol>
+<li><strong>能用规则就别用模型</strong> —— 年限、学历这类硬门槛由代码判定，<strong>0 token</strong>，结果可复现。</li>
+<li><strong>物理剔除 &gt; 提示词请求</strong> —— 反歧视不是「请求模型别看性别」，而是<strong>让模型根本拿不到</strong>该字段。</li>
+<li><strong>AI 的判断必须带证据</strong> —— 每一条打分都要能指回原文片段，否则不可信。</li>
+<li><strong>演示态与真实态结论同源</strong> —— 离线模式的合规扫描也是真扫，不写死结论。</li>
+</ol>
+<hr class="sep">
+<h2 id="doc0--三-范围与非目标">三、范围与非目标</h2>
+<h3 id="doc0--3-1-本期范围-In-Scope">3.1 本期范围（In Scope）</h3>
+<ol>
+<li><strong>岗位库与 JD 生成</strong>（含合规扫描）✅ 已有，待打磨</li>
+<li><strong>简历筛选 Agent</strong>（规则门槛 → 打分 → 证据 → 人工闸门）</li>
+<li><strong>审批中心与审计日志</strong></li>
+<li><strong>员工自助问答</strong>（HR 业务库查询 + 知识库检索 + 拒答转人工）</li>
+<li><strong>身份认证与 RBAC</strong>（本期最大新增，见 §6-M1）</li>
+<li><strong>报表与问数</strong>（现状为 mock，需接真查询）</li>
+<li><strong>数据治理</strong>（候选人授权、留存期、删除权）</li>
+</ol>
+<h3 id="doc0--3-2-非目标-Out-of-Scope-明确不做">3.2 非目标（Out of Scope，<strong>明确不做</strong>）</h3>
+<div class="tablewrap"><table><thead><tr><th>不做</th><th>理由</th></tr></thead><tbody><tr><td>多租户 SaaS 与订阅计费</td><td>与「求职作品集」定位不符，且会稀释工程量</td></tr><tr><td>薪酬 / 考勤 / 绩效 / 社保代办等全 HRMS 模块</td><td>那是另一条产品线（对标 Frappe HR / OrangeHRM），本产品聚焦「招聘 + 自助」</td></tr><tr><td>自动发 Offer、自动拒信</td><td>高风险决策必须有人在场，产品原则不容许</td></tr><tr><td>简历爬虫 / 与外部 ATS 双向同步</td><td>合规与工程量双重不可控</td></tr><tr><td>生产级 K8s 编排与 SLA 承诺</td><td>本期交付到「单容器可部署 + 可观测」为止</td></tr></tbody></table></div>
+<blockquote><strong>为什么非目标要写死</strong>：B 端产品的死法通常不是做得不对，而是做得太多。这一节同时是面试里最容易被追问的点——「你为什么不都做」比「你做了什么」更能看出判断力。</blockquote>
+<hr class="sep">
+<h2 id="doc0--四-功能清单-含当前完成度">四、功能清单（含当前完成度）</h2>
+<h3 id="doc0--4-1-模块与状态">4.1 模块与状态</h3>
+<div class="tablewrap"><table><thead><tr><th>模块</th><th>关键能力</th><th>状态</th></tr></thead><tbody><tr><td><strong>M1 身份与权限</strong></td><td>登录、会话、三角色 RBAC、字段级脱敏</td><td>❌ <strong>尚未具备</strong>（现为请求头伪身份）</td></tr><tr><td><strong>M2 岗位库</strong></td><td>HR 自建岗位、跨行业、层级自适应</td><td>✅ 已实现</td></tr><tr><td><strong>M3 JD 生成</strong></td><td>六维度任职要求、职责择优、合规扫描</td><td>✅ 已实现</td></tr><tr><td><strong>M4 简历筛选</strong></td><td>规则门槛、打分带证据、人工闸门</td><td>🟡 部分（<strong>评分真实，简历数据为演示合成</strong>）</td></tr><tr><td><strong>M5 审批与审计</strong></td><td>批准真实写回、驳回强制填因、审计只插不改</td><td>✅ 已实现</td></tr><tr><td><strong>M6 员工自助</strong></td><td>分流 → 查业务库 / 检索知识库 / 拒答</td><td>🟡 部分（知识库为关键词检索，非向量 RAG）</td></tr><tr><td><strong>M7 报表问数</strong></td><td>图表与结论</td><td>🟡 部分（<strong>存在 mock 数据</strong>）</td></tr><tr><td><strong>M8 数据治理</strong></td><td>授权、留存期、删除权</td><td>❌ 尚未具备（表字段已设计，逻辑未实现）</td></tr><tr><td><strong>M9 模型网关</strong></td><td>可插拔 LLM、降级、限流、成本核算</td><td>🟡 部分（可插拔与降级已有，记账/审计/额度未有）</td></tr></tbody></table></div>
+<h3 id="doc0--4-2-核心资产-岗位与-JD-的确定性生成">4.2 核心资产：岗位与 JD 的确定性生成</h3>
+<p>这是本产品<strong>最不可替代</strong>的部分，也是面试最值得展开的技术亮点：</p>
+<ul>
+<li><strong>职能族优先、行业兜底</strong>：30 个职能族（技术/产品/设计/数据/运营/市场/销售/实施交付/HR/财务/风控合规/供应链/生产/工程设备/工艺/质量/医疗/客服/零售门店/行政/法务合规/教育培训/建筑工程/传媒内容/物流运输/酒店餐饮/物业安保/医药健康/游戏/能源电力）。</li>
+<li>解决的真实 bug：「互联网行业的 AI 产品经理被补上 Java」——根因是把「行业」当成「职能」。</li>
+<li><strong>一识别词只属一族</strong>：族的分界按「这个人每天做什么」划，不按行业或公司部门划。</li>
+<li><strong>职责子方向择优</strong>：242 句职责池带子方向标签，<code>pickDuties()</code> 按岗位名择优取 6 条 → <strong>同族不同岗不再一字不差</strong>，且纯规则、可复现、0 token。</li>
+<li><strong>行业语境词接回</strong>：17 个行业各有「指标 + 行话」口径句（如「以 DAU、留存与转化漏斗为核心指标，结合埋点与 A/B 实验验证迭代效果」），拼入前做 LCS + bigram 双重去重。</li>
+<li><strong>版本自愈</strong>：<code>REQ_LIB_VER</code> + <code>jobs.jd_ver</code>，启动时自动重算历史 JD，老脏数据不用手工洗。</li>
+</ul>
+<blockquote>面试价值：这一段能同时回答「你怎么处理幻觉」「怎么保证可复现」「规则和模型怎么分工」三个高频问题。</blockquote>
+<hr class="sep">
+<h2 id="doc0--五-GitHub-对标调研-禁闭门造车">五、GitHub 对标调研（禁闭门造车）</h2>
+<blockquote><strong>调研方式</strong>：<code>WebSearch</code> / <code>WebFetch</code>（本机 <code>curl</code> 连不上 <code>api.github.com</code>，<code>gh</code> 未安装）。 <strong>数据口径</strong>：star 数为 <strong>2026-09-24</strong> 检索结果，四舍五入，<strong>未逐一回访仓库核实</strong>，仅用于量级判断。</blockquote>
+<h3 id="doc0--5-1-简历-招聘-AI-方向">5.1 简历 / 招聘 AI 方向</h3>
+<div class="tablewrap"><table><thead><tr><th>项目</th><th>Star</th><th>技术栈</th><th>可借鉴点</th><th>我们的取舍</th></tr></thead><tbody><tr><td><code>career-ops-hq/career-ops</code></td><td>~72.5k</td><td>JS，本地优先，AI coding CLI 内运行</td><td><strong>local-first 隐私叙事</strong>；多维度加权打分（A–F 评级）；把「评估→定制→追踪」串成闭环</td><td>采纳<strong>隐私叙事与多维打分</strong>；不采纳「求职者侧」定位（我们做 HR 侧）</td></tr><tr><td><code>srbhr/Resume-Matcher</code></td><td>~28.5k</td><td>Python + Next.js + FastAPI</td><td><strong>本地模型（Ollama）与云端可切换</strong>；向量检索做人岗匹配；可视化编辑降门槛</td><td>采纳<strong>模型可插拔 + 向量匹配</strong>；这是我们 M3/M6 的直接对标</td></tr><tr><td><code>MadsLorentzen/ai-job-search</code></td><td>~19k</td><td>TypeScript + Python + LaTeX</td><td>全链路流水线（爬取→排版→模拟→追踪）编排方式</td><td>采纳<strong>流水线分层</strong>思路；不采纳爬取（合规红线）</td></tr><tr><td><code>interviewstreet/hiring-agent</code></td><td>~2.3k</td><td>Python</td><td>模块拆分清晰：<code>ResumeProcessor</code> / <code>CandidateScorer</code> / <code>JobProfile</code>；<strong>规则快筛与 LLM 语义打分双后端</strong></td><td><strong>高度认同</strong>：与我们的「规则前置、模型兜底」完全同构，说明这条路线是行业共识</td></tr><tr><td><code>sliday/resume-job-matcher</code></td><td>~272</td><td>TypeScript CLI</td><td><strong>硬约束先淘汰、再打分</strong>；<strong>每条分数引用简历原文片段</strong>；embedding 预筛降低大池成本</td><td><strong>最直接验证</strong>：我们的「规则门槛 0 token」+「打分带证据」与之一致</td></tr><tr><td><code>opencats/OpenCATS</code></td><td>~752</td><td>PHP + MySQL</td><td>经典 ATS 的<strong>候选人阶段机</strong>与岗位-候选人数据模型</td><td>采纳其<strong>阶段状态机</strong>建模；不采纳其单体内聚架构</td></tr><tr><td><code>Gsync/jobsync</code> / <code>strelov1/freehire</code></td><td>~1.3k / ~750</td><td>TS / Go + PG + Meilisearch</td><td>求职追踪与检索体验；Meilisearch 做职位检索</td><td>检索层可借鉴（本期不做搜索引擎）</td></tr></tbody></table></div>
+<h3 id="doc0--5-2-全功能-HRMS-方向-用于界定非目标">5.2 全功能 HRMS 方向（用于界定非目标）</h3>
+<div class="tablewrap"><table><thead><tr><th>项目</th><th>技术栈</th><th>借鉴点</th><th>取舍</th></tr></thead><tbody><tr><td><code>frappe/hrms</code>（Frappe HR）</td><td>Python（Frappe Framework）+ MariaDB + Redis，Vue UI</td><td><strong>模块高度解耦</strong>、元数据驱动、RBAC + 工作流引擎、多级审批、Docker 部署；13+ 模块覆盖员工全生命周期</td><td>采纳<strong>模块解耦与审批工作流引擎</strong>；<strong>明确不追其模块广度</strong>（见 §3.2）</td></tr><tr><td>OrangeHRM</td><td>PHP 80.9% + Vue.js 15.7%，MySQL/PostgreSQL</td><td><strong>审计日志、RBAC 最小权限、传输与静态加密</strong>三位一体；双库可选部署；REST API 生态集成</td><td>采纳<strong>安全三件套</strong>作为 M1/§8 的验收锚点</td></tr></tbody></table></div>
+<h3 id="doc0--5-3-LLM-应用平台方向-用于定架构分层">5.3 LLM 应用平台方向（用于定架构分层）</h3>
+<div class="tablewrap"><table><thead><tr><th>项目</th><th>定位</th><th>借鉴点</th></tr></thead><tbody><tr><td>Dify</td><td>LLMOps / LLM 应用开发平台</td><td><strong>前后端分离 + 四层结构</strong>（前端界面层 / 后端 API 服务层 / 核心业务与模型层 / 基础设施层）；可视化 Workflow 编排；<strong>模型适配器模式</strong>（换模型只改配置）；内置 RAG（解析→分块→嵌入→检索→重排）；企业版补 SSO / RBAC / 审计日志</td></tr><tr><td>RAGFlow</td><td>深度文档理解 RAG</td><td><strong>多路召回 + 重排序</strong>；复杂文档格式解析</td></tr><tr><td>FastGPT</td><td>知识库问答</td><td>混合检索 + 结果重排；PG + MongoDB 存储组合</td></tr></tbody></table></div>
+<blockquote><strong>本节的架构启示（已吸收进 docs/08）</strong>： ① <strong>适配器模式</strong>隔离模型供应商 —— 换模型不改业务代码； ② <strong>分层要按「变化频率」切</strong>：模型、检索、规则三者的变化频率完全不同，不该混在一层； ③ <strong>RAG 与规则引擎是并列的能力</strong>，不是「RAG 取代规则」； ④ 企业能力的落点是 <strong>SSO / RBAC / 审计日志</strong>（Dify 企业版清单与 OrangeHRM 安全三件套相互印证）。</blockquote>
+<h3 id="doc0--5-4-我们与对标的差异-面试必答">5.4 我们与对标的差异（面试必答）</h3>
+<blockquote>主流开源项目要么偏<strong>求职者侧</strong>（career-ops、ai-job-search），要么偏<strong>简历解析工具</strong>（Resume-Matcher、hiring-agent），要么偏<strong>全 HRMS 套件</strong>（Frappe HR、OrangeHRM）。 <strong>我们的位置是它们之间的空档</strong>：<strong>HR 侧、以「岗位库驱动的确定性生成 + 可信 Agent 流程」为核心</strong>——不是简历解析器，也不是 HR 大套件。 <strong>并且已有别人没有的东西</strong>：30 职能族 / 242 句职责 / 18 类行业词库这套<strong>跨行业岗位语义资产</strong>，以及<strong>双模式（离线可演示 / 在线真跑）</strong>的交付形态。</blockquote>
+<hr class="sep">
+<h2 id="doc0--六-里程碑与阶段交付">六、里程碑与阶段交付</h2>
+<blockquote>排期按「单人 + AI 辅助」估算，<strong>周数为设计值，待你确认</strong>（见 §9-⑤）。每个里程碑都必须<strong>可演示</strong>——作品集里「能跑」比「写完了」重要。</blockquote>
+<h3 id="doc0--M0-计划与架构评审-本轮交付">M0 · 计划与架构评审（本轮交付）</h3>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>交付物</td><td>本文档（docs/07）+ 架构设计文档（docs/08）+ GitHub 对标结论</td></tr><tr><td>验收</td><td>你确认目标形态、技术栈、身份方案与范围</td></tr><tr><td>出口条件</td><td>§9 的待定项全部拍板</td></tr></tbody></table></div>
+<h3 id="doc0--M1-可信底座-身份-权限-审计-已完成-2026-09-24">M1 · 可信底座（身份 / 权限 / 审计）　✅ 已完成（2026-09-24）</h3>
+<blockquote><strong>状态</strong>：<strong>已实现并验收</strong>，详见 <code>docs/09_实现说明与验收报告.md</code>。 <strong>与计划的一处偏离</strong>：原口径含「数据库迁移到 PostgreSQL」，本轮<strong>未做</strong>——理由是「换库风险高，且不降低企业级门槛」，先把可信补上（记为 D1，见 docs/09 §二）。PG 迁移顺延。</blockquote>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>交付物</td><td>账号体系（登录/登出/改密/锁定）、服务端<strong>可吊销会话</strong>、三角色 RBAC 扩展为<strong>三层权限</strong>、字段级脱敏、审计 append-only（<strong>数据库触发器</strong>）、PIPL 数据治理、<strong>版本化迁移（v1–v4，空库可一键建到最新）</strong>、统一错误契约 + requestId、结构化日志 + 限流 + 指标 + 优雅关闭</td></tr><tr><td>验收口径</td><td>① 无会话访问任一 API 返回 <strong>401 而非 403</strong> ✅；② 员工角色查他人数据返回 <strong>403 并留痕</strong> ✅；③ 审计日志<strong>只插不改</strong>（数据库层触发器物理拒绝）✅；④ 迁移脚本可从空库一键建到最新版本 ✅（删库重启实测：<code>schemaVersion: 4</code>）</td></tr><tr><td>验证</td><td>后端集成 <strong>127 项断言 0 失败</strong>；在线端到端 <strong>23 页 + 16 项 0 错误</strong>；离线兜底 <strong>23 页 + 16 项 0 错误</strong>；空库重建通过</td></tr><tr><td>面试价值</td><td>这是现有 PoC 最大的 P0 缺口，「我怎么把它补上」本身就是完整的架构叙述；另附 4 条<strong>被测试抓出的真实缺陷</strong>（含一条「永远绿的假绿用例」），是最硬的「这是我自己做的」证据</td></tr></tbody></table></div>
+<h3 id="doc0--M2-真实简历链路">M2 · 真实简历链路</h3>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>交付物</td><td>简历上传（PDF/DOCX）→ 文本抽取 → 结构化字段 → <strong>PII 物理剔除</strong> → 规则门槛 → 打分 + <strong>原文证据引用</strong></td></tr><tr><td>验收口径</td><td>上传 10 份真实格式简历，结构化字段抽取成功率 ≥ 90%（<strong>设计目标</strong>）；每条打分都能跳回简历原文片段；受保护字段在打分查询的 SQL 里<strong>不存在</strong></td></tr><tr><td>对标依据</td><td><code>hiring-agent</code> 的双后端打分、<code>resume-job-matcher</code> 的「分数带证据」</td></tr></tbody></table></div>
+<h3 id="doc0--M3-知识库-RAG">M3 · 知识库 RAG</h3>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>交付物</td><td>文档切片 → 向量化 → 混合检索 + 重排 → <strong>引用定位</strong>；员工自助问答接真 RAG</td></tr><tr><td>验收口径</td><td>答案必须带可点击的引用来源；无检索结果时<strong>转人工而非编造</strong>；离线评测集准确率基线建立</td></tr><tr><td>对标依据</td><td>Dify / RAGFlow / FastGPT 的检索层设计</td></tr></tbody></table></div>
+<h3 id="doc0--M4-评测与可观测">M4 · 评测与可观测</h3>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>交付物</td><td>Golden Set（3–5 类任务 × 20 样本，含对抗样本）、指标阈值与回归门槛、Agent 轨迹追踪、模型成本核算</td></tr><tr><td>验收口径</td><td>每次改动跑评测集，<strong>低于阈值则阻断合并</strong>；每个 Agent 任务可回放完整步骤与 token 消耗</td></tr><tr><td>为什么必须有</td><td>作品集里「我建了评测集并设了回归门槛」是<strong>从工程师到产品负责人</strong>的分水岭</td></tr></tbody></table></div>
+<h3 id="doc0--M5-演示与面试弹药">M5 · 演示与面试弹药</h3>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>交付物</td><td>5 分钟演示脚本、离线演示包（单文件 HTML）、架构图、决策速查表、可背的口播稿</td></tr><tr><td>验收口径</td><td>断网环境下 5 分钟演示全程无卡点；任一技术点可被追问 3 层而不露怯</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--七-交付物清单">七、交付物清单</h2>
+<div class="tablewrap"><table><thead><tr><th>交付物</th><th>形式</th><th>状态</th></tr></thead><tbody><tr><td>项目计划书</td><td><code>docs/07_项目计划书.md</code> + 暗色 HTML</td><td>✅ 已有</td></tr><tr><td>架构设计文档</td><td><code>docs/08_架构设计文档.md</code> + 暗色 HTML</td><td>✅ 已有</td></tr><tr><td><strong>M1 实现说明与验收报告</strong></td><td><code>docs/09_实现说明与验收报告.md</code> + 暗色 HTML</td><td>✅ <strong>本轮新增</strong></td></tr><tr><td>可点击平台原型</td><td><code>平台原型/index.html</code>（单文件，<strong>389,471 bytes（约 380KB）</strong>，23 页）</td><td>✅ 已有（已加登录闸门）</td></tr><tr><td>离线演示包</td><td><code>分享包/*.zip</code>（单文件 + 使用说明）</td><td>✅ 已有（<strong>该包为 M1 前的版本，未含登录层</strong>）</td></tr><tr><td><strong>生产级代码骨架</strong></td><td><code>server/</code> 15 个模块（L0–L5 分层）/ 版本化迁移 v1–v4 / 真身份 + 三层权限 + 审计 append-only + PIPL 治理 / 三套回归测试</td><td>✅ <strong>M1 已完成</strong></td></tr><tr><td>评测集与基线</td><td>Golden Set + 阈值</td><td>⏳ M4</td></tr><tr><td>演示脚本与口播稿</td><td>Markdown</td><td>🟡 部分（docs/04 已有面试口径；docs/09 §九 新增 M1 口径）</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--八-风险与依赖">八、风险与依赖</h2>
+<div class="tablewrap"><table><thead><tr><th>风险</th><th>影响</th><th>应对</th></tr></thead><tbody><tr><td><strong>技术栈迁移成本</strong>（现有零依赖 → 生产栈）</td><td>高</td><td>保留现有 PoC 为「可运行证据」不删；用<strong>分层</strong>把规则引擎先抽成独立包（语言无关的纯函数 + 契约测试），迁移期间两套并存</td></tr><tr><td><strong>简历数据合规</strong>（PIPL：属敏感个人信息）</td><td>高</td><td>字段级加密、留存期自动清理、候选人授权与删除权（M8）；演示一律用<strong>合成数据</strong>并打「演示简历」标签</td></tr><tr><td><strong>模型输出不可控</strong></td><td>中</td><td>适配器 + 输出契约校验 + 失败降级规则模式；硬判断永不下放给模型</td></tr><tr><td><strong>作品集被质疑「只是原型」</strong></td><td>中</td><td>用<strong>双模式回归全绿 + 评测集基线 + 架构文档</strong>三件套回应；明确区分已实现/设计目标</td></tr><tr><td><strong>单人维护成本</strong></td><td>中</td><td>坚持零依赖可交付的演示包；生产栈选型优先「组件少、单语言」</td></tr><tr><td><strong>范围蔓延</strong></td><td>中</td><td>§3.2 非目标写死；新增需求一律走 §9 决策流程</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--九-拍板结果-本轮已由用户授权-自行判断-并落地">九、拍板结果（本轮已由用户授权「自行判断」并落地）</h2>
+<blockquote><strong>本节的状态已变更。</strong> 原规矩是「不确定的决策先问你」；在 M1 开工前，用户改为<strong>授权我自行判断并直接实现</strong>。 因此下列 ①–⑥ 由我按「先补可信、再换技术栈、不背多租户与计费包袱」的原则<strong>拍板并执行</strong>， 每条都保留了「原方案 → 否掉的理由 → 改后方案」，完整记录见 <strong><code>docs/09_实现说明与验收报告.md</code> §二（D1–D9）</strong>。 下面标注每项的实际处置结果。</blockquote>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>事项</th><th>处置</th><th>说明</th></tr></thead><tbody><tr><td>①</td><td>技术栈</td><td><strong>暂缓迁移（D1）</strong></td><td>保留零依赖 Node 22 + <code>node:sqlite</code>，但<strong>按 <code>docs/08</code> 的 L0–L5 分层重构</strong>。理由：本轮要交付的是「可信」，换库风险高且不降低门槛；TS + PostgreSQL + pgvector 的推荐仍然有效，属于<strong>下一阶段</strong></td></tr><tr><td>②</td><td>模块范围</td><td><strong>按推荐 A 执行</strong></td><td>聚焦「招聘 + 自助」，非目标按 §3.2 写死；未向薪酬/考勤/绩效扩</td></tr><tr><td>③</td><td>大模型接入</td><td><strong>维持可插拔设计，本轮不接</strong></td><td><code>LLM_API_URL</code> 口子保留、未配置时降级规则模式；接入属 M3</td></tr><tr><td>④</td><td>数据合规深度</td><td><strong>按推荐 A 落地</strong></td><td>候选人授权留痕 ✅ 留存期自动清理 ✅ 删除权（导出/匿名化/物理删除）✅；<strong>字段级加密未做</strong>（记为短板）</td></tr><tr><td>⑤</td><td>排期与精力投入</td><td><strong>未定，仍是你的约束</strong></td><td>我无法替你估；M2–M5 的粒度会随你给出的周投入量调整</td></tr><tr><td>⑥</td><td>是否开工 M1</td><td><strong>已开工并完成</strong></td><td>见上 M1 一节与 <code>docs/09</code></td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--十-验收口径-整体">十、验收口径（整体）</h2>
+<div class="tablewrap"><table><thead><tr><th>维度</th><th>验收标准</th></tr></thead><tbody><tr><td><strong>可信</strong></td><td>无会话 → 401；越权 → 403 且留痕；审计只插不改；敏感字段加密存储</td></tr><tr><td><strong>可控</strong></td><td>硬门槛 0 token 且可复现；模型失败自动降级；每条 AI 判断可回溯证据</td></tr><tr><td><strong>可讲</strong></td><td>架构分层清晰、关键取舍有对标依据、能区分「已实现 / 设计目标 / 未定」</td></tr><tr><td><strong>可演</strong></td><td>断网可演示；5 分钟无卡点跑完主链路；离线 / 在线结论同源</td></tr><tr><td><strong>可验</strong></td><td>双模式回归全绿；评测集有基线且低于阈值阻断合并</td></tr></tbody></table></div>
+<hr class="sep">
+<p><em>本文档与 <code>docs/08_架构设计文档.md</code> 配套阅读。事实口径与 <code>docs/03</code>、<code>docs/05</code> 一致，凡冲突以代码实测为准。</em></p></article><article class="doc" data-doc="doc1" style="display:none"><div class="docmeta">08_架构设计文档.md</div><h1 id="doc1--08-HR-Agent-OS-架构设计文档">08 · HR-Agent OS 架构设计文档</h1>
+<blockquote><strong>文档定位</strong>：定义产品的<strong>目标架构</strong>（分层、组件、接口、数据模型、关键取舍），并说明<strong>如何从现有零依赖 PoC 演进过去</strong>。 <strong>事实纪律</strong>：分三档标注 —— <strong>① 已实现</strong>、<strong>② 设计目标</strong>（未实测）、<strong>③ 尚未具备</strong>。 <strong>配套文档</strong>：<code>docs/07_项目计划书.md</code>（范围与里程碑）、<code>docs/05_从PoC到企业级的差距清单.md</code>（缺口清单）。 <strong>修订时间</strong>：2026-09-24（北京时间 UTC+8）。 <strong>最新状态（2026-09-24 更新）</strong>：<strong>M1「可信底座」已按本文件的分层落地</strong>——<code>server/</code> 已拆成 <strong>15 个模块 / L0–L5 全覆盖</strong>，10 条 ADR 中 <strong>ADR-002/003/004/005/007/008/009 已在代码中生效</strong>，并新增「版本化迁移 v1–v4」「服务端可吊销会话」「三层权限」「PIPL 治理」「统一错误契约 + requestId + 结构化日志 + 限流 + 指标」。 <strong>唯一未按本文件执行的项</strong>：<strong>未迁 PostgreSQL</strong>（ADR-006 的推荐仍然有效，但本轮刻意顺延——理由与验收证据见 <code>docs/09_实现说明与验收报告.md</code>）。</blockquote>
+<hr class="sep">
+<h2 id="doc1--一-架构目标与约束">一、架构目标与约束</h2>
+<h3 id="doc1--1-1-架构目标-按优先级">1.1 架构目标（按优先级）</h3>
+<ol>
+<li><strong>可信</strong>：身份不可伪造、权限不可绕过、审计不可篡改。</li>
+<li><strong>可控</strong>：凡涉及硬判断（年限/学历/合规），必须由确定性代码执行且<strong>可复现</strong>。</li>
+<li><strong>可讲</strong>：每一层有明确职责边界，每个关键决策有对标依据与取舍说明。</li>
+<li><strong>可演</strong>：断网可演示，单文件可分发，数据不出本机。</li>
+<li><strong>可演进</strong>：不追求一步到位的生产级规模，但<strong>不允许出现无法回退的设计</strong>。</li>
+</ol>
+<h3 id="doc1--1-2-硬约束">1.2 硬约束</h3>
+<div class="tablewrap"><table><thead><tr><th>约束</th><th>来源</th><th>对架构的影响</th></tr></thead><tbody><tr><td>简历属<strong>敏感个人信息</strong>（PIPL）</td><td>法律</td><td>字段级加密、留存期清理、删除权、演示数据全合成</td></tr><tr><td>招聘决策<strong>不得有歧视</strong></td><td>劳动法/就业促进法</td><td>受保护字段物理剔除；合规扫描带法条依据</td></tr><tr><td><strong>单人维护</strong></td><td>你的真实约束</td><td>组件数最少、单语言优先、零依赖演示包必须保留</td></tr><tr><td>目标形态为<strong>单租户私有化</strong></td><td>你已确认</td><td>不做租户管理 UI；但<strong>所有查询仍带 <code>tenant_id</code></strong>（低成本预留）</td></tr><tr><td>身份为<strong>自建账号 + RBAC</strong></td><td>你已确认</td><td>自建会话/令牌；不引入 SSO 中间件</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc1--二-现状架构-As-Built-①-已实现">二、现状架构（As-Built，① 已实现）</h2>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>┌──────────────────────────────────────────────────────────────┐
+│  浏览器                                                        │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ 平台原型/index.html（单文件 366KB · 23 页 · 零外链）      │  │
+│  │  ├─ 离线态：内置演示数据，双击 file:// 即开                │  │
+│  │  └─ 在线态：探测到后端 → 切真 API，右上角亮「真实后端」      │  │
+│  └────────────────────────────────────────────────────────┘  │
+└───────────────────────────┬──────────────────────────────────┘
+                            │ HTTP (127.0.0.1:8788)
+┌───────────────────────────▼──────────────────────────────────┐
+│ server/server.js   Node 22 原生 http（零 npm 依赖）             │
+│   REST 路由 · 静态托管 · 请求体预读（bodyOf）· 身份：X-User 头   │
+├──────────────────────────────────────────────────────────────┤
+│ server/engine.js   Agent 引擎                                  │
+│   筛选 Agent（8 步）· JD 生成 · 岗位 CRUD · 审批 · 问答 ·        │
+│   规则门槛（0 token）· 合规扫描（11+9 条规则表）· 审计 · 越权     │
+├──────────────────────────────────────────────────────────────┤
+│ shared/req-lib.js  唯一词库源（UMD，前后端同源）                 │
+│   30 职能族 · 242 句职责 · 18 类行业词库 · 17 行业语境词          │
+│   detectFunction · pickDuties · industryDuty · extractKeywords │
+│   detectJunior · buildSkillUniverse                            │
+├──────────────────────────────────────────────────────────────┤
+│ server/db.js   node:sqlite（单文件，13 张表）                   │
+│   建表 · migrate() 补列 · 种子/重置（inTx 单事务）· 演示简历合成   │
+└──────────────────────────────────────────────────────────────┘</code></pre></div>
+<p><strong>现状的真实水平</strong>：</p>
+<div class="tablewrap"><table><thead><tr><th>维度</th><th>现状</th><th>结论</th></tr></thead><tbody><tr><td>真实写库 / 审计 / 闸门 / 403</td><td>✅ 有</td><td>不是纸面原型</td></tr><tr><td>身份</td><td>❌ 请求头 <code>X-User</code>，<strong>可由客户端伪造</strong></td><td><strong>最大 P0 缺口</strong></td></tr><tr><td>权限</td><td>🟡 有 <code>role</code> 字段与 403 演示，<strong>无真校验</strong></td><td>需补三层权限</td></tr><tr><td>并发</td><td>❌ 单文件 SQLite，单写入者</td><td>需换 PostgreSQL</td></tr><tr><td>多租户</td><td>❌ <code>tenants</code> 仅 1 行，多数查询未带 <code>tenant_id</code></td><td>低成本预留即可</td></tr><tr><td>数据治理</td><td>❌ <code>consent_given</code>/<code>retain_until</code> 字段有、逻辑无</td><td>需实现</td></tr><tr><td>模型层</td><td>🟡 <code>LLM_API_URL</code> 口子有、降级有；记账/审计/额度无</td><td>需扩为网关</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc1--三-目标架构-分层设计-②-设计目标">三、目标架构：分层设计（② 设计目标）</h2>
+<h3 id="doc1--3-1-分层总览">3.1 分层总览</h3>
+<p><strong>分层原则：按「变化频率」切层。</strong> 变化最慢的在底层（基础设施），变化最快的在上层（业务界面）；<strong>模型、检索、规则三者变化频率完全不同，必须分属不同能力</strong>，不能混成一个「AI 模块」。</p>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>┌───────────────────────────────────────────────────────────────────────┐
+│ L0 接入层  Access                                                     │
+│   反向代理 / TLS · 静态资源 · 全局限流 · 会话解析 · CORS · 请求日志      │
+├───────────────────────────────────────────────────────────────────────┤
+│ L1 应用层  Application                                                │
+│   REST/JSON API · DTO 校验(Zod) · 鉴权守卫 · 错误契约 · SSE 流式输出    │
+│   ── 只做「协议与编排」，不含业务规则 ──                                │
+├───────────────────────────────────────────────────────────────────────┤
+│ L2 领域层  Domain                                                     │
+│   岗位 · 候选人 · 审批 · 审计 · 员工自助 · 授权治理(PIPL)               │
+│   领域服务 + 状态机 + 仓储接口（不依赖具体数据库）                       │
+├───────────────────────────────────────────────────────────────────────┤
+│ L3 能力层  Capability   ← 本产品的差异化全部在这一层                    │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐        │
+│  │ 规则引擎    │ │ AI 编排    │ │ 模型网关    │ │ 检索/RAG   │        │
+│  │ 确定性      │ │ Agent 计划 │ │ 适配器      │ │ 切片/向量   │        │
+│  │ 门槛/打分   │ │ 工具调用   │ │ 重试/降级   │ │ 混合检索    │        │
+│  │ JD 生成     │ │ 人工闸门   │ │ 限流/成本   │ │ 重排/引用   │        │
+│  │ 合规扫描    │ │ 轨迹记录   │ │ 输出审计    │ │            │        │
+│  └────────────┘ └────────────┘ └────────────┘ └────────────┘        │
+│  ┌────────────┐                                                      │
+│  │ 文档处理    │  PDF/DOCX 抽取 · OCR 兜底 · 结构化字段映射            │
+│  └────────────┘                                                      │
+├───────────────────────────────────────────────────────────────────────┤
+│ L4 数据层  Data                                                       │
+│   PostgreSQL（业务）· pgvector（向量）· 对象存储（简历原件）             │
+│   Redis（会话/缓存/队列）· 审计库（append-only）                        │
+├───────────────────────────────────────────────────────────────────────┤
+│ L5 基础设施层  Infra                                                  │
+│   容器化 · CI/CD · 配置与密钥 · 备份恢复 · 日志/指标/追踪               │
+└───────────────────────────────────────────────────────────────────────┘
+
+横切关注点（贯穿所有层）
+  安全：认证 / 授权 / 传输与静态加密 / 字段级脱敏
+  合规：授权留痕 / 留存期 / 删除权 / 合规扫描
+  可观测：结构化日志 / 指标 / 链路追踪 / Agent 轨迹回放
+  工程：幂等键 / 事务边界 / 配置开关 / 特性降级</code></pre></div>
+<h3 id="doc1--3-2-各层职责与关键接口">3.2 各层职责与关键接口</h3>
+<div class="tablewrap"><table><thead><tr><th>层</th><th>职责</th><th>关键接口（示意）</th><th>不该做的事</th></tr></thead><tbody><tr><td><strong>L0 接入</strong></td><td>TLS、限流、静态资源、会话解析</td><td>—</td><td>不写业务逻辑</td></tr><tr><td><strong>L1 应用</strong></td><td>协议转换、入参校验、鉴权、错误契约</td><td><code>POST /api/screenings</code>、<code>GET /api/jobs</code></td><td>不直接访问数据库</td></tr><tr><td><strong>L2 领域</strong></td><td>业务规则、状态机、事务边界</td><td><code>ScreeningService.run()</code>、<code>ApprovalService.approve()</code></td><td>不关心 HTTP、不关心用哪个模型</td></tr><tr><td><strong>L3 能力</strong></td><td>规则 / 编排 / 模型 / 检索 / 文档</td><td><code>RuleEngine.gate()</code>、<code>Agent.run()</code>、<code>Llm.complete()</code>、<code>Retriever.search()</code></td><td><strong>不含具体业务语义</strong>（岗位、候选人概念不进来）</td></tr><tr><td><strong>L4 数据</strong></td><td>持久化、检索、缓存</td><td><code>JobRepo</code>、<code>AuditRepo</code>、<code>VectorStore</code></td><td>不写业务规则</td></tr><tr><td><strong>L5 基础设施</strong></td><td>运行环境与可运维性</td><td>—</td><td>—</td></tr></tbody></table></div>
+<blockquote><strong>这条边界的价值</strong>：<code>L3 规则引擎</code> 是<strong>语言无关的纯函数</strong>（现有 <code>shared/req-lib.js</code> 已是纯函数 + UMD）。因此<strong>技术栈迁移时它可以整体保留</strong>，只需换一层壳 —— 这是把「重写」降级为「搬运」的关键设计。</blockquote>
+<h3 id="doc1--3-3-关键数据流-以-简历筛选-为例">3.3 关键数据流（以「简历筛选」为例）</h3>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>HR 在筛选台选择岗位
+   │
+   ▼ L1  校验入参 + 鉴权（是否为本租户、是否有该岗位权限）
+   ▼ L2  开启筛选任务（写 agent_tasks，状态 pending）
+   ▼ L3  Agent 编排 8 步：
+        ① 载入岗位画像（L2 读 jobs）→ ② 识别职能族（规则引擎，
+           30 族，0 token）→ ③ 取候选人池
+        ④ 【安全】PII 物理剔除：受保护字段在 SQL 里就不出现
+        ⑤ 【确定性】规则门槛过滤（年限/学历，0 token）→ 被拦者标原因
+        ⑥ 【模型】仅对通过者做证据化打分（每条分数引用原文片段）
+        ⑦ 汇总排序 → ⑧ 【人工闸门】停止，生成审批单
+   ▼ L2  写入打分结果 + 审计（append-only）
+   ▼ L1  返回 SSE 逐步推送的 8 步轨迹</code></pre></div>
+<p><strong>注意第 ④ 步的位置</strong>：<strong>在查询层剔除，而不是在返回前过滤</strong>。前者是「模型拿不到」，后者是「模型拿到了但被要求别看」——这是本项目最核心的合规设计（见 ADR-003）。</p>
+<hr class="sep">
+<h2 id="doc1--四-关键设计决策-ADR">四、关键设计决策（ADR）</h2>
+<blockquote>每条含：<strong>决策 / 背景 / 备选 / 取舍 / 状态</strong>。这一节是面试追问的靶心。</blockquote>
+<h3 id="doc1--ADR-001-分类轴用-职能族优先-行业兜底">ADR-001 · 分类轴用「职能族优先、行业兜底」</h3>
+<ul>
+<li><strong>决策</strong>：先用岗位名识别<strong>职能族</strong>（30 族），识别不到才回落行业词库。</li>
+<li><strong>背景</strong>：曾出现真实 bug——「互联网行业的 AI 产品经理被补上 Java/Spring」。根因是把「行业」当成「职能」：互联网行业的技能库里第一条就是 Java。</li>
+<li><strong>备选</strong>：① 只用行业（原始方案，已被证伪）；② 用 LLM 做语义分类。</li>
+<li><strong>取舍</strong>：LLM 分类更灵活但不可复现、有成本、会漂移；规则分类可复现、0 成本、可回归。<strong>选规则</strong>，且把 <code>detectFunction</code> 的命中规则设计为与职责选取同构（岗位名 ×3、正文 ×1）。</li>
+<li><strong>状态</strong>：① 已实现（<code>shared/req-lib.js</code>）。</li>
+</ul>
+<h3 id="doc1--ADR-002-规则先行-模型兜底-硬判断永不下放">ADR-002 · 规则先行、模型兜底（硬判断永不下放）</h3>
+<ul>
+<li><strong>决策</strong>：年限、学历、合规、权限四类硬判断由确定性代码执行；模型只负责<strong>表达与语义理解</strong>。</li>
+<li><strong>对标依据</strong>：<code>sliday/resume-job-matcher</code>（硬约束先淘汰、再打分、分数引用原文）与 <code>interviewstreet/hiring-agent</code>（规则快筛 + LLM 语义打分双后端）<strong>独立收敛到同一设计</strong>，说明这是行业共识而非个人偏好。</li>
+<li><strong>取舍</strong>：牺牲一部分「智能感」，换来可复现、可审计、0 token。</li>
+<li><strong>状态</strong>：① 已实现（规则门槛 0 token）。</li>
+</ul>
+<h3 id="doc1--ADR-003-PII-物理剔除-而非在提示词里请求">ADR-003 · PII 物理剔除，而非在提示词里请求</h3>
+<ul>
+<li><strong>决策</strong>：性别、年龄、婚育等受保护字段<strong>在 SQL 查询层就不被 <code>SELECT</code></strong>。</li>
+<li><strong>备选</strong>：在提示词里写「请不要考虑性别年龄」。</li>
+<li><strong>取舍</strong>：提示词方案在合规审查面前不成立——「我请求模型别看」与「模型根本拿不到」是两种证据强度。</li>
+<li><strong>状态</strong>：① 已实现。</li>
+</ul>
+<h3 id="doc1--ADR-004-词库前后端同源-UMD-单文件-版本自愈">ADR-004 · 词库前后端同源（UMD 单文件）+ 版本自愈</h3>
+<ul>
+<li><strong>决策</strong>：<code>shared/req-lib.js</code> 是唯一词库源，后端 <code>require</code>、前端由构建脚本内联为 <code>__REQLIB__</code>。</li>
+<li><strong>背景</strong>：曾出现「离线说的和在线说的不一样」——同一个 JD，离线模式与在线模式结论不同。</li>
+<li><strong>配套</strong>：<code>REQ_LIB_VER</code>（前后端共享的素材版本号）+ <code>jobs.jd_ver</code>，服务启动时把落后版本的 JD 自动重算回写。</li>
+<li><strong>取舍</strong>：引入了「版本自愈」的隐性副作用（启动时批量写库），因此<strong>必须包在单事务里</strong>（见 ADR-005）。</li>
+<li><strong>状态</strong>：① 已实现（当前 <code>REQ_LIB_VER = 7</code>）。</li>
+</ul>
+<h3 id="doc1--ADR-005-批量写库必须单事务-一次真实的线上级故障">ADR-005 · 批量写库必须单事务（一次真实的线上级故障）</h3>
+<ul>
+<li><strong>现象</strong>：<code>/api/reset</code> 耗时 <strong>6.8 秒</strong>，紧随其后的 keep-alive 请求稳定 <code>ECONNRESET</code>。</li>
+<li><strong>根因</strong>：<code>node:sqlite</code> <strong>每条语句自动提交</strong>，Windows 上每次 commit 触发 fsync；约 120 条种子写库 = 120 次 fsync，阻塞事件循环数秒，期间空闲连接被断开。</li>
+<li><strong>决策</strong>：<code>inTx()</code> 把 <code>seed()</code> / <code>reseedRuntime()</code> / 首次建库全部包进<strong>单事务</strong>；启动时的老 JD 自愈 UPDATE 也并成一个事务。</li>
+<li><strong>结果</strong>：重置 <strong>6.8s → 70–160ms</strong>（约 70×），双模式回归转绿。</li>
+<li><strong>价值</strong>：<strong>这是「先跑真链路、再交货」的价值证明</strong>——该 bug 是我跑回归时撞出来的，不是用户报的。</li>
+<li><strong>状态</strong>：① 已实现。迁移到 PostgreSQL 后此问题自然消失，但<strong>事务边界设计</strong>保留。</li>
+</ul>
+<h3 id="doc1--ADR-006-技术栈选-单一-TypeScript-pgvector-我的推荐">ADR-006 · 技术栈选「单一 TypeScript + pgvector」（我的推荐）</h3>
+<ul>
+<li><strong>决策</strong>：Next.js + NestJS/Fastify + PostgreSQL + pgvector + Redis + BullMQ + S3 兼容存储。</li>
+<li><strong>备选</strong>：② Python 后端（对齐 Resume-Matcher / hiring-agent 生态）；③ 保留零依赖 Node。</li>
+<li><strong>取舍</strong>：</li>
+<li>选 ① 的<strong>理由</strong>：可<strong>复用核心资产</strong>（<code>req-lib.js</code> 已是 JS，直接 TS 化即可保住「前后端同源」亮点）；<strong>组件最少</strong>（pgvector 让向量与业务同库，少一个中间件对单人项目意义重大）；面试市场最熟悉。</li>
+<li>选 ① 的<strong>唯一硬伤</strong>：Node 侧 PDF/DOCX 解析与中文 NLP 弱于 Python。</li>
+<li><strong>折中（待你选）</strong>：① + 一个<strong>可选 Python 解析 sidecar</strong>（只做「文件 → 文本/结构化字段」），两头都要。</li>
+<li><strong>状态</strong>：<strong>⏳ 待你拍板</strong>（详见 <code>docs/07</code> §9-①）。</li>
+</ul>
+<h3 id="doc1--ADR-007-审计日志-append-only">ADR-007 · 审计日志 append-only</h3>
+<ul>
+<li><strong>决策</strong>：审计表只允许 INSERT，禁止 UPDATE/DELETE（数据库权限层约束，而非应用层自觉）。</li>
+<li><strong>对标依据</strong>：OrangeHRM 的「审计追踪」与 Dify 企业版的「审计日志」都把审计列为不可省的企业能力。</li>
+<li><strong>状态</strong>：① 已实现（应用层只插不改）；<strong>数据库层约束为 ② 设计目标</strong>。</li>
+</ul>
+<h3 id="doc1--ADR-008-离线-在线双模式同源">ADR-008 · 离线 / 在线双模式同源</h3>
+<ul>
+<li><strong>决策</strong>：同一份 <code>index.html</code>，双击 = 离线演示态，被后端托管 = 真实态；<strong>两态的结论必须同源</strong>（合规扫描在离线端也是真扫，不写死结论）。</li>
+<li><strong>理由</strong>：作品集的核心场景是<strong>现场演示</strong>——断网、无后端、临时换机器都不能翻车；同时不能为了演示效果撒谎。</li>
+<li><strong>状态</strong>：① 已实现（双模式回归各 23 页 + 16 项全绿）。</li>
+</ul>
+<h3 id="doc1--ADR-009-权限做三层-注册即最小权限">ADR-009 · 权限做三层，注册即最小权限</h3>
+<ul>
+<li><strong>决策</strong>：<strong>功能级</strong>（能否访问该 API）× <strong>行级</strong>（只能看本部门/本人的数据）× <strong>字段级</strong>（PII 字段默认不返回，需显式提权 + 留痕）。</li>
+<li><strong>对标依据</strong>：OrangeHRM 的「角色最小权限 + 行级限制 + 字段级防护」；Dify 企业版的 SSO/RBAC/审计三件套。</li>
+<li><strong>状态</strong>：⏳ ③ 尚未具备（M1 交付）。</li>
+</ul>
+<h3 id="doc1--ADR-010-模型走适配器-业务不感知供应商">ADR-010 · 模型走适配器，业务不感知供应商</h3>
+<ul>
+<li><strong>决策</strong>：<code>Llm.complete()</code> 统一接口 + 供应商适配器；业务层只声明「要什么能力」，不声明「用谁」。</li>
+<li><strong>对标依据</strong>：Dify 的<strong>适配器模式</strong>（换模型只改配置，不重构业务逻辑）。</li>
+<li><strong>配套</strong>：超时、重试退避、失败降级到规则模式、token 记账、输出审计、Prompt 版本化。</li>
+<li><strong>状态</strong>：🟡 ② 部分（可插拔与降级已有；记账/审计/额度未有）。</li>
+</ul>
+<hr class="sep">
+<h2 id="doc1--五-数据模型与权限模型-②-设计目标">五、数据模型与权限模型（② 设计目标）</h2>
+<h3 id="doc1--5-1-核心实体-现状-13-张表-①-已实现">5.1 核心实体（现状 13 张表，① 已实现）</h3>
+<div class="tablewrap"><table><thead><tr><th>域</th><th>表</th><th>说明</th></tr></thead><tbody><tr><td>租户与账号</td><td><code>tenants</code> · <code>users</code> · <code>roles</code> · <code>user_roles</code></td><td>本期单租户，但 <code>tenant_id</code> 全表必带</td></tr><tr><td>岗位</td><td><code>jobs</code></td><td>含 <code>jd_text</code> / <code>keywords</code> / <code>must_have</code> / <code>jd_ver</code>（版本自愈）</td></tr><tr><td>候选人</td><td><code>candidates</code> · <code>applications</code>（阶段机）</td><td>参考 OpenCATS 的候选人阶段建模</td></tr><tr><td>Agent</td><td><code>agent_tasks</code> · <code>tool_calls</code></td><td>轨迹可回放</td></tr><tr><td>治理</td><td><code>approvals</code> · <code>audit_logs</code></td><td>审计 append-only</td></tr><tr><td>知识库</td><td><code>kb_documents</code> · <code>kb_chunks</code></td><td>M3 起加向量列（pgvector）</td></tr><tr><td>自助</td><td><code>leave_balance</code> · <code>unanswered_questions</code></td><td>未解答问题清单 = 产品自我修复入口</td></tr><tr><td>合规（新增）</td><td><code>consents</code> · <code>retention_policies</code></td><td>授权留痕与留存策略（M8）</td></tr></tbody></table></div>
+<h3 id="doc1--5-2-权限模型">5.2 权限模型</h3>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>请求 → 会话解析（谁） → 功能级（这个 API 他能不能用？）
+                      → 行级（这个 tenant_id / dept_id 的数据他能不能看？）
+                      → 字段级（这条记录里哪些字段要脱敏？）
+                      → 命中拒绝 → 写审计（谁、何时、想做什么、被拦原因）</code></pre></div>
+<p><strong>关键纪律</strong>：<code>tenant_id</code> <strong>永不接受前端传入</strong>，一律从服务端会话推导。现有 PoC 里 <code>SELECT COUNT(*) FROM users</code> 这类无租户过滤的查询，属于必须清理的技术债。</p>
+<hr class="sep">
+<h2 id="doc1--六-AI-能力层设计-L3-细化">六、AI 能力层设计（L3 细化）</h2>
+<h3 id="doc1--6-1-能力边界-谁做什么">6.1 能力边界：谁做什么</h3>
+<div class="tablewrap"><table><thead><tr><th>任务类型</th><th>执行者</th><th>理由</th></tr></thead><tbody><tr><td>年限 / 学历 / 硬性门槛</td><td><strong>规则</strong></td><td>0 token、可复现、可审计</td></tr><tr><td>合规扫描（歧视/违法用语）</td><td><strong>规则 + 法条表</strong></td><td>必须能给出法条依据，模型给不出稳定依据</td></tr><tr><td>职能族识别 / 职责选取 / 行业语境</td><td><strong>规则</strong></td><td>30 族 242 句词库已覆盖，规则命中即答案</td></tr><tr><td>简历字段抽取（非结构化 → 结构化）</td><td><strong>模型 + 契约校验</strong></td><td>格式千变万化，规则写不完</td></tr><tr><td>语义匹配、要点总结、话术组织</td><td><strong>模型</strong></td><td>规则不擅长表达</td></tr><tr><td>知识库问答</td><td><strong>检索 + 模型</strong></td><td>RAG：检索保证事实，模型负责遣词</td></tr><tr><td>审批、发 Offer、拒信</td><td><strong>人</strong></td><td>高风险决策必须有人在场</td></tr></tbody></table></div>
+<blockquote>一句话：<strong>规则负责「不能错」，模型负责「说得好」，人负责「担责任」。</strong></blockquote>
+<h3 id="doc1--6-2-模型网关">6.2 模型网关</h3>
+<div class="tablewrap"><table><thead><tr><th>能力</th><th>现状</th><th>目标</th></tr></thead><tbody><tr><td>可插拔</td><td>✅ <code>LLM_API_URL</code> 环境变量</td><td>适配器 + 多供应商注册</td></tr><tr><td>失败降级</td><td>✅ 自动回落规则模式</td><td>保留，并加<strong>熔断</strong></td></tr><tr><td>超时</td><td>✅ 20s</td><td>分级超时（抽取/生成/问答不同）</td></tr><tr><td>重试退避</td><td>❌</td><td>指数退避 + 幂等键</td></tr><tr><td>成本核算</td><td>❌</td><td>按任务/租户/模型记账，落 <code>tool_calls</code></td></tr><tr><td>输出审计</td><td>❌</td><td>输入输出留存（脱敏后）+ 可回溯</td></tr><tr><td>Prompt 版本化</td><td>❌</td><td>Prompt 与评测集绑定版本</td></tr></tbody></table></div>
+<h3 id="doc1--6-3-检索-RAG-M3">6.3 检索 / RAG（M3）</h3>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>文档 → 解析（含 OCR 兜底）→ 切片（按语义边界）→ 嵌入 → pgvector
+                                                          │
+查询 → 混合检索（向量 + 关键词）→ 重排 → 取 Top-K → 注入上下文 → 模型组织 → 带引用输出
+                                                          │
+                                        无结果 → 转人工（不编造）+ 记入未解答问题清单</code></pre></div>
+<p>对标依据：Dify 与 RAGFlow 均采用「多路召回 + 重排序」；无召回时<strong>转人工而非编造</strong>是本项目的硬纪律。</p>
+<h3 id="doc1--6-4-可评测性-M4">6.4 可评测性（M4）</h3>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>设计</th></tr></thead><tbody><tr><td>Golden Set</td><td>3–5 类任务 × 20 样本（含对抗样本：诱导歧视、跨职能技能污染、管培生年限）</td></tr><tr><td>指标</td><td>任务成功率、证据引用正确率、越权拦截率、拒答准确率</td></tr><tr><td>门槛</td><td>低于阈值<strong>阻断合并</strong>（而非仅告警）</td></tr><tr><td>回归</td><td>与双模式无头回归（23 页 + 16 项）并行</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc1--七-安全与合规-横切">七、安全与合规（横切）</h2>
+<div class="tablewrap"><table><thead><tr><th>关注点</th><th>措施</th><th>状态</th></tr></thead><tbody><tr><td>认证</td><td>自建账号（密码用 Argon2id 哈希）+ 服务端会话/短期 JWT + 刷新</td><td>⏳ M1</td></tr><tr><td>授权</td><td>三层权限（功能/行/字段），拒绝即留痕</td><td>⏳ M1</td></tr><tr><td>传输加密</td><td>TLS（反向代理终止）</td><td>⏳ M1</td></tr><tr><td>静态加密</td><td>敏感字段（联系方式、证件号）字段级加密</td><td>⏳ M8</td></tr><tr><td>反歧视</td><td>受保护字段<strong>查询层剔除</strong> + 合规扫描带法条</td><td>✅ 已实现</td></tr><tr><td>授权留痕</td><td>候选人授权记录（何时、何用途、期限）</td><td>⏳ M8</td></tr><tr><td>留存期</td><td>到期自动清理（<code>retain_until</code> 字段已预留）</td><td>⏳ M8</td></tr><tr><td>删除权</td><td>可导出、可删除（数据主体权利）</td><td>⏳ M8</td></tr><tr><td>审计</td><td>append-only，含「谁想做什么、结果、被拦原因」</td><td>🟡 部分</td></tr><tr><td>演示数据</td><td>一律合成，且打「演示简历」标签，<strong>绝不混入真实数据</strong></td><td>✅ 已实现</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc1--八-迁移路径-从现有-PoC-演进">八、迁移路径：从现有 PoC 演进</h2>
+<p><strong>原则：不推倒重来。</strong> 现有 PoC 是<strong>可运行证据</strong>，本身有演示价值，必须保留到新架构完全跑通为止。</p>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>阶段 0（现状，① 已实现）
+  零依赖 Node + SQLite + 单文件前端 + 双模式回归全绿
+
+阶段 1 · 抽离内核（低风险，先做）
+  把 shared/req-lib.js 升为独立的「规则内核」包：
+  ── 纯函数 + 契约测试（现有 21 岗位快照作为金标准）
+  ── 语言无关，迁移时可整体搬运
+  同时：把「规则内核」与「HTTP 层」解耦，为换栈做准备
+
+阶段 2 · 换数据层（中风险）
+  SQLite → PostgreSQL + 版本化迁移脚本（Prisma/Drizzle）
+  ── 字段映射：JSONB ↔ TEXT(JSON)、UUID ↔ TEXT
+  ── 顺带清理无租户过滤的查询
+  ── 保留 SQLite 模式作为「离线演示」后端（双后端，按开关切换）
+
+阶段 3 · 补可信底座（M1）
+  自建账号 + 会话 + 三层 RBAC + 加密 + 审计增强
+
+阶段 4 · 补能力层（M2–M4）
+  文档处理 → 向量检索 → 模型网关增强 → 评测集与门槛
+
+阶段 5 · 可运维（M5 之后）
+  容器化 + CI/CD + 备份恢复 + 日志/指标/追踪</code></pre></div>
+<p><strong>每一步的出口条件</strong>：双模式回归全绿 + 演示脚本可完整跑通。<strong>出现任一失败即回退</strong>，不允许「迁到一半不能演示」。</p>
+<hr class="sep">
+<h2 id="doc1--九-可观测性与运维-②-设计目标">九、可观测性与运维（② 设计目标）</h2>
+<div class="tablewrap"><table><thead><tr><th>能力</th><th>现状</th><th>目标</th></tr></thead><tbody><tr><td>结构化日志</td><td>🟡 控制台输出</td><td>JSON 日志 + 请求 ID 贯穿</td></tr><tr><td>指标</td><td>❌</td><td>QPS / 延迟分位 / 错误率 / token 消耗 / 队列积压</td></tr><tr><td>链路追踪</td><td>❌</td><td>请求 → Agent 步骤 → 工具调用 → 模型调用 全链路</td></tr><tr><td>Agent 轨迹回放</td><td>🟡 有 <code>agent_tasks</code>/<code>tool_calls</code> 表</td><td>可按任务 ID 回放完整 8 步与 token</td></tr><tr><td>告警</td><td>❌</td><td>错误率、延迟、模型失败率阈值</td></tr><tr><td>备份恢复</td><td>❌</td><td>定时备份 + <strong>恢复演练</strong>（只备份不演练等于没备份）</td></tr><tr><td>优雅关闭</td><td>🟡</td><td>等待在途请求 + 关连接池</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc1--十-技术选型对照与未定项">十、技术选型对照与未定项</h2>
+<h3 id="doc1--10-1-选型对照-含备选与理由">10.1 选型对照（含备选与理由）</h3>
+<div class="tablewrap"><table><thead><tr><th>层</th><th>推荐（我的选择）</th><th>备选</th><th>理由</th></tr></thead><tbody><tr><td>前端</td><td>Next.js（App Router）</td><td>保留单文件 HTML</td><td>生产要 SSR/路由/代码分割；<strong>单文件保留为演示包</strong></td></tr><tr><td>后端</td><td>NestJS 或 Fastify + TS</td><td>FastAPI（Python）</td><td>与前端同语言，复用 <code>req-lib.js</code></td></tr><tr><td>数据库</td><td>PostgreSQL</td><td>MySQL</td><td>JSONB、pgvector、生态与迁移工具成熟</td></tr><tr><td>向量</td><td><strong>pgvector</strong></td><td>Milvus / Weaviate / Elasticsearch</td><td><strong>少一个中间件</strong>；数据量级（百万级切片以内）足够</td></tr><tr><td>缓存/队列</td><td>Redis + BullMQ</td><td>RabbitMQ / Kafka</td><td>单人项目不需要 Kafka 的复杂度</td></tr><tr><td>对象存储</td><td>S3 兼容（MinIO 私有化）</td><td>本地磁盘</td><td>简历原件必须可加密、可审计访问</td></tr><tr><td>ORM/迁移</td><td>Prisma 或 Drizzle</td><td>手写 SQL</td><td>版本化迁移是 P2 缺口，必须补</td></tr><tr><td>校验</td><td>Zod</td><td>—</td><td>前后端共用 schema</td></tr><tr><td>认证</td><td>自建会话 + Argon2id</td><td>Auth.js / Keycloak</td><td>你要「自建账号 + RBAC」，不引入重型 IdP</td></tr><tr><td>模型</td><td>国内已备案 API + 本地适配器</td><td>纯云端 / 纯本地</td><td>合规优先，同时保留离线能力</td></tr><tr><td>容器</td><td>Docker Compose</td><td>K8s</td><td>单机/单容器足够，K8s 属过度设计</td></tr><tr><td>CI</td><td>GitHub Actions</td><td>—</td><td>跑双模式回归 + 评测门槛</td></tr></tbody></table></div>
+<h3 id="doc1--10-2-待定项-已拍板结果-2026-09-24-更新">10.2 待定项 → 已拍板结果（2026-09-24 更新）</h3>
+<blockquote>用户授权「自行判断、直接实现」后，原 6 项未定项已有处置。<strong>完整决策记录（原方案 → 否掉理由 → 改后 → 影响）见 <code>docs/09</code> §二 D1–D9。</strong></blockquote>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>事项</th><th>处置</th><th>现状</th></tr></thead><tbody><tr><td>1</td><td>技术栈（含 Python sidecar）</td><td><strong>暂缓迁移</strong></td><td>保留零依赖 Node 22 + SQLite，但按本文件 L0–L5 重构；TS + PG + pgvector 仍是下一阶段目标</td></tr><tr><td>2</td><td>模块范围是否扩到薪酬/考勤/绩效</td><td><strong>不扩</strong></td><td>聚焦「招聘 + 自助」</td></tr><tr><td>3</td><td>模型接入策略</td><td><strong>设计保留、本轮不接</strong></td><td><code>LLM_API_URL</code> 适配位在，未配置降级规则模式</td></tr><tr><td>4</td><td>数据合规深度</td><td><strong>按「企业级最低合规线」落地</strong></td><td>授权留痕 / 留存期清理 / 删除权 / 主体导出 均已实现；<strong>字段级加密未做</strong></td></tr><tr><td>5</td><td>每周投入时长与目标完成时间</td><td><strong>仍未定</strong></td><td>这是用户的真实约束，无法代估；影响 M2–M5 粒度</td></tr><tr><td>6</td><td>是否开工 M1</td><td><strong>已开工并完成</strong></td><td>见 <code>docs/09</code>；<strong>其中「PG 迁移」从 M1 拆出顺延</strong></td></tr></tbody></table></div>
+<p><strong>新增未定项（M1 完成后浮现）</strong>：</p>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>新增未定项</th><th>影响</th></tr></thead><tbody><tr><td>7</td><td>是否把三套回归接进 CI 并设「低于阈值阻断合并」</td><td>决定「可验证」能否从人工变成机制</td></tr><tr><td>8</td><td>是否删掉 <code>legacy</code> 认证分支（保留=留后门）</td><td>生产构建前必须处理</td></tr><tr><td>9</td><td>离线评测集（Golden Set）的范围与阈值</td><td>项目最硬短板，M4 核心</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc1--附录-A-架构自检清单-面试前逐条过">附录 A · 架构自检清单（面试前逐条过）</h2>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>问题</th><th>本项目的答案</th></tr></thead><tbody><tr><td>1</td><td>分层依据是什么？</td><td>按<strong>变化频率</strong>切层；模型/检索/规则分属不同能力</td></tr><tr><td>2</td><td>哪一层最能体现差异化？</td><td><strong>L3 能力层的规则引擎</strong>（30 族 / 242 句 / 18 类行业词库）</td></tr><tr><td>3</td><td>怎么防幻觉？</td><td>① 能用规则不用模型；② 硬判断不下放；③ 答案带证据；④ 无召回转人工</td></tr><tr><td>4</td><td>怎么保证可复现？</td><td>规则确定性 + 固定随机种子 + 双模式回归 + 版本号自愈</td></tr><tr><td>5</td><td>合规怎么落到代码？</td><td><strong>PII 查询层物理剔除</strong> + 合规扫描带法条 + 审计 append-only</td></tr><tr><td>6</td><td>最惊险的一次故障？</td><td><code>/api/reset</code> 6.8s 阻塞事件循环致 <code>ECONNRESET</code> → 单事务批量提交修复</td></tr><tr><td>7</td><td>为什么不做多租户？</td><td>目标形态是私有化单租户；<code>tenant_id</code> 已预留，不做租户管理 UI</td></tr><tr><td>8</td><td>对标了谁、学到什么？</td><td>Resume-Matcher / hiring-agent / career-ops / Frappe HR / OrangeHRM / Dify（详见 <code>docs/07</code> §5）</td></tr><tr><td>9</td><td>现在到生产还差什么？</td><td>身份认证、权限、PostgreSQL、数据治理、评测集（详见 <code>docs/05</code>）</td></tr><tr><td>10</td><td>如果只做一件事？</td><td><strong>删掉对 <code>X-User</code> 请求头的信任</strong>——现有全部「企业级感」都建立在可伪造的身份上</td></tr></tbody></table></div>
+<hr class="sep">
+<p><em>本文档与 <code>docs/07_项目计划书.md</code> 配套。所有行号与代码引用均以当前仓库为准，凡冲突以代码实测为准。</em></p></article></main>
+</div>
+<footer>生成时间：2026-09-24 17:08（北京时间） · 单文件离线可读 · 共 2 篇文档</footer>
+<script>
+const docs = [{"key": "doc0", "name": "07 · HR-Agent OS 项目计划书"}, {"key": "doc1", "name": "08 · HR-Agent OS 架构设计文档"}];
+
+function copyCode(btn) {
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1400);
+  });
+}
+
+function showDoc(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.doc === key));
+  document.querySelectorAll('article.doc').forEach(a => a.style.display = (a.dataset.doc === key ? '' : 'none'));
+  document.querySelectorAll('.tocgroup').forEach(g => g.style.display = (g.dataset.doc === key ? '' : 'none'));
+  resetHighlight();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showDoc(t.dataset.doc));
+
+// 滚动高亮目录
+const links = () => Array.from(document.querySelectorAll('.tocgroup:not([style*="none"]) .toclink'));
+window.addEventListener('scroll', () => {
+  const actives = links();
+  let cur = null;
+  for (const a of actives) {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el && el.getBoundingClientRect().top < 180) cur = a;
+  }
+  actives.forEach(a => a.style.color = '');
+  if (cur) { cur.style.color = 'var(--ac2)'; }
+});
+
+// 全文搜索 + 高亮
+let marks = [];
+function resetHighlight() {
+  document.querySelectorAll('mark').forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  marks = [];
+  document.getElementById('hint').textContent = '全文搜索';
+  document.getElementById('hint').style.color = 'var(--tx3)';
+}
+document.getElementById('q').addEventListener('input', e => {
+  const kw = e.target.value.trim();
+  resetHighlight();
+  if (kw.length < 2) return;
+  const activeArt = document.querySelector('article.doc:not([style*="none"])') || document.body;
+  let count = 0, first = null;
+  const walker = document.createTreeWalker(activeArt, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.trim().length > 1 && !/^(SCRIPT|STYLE|MARK)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const low = node.nodeValue.toLowerCase(), k = kw.toLowerCase();
+    if (low.indexOf(k) === -1) return;
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    while (true) {
+      const idx = rest.toLowerCase().indexOf(k); if (idx === -1) break;
+      frag.appendChild(document.createTextNode(rest.slice(0, idx)));
+      const m = document.createElement('mark'); m.textContent = rest.slice(idx, idx + kw.length);
+      frag.appendChild(m); marks.push(m); count++;
+      rest = rest.slice(idx + kw.length);
+    }
+    frag.appendChild(document.createTextNode(rest));
+    node.parentNode.replaceChild(frag, node);
+  });
+  const h = document.getElementById('hint');
+  h.textContent = count ? `命中 ${count} 处` : '无匹配';
+  h.style.color = count ? 'var(--grn)' : 'var(--red)';
+  if (count) { first = marks[0]; first.scrollIntoView({behavior:'smooth', block:'center'}); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.id !== 'q') { e.preventDefault(); document.getElementById('q').focus(); }
+  if (e.key === 'Escape') { document.getElementById('q').value = ''; resetHighlight(); }
+});
+</script>
+</body>
+</html>
