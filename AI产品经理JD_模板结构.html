@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI 产品经理 · 岗位 JD 模板结构</title>
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+  --line:#262c39; --line2:#323a4b;
+  --tx:#e7eaf1; --tx2:#a8b1c2; --tx3:#6f7a8d;
+  --ac:#4c8dff; --ac2:#7aa9ff; --grn:#3ddc97; --yel:#f5b942; --red:#ff6b6b; --pur:#a78bfa;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:15px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+header{position:sticky;top:0;z-index:50;background:rgba(13,15,20,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:14px 26px 0}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1.brand{font-size:17px;margin:0;letter-spacing:.3px}
+.sub{color:var(--tx3);font-size:12.5px}
+.searchbox{margin-left:auto;display:flex;align-items:center;gap:8px}
+input#q{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:9px;
+  padding:8px 12px;width:240px;font-size:13px;outline:none}
+input#q:focus{border-color:var(--ac)}
+.hint{font-size:12px;color:var(--tx3)}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx2);
+  padding:9px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac2);border-bottom-color:var(--ac);font-weight:600}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1560px;margin:0 auto}
+aside{position:sticky;top:112px;align-self:start;height:calc(100vh - 112px);overflow-y:auto;
+  padding:22px 14px 60px 26px;border-right:1px solid var(--line)}
+.tocgroup{display:flex;flex-direction:column;gap:1px}
+.toclink{display:block;color:var(--tx2);text-decoration:none;font-size:13px;padding:5px 9px;
+  border-radius:7px;line-height:1.45}
+.toclink:hover{background:var(--panel2);color:var(--tx)}
+.toclink.lvl2{padding-left:20px}
+.toclink.lvl3{padding-left:32px;font-size:12.5px;color:var(--tx3)}
+main{padding:26px 34px 120px;min-width:0}
+.docmeta{font:12px var(--mono);color:var(--tx3);margin-bottom:18px;
+  border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;display:inline-block}
+article h1{font-size:27px;margin:26px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+article h2{font-size:21px;margin:38px 0 14px;padding:9px 0 9px 13px;border-left:3px solid var(--ac);
+  background:linear-gradient(90deg,rgba(76,141,255,.09),transparent);border-radius:0 8px 8px 0}
+article h3{font-size:17px;margin:28px 0 10px;color:var(--ac2)}
+article h4{font-size:15px;margin:20px 0 8px;color:var(--tx2)}
+p{margin:9px 0}
+a{color:var(--ac2)}
+strong{color:#fff;font-weight:650}
+em{color:var(--yel);font-style:normal}
+code{font:12.6px var(--mono);background:var(--panel2);border:1px solid var(--line);
+  padding:1.5px 5px;border-radius:5px;color:#ffd479}
+.codeblock{margin:14px 0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0a0c11}
+.codetop{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);font:11.5px var(--mono);color:var(--tx3)}
+.copybtn{background:var(--panel2);border:1px solid var(--line2);color:var(--tx2);font-size:11.5px;
+  padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.copybtn:hover{color:var(--tx);border-color:var(--ac)}
+pre{margin:0;padding:14px 16px;overflow-x:auto}
+pre code{background:none;border:none;padding:0;color:#cfd8e6;font-size:12.6px;line-height:1.62}
+blockquote{margin:14px 0;padding:13px 16px;background:linear-gradient(90deg,rgba(167,139,250,.10),rgba(167,139,250,.02));
+  border-left:3px solid var(--pur);border-radius:0 10px 10px 0;color:#d9def0}
+blockquote p{margin:4px 0}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+th{background:var(--panel);text-align:left;padding:10px 12px;font-weight:640;color:var(--ac2);
+  border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(76,141,255,.05);color:var(--tx)}
+ul,ol{margin:9px 0;padding-left:24px}
+li{margin:5px 0;color:var(--tx2)}
+li strong{color:var(--tx)}
+hr.sep{border:none;border-top:1px solid var(--line);margin:26px 0}
+mark{background:rgba(245,185,66,.34);color:#fff;border-radius:3px;padding:0 2px}
+.hidden{display:none !important}
+footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-size:12.5px;text-align:center}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}aside{display:none}main{padding:20px 16px 90px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 class="brand">AI 产品经理 · 岗位 JD 模板结构</h1>
+    <span class="sub"></span>
+    <div class="searchbox">
+      <span class="hint" id="hint">全文搜索</span>
+      <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs"><button class="tab active" data-doc="doc0">AI 产品经理 · 岗位 JD 模板结构</button></div>
+</header>
+<div class="wrap">
+  <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--AI-产品经理-岗位-JD-模板结构" data-text="AI 产品经理 · 岗位 JD 模板结构">AI 产品经理 · 岗位 JD 模板结构</a><a class="toclink lvl2" href="#doc0--1-这份模板从哪来" data-text="1 · 这份模板从哪来">1 · 这份模板从哪来</a><a class="toclink lvl2" href="#doc0--2-模板总览" data-text="2 · 模板总览">2 · 模板总览</a><a class="toclink lvl2" href="#doc0--3-头部信息-H1-H4" data-text="3 · 头部信息（H1–H4）">3 · 头部信息（H1–H4）</a><a class="toclink lvl2" href="#doc0--4-M0-开篇定位段-可选-但强烈建议加" data-text="4 · M0 开篇定位段（可选，但强烈建议加）">4 · M0 开篇定位段（可选，但强烈建议加）</a><a class="toclink lvl2" href="#doc0--5-岗位职责模板-M1-M5" data-text="5 · 岗位职责模板（M1–M5）">5 · 岗位职责模板（M1–M5）</a><a class="toclink lvl3" href="#doc0--M1-需求洞察-必填-1-2-条" data-text="M1 需求洞察　必填 · 1–2 条">M1 需求洞察　必填 · 1–2 条</a><a class="toclink lvl3" href="#doc0--M2-方案设计-必填-1-2-条" data-text="M2 方案设计　必填 · 1–2 条">M2 方案设计　必填 · 1–2 条</a><a class="toclink lvl3" href="#doc0--M3-AI-落地-必填-1-2-条-AI-岗专有" data-text="M3 AI 落地　必填 · 1–2 条 ★ AI 岗专有">M3 AI 落地　必填 · 1–2 条 ★ AI 岗专有</a><a class="toclink lvl3" href="#doc0--M4-协同与迭代-必填-1-2-条" data-text="M4 协同与迭代　必填 · 1–2 条">M4 协同与迭代　必填 · 1–2 条</a><a class="toclink lvl3" href="#doc0--M5-沉淀与成长-可选-1-条-二选一或并存" data-text="M5 沉淀与成长　可选 · 1 条（二选一或并存）">M5 沉淀与成长　可选 · 1 条（二选一或并存）</a><a class="toclink lvl2" href="#doc0--6-任职要求模板-R1-R7" data-text="6 · 任职要求模板（R1–R7）">6 · 任职要求模板（R1–R7）</a><a class="toclink lvl3" href="#doc0--R1-学历与专业-必填" data-text="R1 学历与专业　必填">R1 学历与专业　必填</a><a class="toclink lvl3" href="#doc0--R2-AI-认知-必填-分水岭条目" data-text="R2 AI 认知　必填 ★ 分水岭条目">R2 AI 认知　必填 ★ 分水岭条目</a><a class="toclink lvl3" href="#doc0--R3-产品思维-必填" data-text="R3 产品思维　必填">R3 产品思维　必填</a><a class="toclink lvl3" href="#doc0--R4-沟通与协作-必填" data-text="R4 沟通与协作　必填">R4 沟通与协作　必填</a><a class="toclink lvl3" href="#doc0--R5-软性素质-必填" data-text="R5 软性素质　必填">R5 软性素质　必填</a><a class="toclink lvl3" href="#doc0--R6-加分项-可选-2-4-条" data-text="R6 加分项　可选 · 2–4 条">R6 加分项　可选 · 2–4 条</a><a class="toclink lvl3" href="#doc0--R7-硬性约束-可选-实习岗建议必填" data-text="R7 硬性约束　可选（实习岗建议必填）">R7 硬性约束　可选（实习岗建议必填）</a><a class="toclink lvl2" href="#doc0--7-表述风格规范" data-text="7 · 表述风格规范">7 · 表述风格规范</a><a class="toclink lvl2" href="#doc0--8-骨架填空版-直接复制" data-text="8 · 骨架填空版（直接复制）">8 · 骨架填空版（直接复制）</a><a class="toclink lvl2" href="#doc0--9-占位符词典" data-text="9 · 占位符词典">9 · 占位符词典</a><a class="toclink lvl2" href="#doc0--10-缺省填充策略-没提供任职要求-加分项时怎么办" data-text="10 · 缺省填充策略（没提供任职要求 / 加分项时怎么办）">10 · 缺省填充策略（没提供任职要求 / 加分项时怎么办）</a><a class="toclink lvl3" href="#doc0--10-1-先分清-可推导-与-不可推导" data-text="10.1 先分清「可推导」与「不可推导」">10.1 先分清「可推导」与「不可推导」</a><a class="toclink lvl3" href="#doc0--10-2-五层填充阶梯-自上而下-命中即止" data-text="10.2 五层填充阶梯（自上而下，命中即止）">10.2 五层填充阶梯（自上而下，命中即止）</a><a class="toclink lvl3" href="#doc0--10-3-逐模块默认写法-没提供时我写什么" data-text="10.3 逐模块默认写法（没提供时我写什么）">10.3 逐模块默认写法（没提供时我写什么）</a><a class="toclink lvl3" href="#doc0--10-4-三条红线" data-text="10.4 三条红线">10.4 三条红线</a><a class="toclink lvl3" href="#doc0--10-5-外部信息来源渠道-需要补事实时才用" data-text="10.5 外部信息来源渠道（需要补事实时才用）">10.5 外部信息来源渠道（需要补事实时才用）</a><a class="toclink lvl3" href="#doc0--10-6-平台当前已实现到哪一步" data-text="10.6 平台当前已实现到哪一步">10.6 平台当前已实现到哪一步</a><a class="toclink lvl2" href="#doc0--11-套用示例-模板填一版" data-text="11 · 套用示例（模板填一版）">11 · 套用示例（模板填一版）</a><a class="toclink lvl2" href="#doc0--12-写完自检清单" data-text="12 · 写完自检清单">12 · 写完自检清单</a></div></aside>
+  <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">AI产品经理JD_模板结构.md</div><h1 id="doc0--AI-产品经理-岗位-JD-模板结构">AI 产品经理 · 岗位 JD 模板结构</h1>
+<blockquote><strong>用途</strong>：把「AI 产品经理 / AI 应用产品管培生 / 智能体产品经理」这类岗位的 JD 写作标准化 —— 职责 5 段 + 要求 7 段，配 <code>{{占位符}}</code>，填完即用。 <strong>来源</strong>：3 份真实在招 JD（B 端 AI 应用方向）反向提炼，逐模块可溯源（见 §1）。 <strong>用法</strong>：抄 §8 骨架 → 按 §9 占位符词典填入 → 过 §7 风格规范 → 用 §12 自检清单收尾。</blockquote>
+<hr class="sep">
+<h2 id="doc0--1-这份模板从哪来">1 · 这份模板从哪来</h2>
+<div class="tablewrap"><table><thead><tr><th>编号</th><th>岗位</th><th>写法形态</th><th>对模板的贡献</th></tr></thead><tbody><tr><td><strong>A</strong></td><td>ai 产品经理（苏州 · 客户现场型）</td><td>叙事体</td><td><strong>M0 开篇定位段</strong>：「不是…也不是…」的排他式定位、搭档分工、成长方向、应届生准入的 4 条硬条件</td></tr><tr><td><strong>B</strong></td><td>AI 应用业务产品管培生（27 届）</td><td>条目体 + 能力标签前缀</td><td><strong>R1–R5 的「标签式」写法</strong>（学历背景／业务沟通能力／AI 认知／产品思维／软性素质）；<strong>M5-B 轮岗成长条</strong></td></tr><tr><td><strong>C</strong></td><td>H261_JD（苏州 · 制造业 AI 应用 · 智能体/知识库）</td><td>纯条目体</td><td><strong>M1–M5 五段职责骨架</strong>、<strong>R1–R5 要求骨架</strong>、<strong>R7 硬约束项</strong>（每周到岗天数／连续实习月数）</td></tr></tbody></table></div>
+<p>三份的共同骨架只有两条：</p>
+<ul>
+<li><strong>职责</strong>是一条价值链 —— <strong>调研 → 设计 → 落地 → 迭代 → 沉淀</strong>；</li>
+<li><strong>要求</strong>是按「由硬到软」排序 —— <strong>学历 → AI 认知 → 产品思维 → 沟通协作 → 软素质 → 加分 → 约束</strong>。</li>
+</ul>
+<p>模板就是把这两条骨架固化成槽位。A 提供了「怎么开篇」，B 提供了「怎么排版要求」，C 提供了「职责与要求的标准条目」。</p>
+<hr class="sep">
+<h2 id="doc0--2-模板总览">2 · 模板总览</h2>
+<div class="tablewrap"><table><thead><tr><th>区块</th><th>模块</th><th>必填</th><th>条数</th><th>这个模块负责讲清什么</th></tr></thead><tbody><tr><td>头部</td><td><strong>H1–H4</strong></td><td>✅</td><td>4 字段</td><td>岗位名称／城市／类型／标签</td></tr><tr><td>开篇</td><td><strong>M0 角色定位</strong></td><td>○（强烈建议）</td><td>1 段</td><td>不是什么、本质是什么、和谁搭档、往哪成长</td></tr><tr><td>职责</td><td><strong>M1 需求洞察</strong></td><td>✅</td><td>1–2</td><td>走到业务一线，识别显性需求、挖掘潜在痛点</td></tr><tr><td>职责</td><td><strong>M2 方案设计</strong></td><td>✅</td><td>1–2</td><td>把业务问题转成可落地的 AI 方案与文档</td></tr><tr><td>职责</td><td><strong>M3 AI 落地</strong></td><td>✅</td><td>1–2</td><td>Agent 工作流／提示词／RAG 的设计与验收（<strong>AI 岗专有</strong>）</td></tr><tr><td>职责</td><td><strong>M4 协同迭代</strong></td><td>✅</td><td>1–2</td><td>跨团队澄清、跟进、复盘、盯指标</td></tr><tr><td>职责</td><td><strong>M5 沉淀成长</strong></td><td>○</td><td>1</td><td>资产沉淀（M5-A）或管培轮岗（M5-B）</td></tr><tr><td>要求</td><td><strong>R1 学历专业</strong></td><td>✅</td><td>1</td><td>学历 + 届别 + 对口专业</td></tr><tr><td>要求</td><td><strong>R2 AI 认知</strong></td><td>✅</td><td>1</td><td>懂能力与局限 —— <strong>AI 岗与普通产品岗的分水岭</strong></td></tr><tr><td>要求</td><td><strong>R3 产品思维</strong></td><td>✅</td><td>1</td><td>拆解、抽象、把问题转成方案</td></tr><tr><td>要求</td><td><strong>R4 沟通协作</strong></td><td>✅</td><td>1</td><td>表达、倾听、客户视角、跨团队</td></tr><tr><td>要求</td><td><strong>R5 软性素质</strong></td><td>✅</td><td>1</td><td>只写<strong>可观测</strong>的素质</td></tr><tr><td>要求</td><td><strong>R6 加分项</strong></td><td>○</td><td>2–4</td><td>真实经历／技术手感／领域资产</td></tr><tr><td>要求</td><td><strong>R7 硬性约束</strong></td><td>○</td><td>1</td><td>到岗天数、实习时长、驻场要求</td></tr></tbody></table></div>
+<p><strong>总量控制：职责 5–6 条，要求 5–7 条。超过 8 条，说明没做减法。</strong></p>
+<p><strong>缺项怎么办</strong>：当用人方只给了岗位名（没给任职要求 / 加分项）时，按 <strong>§10 缺省填充策略</strong>处理 —— 可推导的自动补并标注依据，不可推导的一律留 <code>{{占位符}}</code>。</p>
+<hr class="sep">
+<h2 id="doc0--3-头部信息-H1-H4">3 · 头部信息（H1–H4）</h2>
+<div class="tablewrap"><table><thead><tr><th>字段</th><th>必填</th><th>写法</th><th>示例</th></tr></thead><tbody><tr><td><strong>H1 岗位名称</strong></td><td>✅</td><td>「方向 + 性质/职级」，不超过 20 字</td><td><code>AI 应用产品经理（校招/实习）</code></td></tr><tr><td><strong>H2 工作城市</strong></td><td>✅</td><td>城市；有驻场就写上</td><td><code>苏州（客户现场高频办公、阶段性驻场）</code></td></tr><tr><td><strong>H3 岗位类型</strong></td><td>✅</td><td>全职／实习／管培</td><td><code>校招 · 产品管培生</code></td></tr><tr><td><strong>H4 标签</strong></td><td>○</td><td>3–4 个，给招聘平台筛选用</td><td><code>B 端产品 / 智能体 / RAG / 语义类 AI</code></td></tr></tbody></table></div>
+<blockquote>标签不是装饰。它决定简历会不会被搜到 —— 从这几类里挑：<strong>业务形态</strong>（B 端／C 端／SaaS）、<strong>技术关键词</strong>（智能体／RAG／大模型／工作流）、<strong>岗位族</strong>（产品经理／解决方案／FDE）</blockquote>
+<hr class="sep">
+<h2 id="doc0--4-M0-开篇定位段-可选-但强烈建议加">4 · M0 开篇定位段（可选，但强烈建议加）</h2>
+<p><strong>为什么要有</strong>：AI 产品经理是个被用滥的 title —— 招聘方不写清「是哪一种」，来的简历一半是纯 PRD、一半是纯算法。开篇段的作用是<strong>在候选人投递前就做一次自我筛选</strong>。</p>
+<p><strong>三段式结构</strong>（每段 1–3 句）：</p>
+<div class="tablewrap"><table><thead><tr><th>段</th><th>讲什么</th><th>模板句式</th></tr></thead><tbody><tr><td>① 排他式定位</td><td>不是什么 → 是什么</td><td>这个岗位不是 {{排除项1}}，也不是 {{排除项2}}。核心是在 {{场景}}，把 {{输入}} 转成 {{产出}}，并持续 {{闭环动作}}。</td></tr><tr><td>② 本质与边界</td><td>本质 + 不要求什么 + 必须要什么</td><td>这个岗位本质上是：<strong>{{本质定义}}</strong> —— 不要求 {{低要求}}，但需要 {{必需要求}}。</td></tr><tr><td>③ 搭档与成长</td><td>和谁配合、各自侧重、往哪走</td><td>你将与 {{搭档角色}} 搭档推进：你更偏 {{A 侧}}；TA 更偏 {{B 侧}}。后续成长方向：{{方向1}} / {{方向2}}。</td></tr></tbody></table></div>
+<p><strong>口语化变体</strong>（校招热情版，用一个具体的人来勾人）：</p>
+<blockquote>你是不是那种人 —— {{工具1}}、{{工具2}}、{{工具3}} 一个不落，天天琢磨"这玩意儿还能怎么用"？看到 {{现象}} 会忍不住想"这要是我来做，会做得更好"。那我们在等你。</blockquote>
+<p><strong>别写</strong>：「我们提供有竞争力的薪酬和广阔的发展空间」—— 这类话占位置不传递信息。</p>
+<hr class="sep">
+<h2 id="doc0--5-岗位职责模板-M1-M5">5 · 岗位职责模板（M1–M5）</h2>
+<blockquote>每条必须含 <strong>动作 + 对象 + 结果/目的</strong> 三要素。默认每模块 1 条；岗位范围大就拆 2 条。</blockquote>
+<h3 id="doc0--M1-需求洞察-必填-1-2-条">M1 需求洞察　<code>必填 · 1–2 条</code></h3>
+<ul>
+<li><strong>要点</strong>：对接 {{对象}} → 参与 {{调研动作}} → 理解 {{业务流程}} → 识别 {{显性需求}} → 挖掘 {{潜在痛点}}</li>
+<li><strong>模板句</strong>：</li>
+</ul>
+<blockquote>跟随/对接 {{业务团队 / 客户}}，参与 {{业务访谈 / 现场走访 / 用户调研}}，理解 {{业务流程}}，识别显性需求并主动挖掘潜在 {{痛点}}。</blockquote>
+<ul>
+<li><strong>动词库</strong>：跟随、对接、参与、走访、调研、识别、挖掘</li>
+<li><strong>占位示例</strong>：对象=<code>B 端客户 / 制造业产线负责人</code>；调研动作=<code>业务访谈 / 车间走访</code>；痛点=<code>业务痛点 / 效率瓶颈</code></li>
+</ul>
+<h3 id="doc0--M2-方案设计-必填-1-2-条">M2 方案设计　<code>必填 · 1–2 条</code></h3>
+<ul>
+<li><strong>要点</strong>：判断可行性 → 设计落地思路 → 预判效果与边界 → 转化为需求 → 输出 PRD/原型</li>
+<li><strong>模板句</strong>：</li>
+</ul>
+<blockquote>结合 {{大模型 / Agent}} 应用能力，判断 {{客户痛点}} 能否被解决，设计初步落地思路并预判 {{实施效果与边界}}；将 {{业务问题}} 转化为 {{可落地的 AI 应用需求}}，输出 {{PRD / 原型 / 需求文档}}。</blockquote>
+<ul>
+<li><strong>动词库</strong>：判断、设计、预判、拆解、转化、梳理、输出</li>
+<li><strong>占位示例</strong>：输出物=<code>PRD / 原型 / 需求文档 / 场景用例</code></li>
+</ul>
+<h3 id="doc0--M3-AI-落地-必填-1-2-条-AI-岗专有">M3 AI 落地　<code>必填 · 1–2 条 ★ AI 岗专有</code></h3>
+<ul>
+<li><strong>要点</strong>：智能体工作流 → 提示词策略 → RAG 知识库 → 模型/工具选型 → 效果验收 → badcase 归因</li>
+<li><strong>模板句</strong>：</li>
+</ul>
+<blockquote>参与 {{智能体工作流 / 提示词策略 / RAG 知识库场景}} 的设计与调优，负责 AI 功能的 {{效果验收 / badcase 归因 / 用户反馈分析}}，持续提升 {{回答准确率 / 任务完成率}}。</blockquote>
+<ul>
+<li><strong>动词库</strong>：参与、设计、调优、验收、归因、分析、沉淀</li>
+<li><strong>提示</strong>：这一条是让候选人<strong>判断"这是不是我要的岗"</strong>的关键。写「参与调优」还是写「负责验收」，直接决定来的是产品苗子还是调参选手 —— 想清楚要哪种。</li>
+</ul>
+<h3 id="doc0--M4-协同与迭代-必填-1-2-条">M4 协同与迭代　<code>必填 · 1–2 条</code></h3>
+<ul>
+<li><strong>要点</strong>：跨团队澄清 → 迭代跟进 → 测试验收 → 上线复盘 → 跟踪业务指标</li>
+<li><strong>模板句</strong>：</li>
+</ul>
+<blockquote>协同 {{产品 / 研发 / 算法 / 实施}} 团队完成需求澄清与迭代跟进，推动 {{方案落地}}；跟踪上线后的 {{业务指标}}，评估 {{方案价值}} 并持续迭代场景方案。</blockquote>
+<ul>
+<li><strong>动词库</strong>：协同、澄清、跟进、推动、验收、复盘、跟踪、评估</li>
+</ul>
+<h3 id="doc0--M5-沉淀与成长-可选-1-条-二选一或并存">M5 沉淀与成长　<code>可选 · 1 条（二选一或并存）</code></h3>
+<p><strong>M5-A 资产沉淀</strong>（通用岗适用）</p>
+<blockquote>持续沉淀 {{行业案例 / 功能清单 / 竞品分析 / 产品模板}}，提升团队 {{交付效率}}。</blockquote>
+<p><strong>M5-B 轮岗成长</strong>（管培生专属）</p>
+<blockquote>轮岗学习 {{业务 / 产品 / AI 应用}} 相关知识，成长为 {{懂客户业务、懂 AI 落地}} 的复合型产品人才。</blockquote>
+<hr class="sep">
+<h2 id="doc0--6-任职要求模板-R1-R7">6 · 任职要求模板（R1–R7）</h2>
+<blockquote><strong>两种写法</strong>，二选一： - <strong>裸条式</strong>（岗位 C）：直接 <code>1. 2. 3.</code> 列出 —— 简洁，适合要求本身就短的岗位。 - <strong>标签式</strong>（岗位 B）：每条以 <strong><code>{{能力类别}}：</code></strong> 开头 —— 可读性明显更好，<strong>推荐</strong>。 无论哪种，<strong>排序都由硬到软</strong>：学历 → AI 认知 → 产品思维 → 沟通协作 → 软素质。</blockquote>
+<h3 id="doc0--R1-学历与专业-必填">R1 学历与专业　<code>必填</code></h3>
+<ul>
+<li><strong>要点</strong>：学历门槛 + 届别 + 对口专业（3 类左右）</li>
+<li><strong>模板句</strong>：</li>
+</ul>
+<blockquote>{{学历要求}}，{{届别}}；{{专业A}}、{{专业B}}、{{专业C}} 等相关专业优先。</blockquote>
+<ul>
+<li><strong>标签式</strong>：<code>学历背景：…</code></li>
+<li><strong>占位示例</strong>：学历=<code>211/985 本科及以上</code> / <code>本科及以上</code>；届别=<code>2027 届应届毕业生</code> / <code>2026、2027 届优先</code>；专业=<code>计算机、软件工程、信息管理、工业工程、金融</code></li>
+</ul>
+<h3 id="doc0--R2-AI-认知-必填-分水岭条目">R2 AI 认知　<code>必填 ★ 分水岭条目</code></h3>
+<ul>
+<li><strong>要点</strong>：懂能力与局限 + 理解落地逻辑 + 真兴趣（不是跟风）</li>
+<li><strong>模板句</strong>：</li>
+</ul>
+<blockquote>了解 {{大模型 / 智能体 / RAG 知识库}} 的能力与局限，理解 AI 应用落地的<strong>基本逻辑</strong>；对 {{方向}} 有明确兴趣，不是跟风。</blockquote>
+<ul>
+<li><strong>标签式</strong>：<code>AI 认知：…</code></li>
+<li><strong>热情版变体</strong>（校招）：见 §4 口语化变体。</li>
+<li><strong>提示</strong>：只写「对 AI 有热情」是废话；要落到 <strong>"能说出能力边界"</strong> 这个可验证的点上。</li>
+</ul>
+<h3 id="doc0--R3-产品思维-必填">R3 产品思维　<code>必填</code></h3>
+<ul>
+<li><strong>要点</strong>：需求拆解 + 归纳抽象 + 能转成可落地方案</li>
+<li><strong>模板句</strong>：</li>
+</ul>
+<blockquote>具备良好的 {{需求拆解}}、{{归纳抽象}} 能力，能把 {{业务问题}} 转化为 {{可落地方案}}；有 {{PRD / 原型 / 数据分析}} 经验者优先。</blockquote>
+<ul>
+<li><strong>标签式</strong>：<code>产品思维：…</code></li>
+</ul>
+<h3 id="doc0--R4-沟通与协作-必填">R4 沟通与协作　<code>必填</code></h3>
+<ul>
+<li><strong>要点</strong>：表达清晰 + 会倾听 + 客户视角 + 能跨团队推动小任务</li>
+<li><strong>模板句</strong>：</li>
+</ul>
+<blockquote>逻辑表达清晰，擅长 {{沟通倾听}}，能快速理解 {{陌生行业业务}}，具备 {{客户视角}}；善于 {{跨团队协作}}，能独立推动明确的小任务。</blockquote>
+<ul>
+<li><strong>标签式</strong>：<code>业务沟通能力：…</code></li>
+</ul>
+<h3 id="doc0--R5-软性素质-必填">R5 软性素质　<code>必填</code></h3>
+<ul>
+<li><strong>要点</strong>：学习力、自驱、抗压、接受出差/驻场 —— <strong>全部写成可观测行为</strong></li>
+<li><strong>模板句</strong>：</li>
+</ul>
+<blockquote>{{学习能力}} 强，{{自驱力}} 足，能接受 {{业务外出 / 客户现场办公 / 阶段性驻场}}。</blockquote>
+<ul>
+<li><strong>标签式</strong>：<code>软性素质：…</code></li>
+<li><strong>❗禁用词</strong>：有责任心、有团队精神、吃苦耐劳、抗压能力强。</li>
+</ul>
+<p><strong>替换写法人话版</strong>：<code>扛得住事</code> / <code>愿意扎进真实用户场景</code> / <code>能接受高频客户现场办公</code>。</p>
+<h3 id="doc0--R6-加分项-可选-2-4-条">R6 加分项　<code>可选 · 2–4 条</code></h3>
+<p>从三类里挑，<strong>一条一类，不重复堆料</strong>：</p>
+<div class="tablewrap"><table><thead><tr><th>类别</th><th>写法</th></tr></thead><tbody><tr><td>真实经历</td><td>有 {{真实项目 / 实习闭链}} 经验，而不只是 {{课程 / 比赛 / 论文}}</td></tr><tr><td>技术手感</td><td>懂点技术，能与工程对话；有自己的 Side Project；熟练使用 {{AI 工具}}</td></tr><tr><td>领域资产</td><td>有 {{行业案例 / 竞品分析 / 方法论沉淀 / 数据分析}} 经验</td></tr><tr><td>判断力</td><td>对 {{Agent 能力边界}} 有自己的判断</td></tr></tbody></table></div>
+<p><strong>强化写法</strong>（岗位 A 的做法，值得抄）：</p>
+<blockquote>能讲清自己<strong>亲自做了什么</strong>、<strong>第一版做了什么 / 没做了什么</strong>。</blockquote>
+<p>这一句能筛掉大部分「参与过但说不清」的简历。</p>
+<h3 id="doc0--R7-硬性约束-可选-实习岗建议必填">R7 硬性约束　<code>可选（实习岗建议必填）</code></h3>
+<ul>
+<li><strong>要点</strong>：每周到岗天数 / 连续实习月数 / 城市与驻场</li>
+<li><strong>模板句</strong>：</li>
+</ul>
+<blockquote>{{每周到岗 X 天}} 及以上，连续实习 {{X 个月}} 及以上优先；{{城市}} 现场办公 / 阶段性驻场。</blockquote>
+<ul>
+<li><strong>❗位置</strong>：<strong>永远放最后一条</strong> —— 放前面会在第一屏劝退，而它其实不是硬淘汰项。</li>
+</ul>
+<hr class="sep">
+<h2 id="doc0--7-表述风格规范">7 · 表述风格规范</h2>
+<div class="tablewrap"><table><thead><tr><th>维度</th><th>要求</th></tr></thead><tbody><tr><td><strong>句式</strong></td><td>一条一句，<strong>动宾开头</strong>（职责）／<strong>「具备·了解·能」开头</strong>（要求）；<strong>不写主语</strong>，不写"我们希望你…"</td></tr><tr><td><strong>长度</strong></td><td>25–50 字/条；超 60 字就拆两条</td></tr><tr><td><strong>标点</strong></td><td>段内分句用 <code>；</code>，整条收尾用 <code>。</code>；不用 <code>、</code> 堆 4 个以上并列</td></tr><tr><td><strong>信息密度</strong></td><td>每条必须能指出 <strong>动作 + 对象 + 结果</strong>；缺任一要素就是废话</td></tr><tr><td><strong>层级</strong></td><td>靠「模块小标题 + 能力标签」表达，<strong>不靠四级标题</strong>（★★★ 加粗满天飞反而没重点）</td></tr><tr><td><strong>数字落地</strong></td><td>届别、学历、天数、月数、城市<strong>写实数</strong>，不写「若干」「一定」</td></tr><tr><td><strong>术语一致</strong></td><td>同一个概念全文用同一个词：<code>智能体</code>≠<code>Agent</code>≠<code>AI 助手</code> 混用会显得没想清楚</td></tr><tr><td><strong>可验证性</strong></td><td>任何要求都要能被一场面试验证。"有责任心"验证不了 → 换"扛得住事、能接受客户现场"</td></tr></tbody></table></div>
+<p><strong>动词库（职责用）</strong>：跟随 · 对接 · 参与 · 走访 · 调研 · 识别 · 挖掘 · 判断 · 设计 · 预判 · 拆解 · 转化 · 梳理 · 输出 · 调优 · 验收 · 归因 · 协同 · 澄清 · 跟进 · 推动 · 复盘 · 跟踪 · 评估 · 沉淀 · 轮岗</p>
+<p><strong>动词库（要求用）</strong>：具备 · 了解 · 理解 · 能 · 擅长 · 善于 · 有…经验 · …优先</p>
+<hr class="sep">
+<h2 id="doc0--8-骨架填空版-直接复制">8 · 骨架填空版（直接复制）</h2>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>{{岗位名称}}（{{城市}}{{· 类型}}）
+标签：{{标签1}} / {{标签2}} / {{标签3}}
+
+【开篇定位】
+这个岗位不是 {{排除项1}}，也不是 {{排除项2}}。核心是在 {{场景}}，把 {{输入}} 转成 {{产出}}，并持续 {{闭环动作}}。
+这个岗位本质上是：{{本质定义}} —— 不要求 {{低要求}}，但需要 {{必需要求}}。
+你将与 {{搭档角色}} 搭档推进：你更偏 {{A 侧}}；TA 更偏 {{B 侧}}。后续成长方向：{{方向1}} / {{方向2}}。
+
+【岗位职责】
+1. {{跟随/对接}} {{对象}}，参与 {{调研动作}}，理解 {{业务流程}}，识别显性需求并主动挖掘潜在 {{痛点}}。
+2. 结合 {{技术能力}}，判断 {{问题}} 能否被解决，设计初步落地思路并预判 {{效果与边界}}；将 {{业务问题}} 转化为 {{可落地需求}}，输出 {{PRD/原型/文档}}。
+3. 参与 {{Agent 工作流/提示词策略/RAG 知识库}} 的设计与调优，负责 AI 功能的 {{效果验收/badcase 归因/反馈分析}}。
+4. 协同 {{团队}} 完成需求澄清与迭代跟进，推动 {{方案落地}}；跟踪上线后的 {{业务指标}}，评估 {{价值}} 并持续迭代。
+5. 沉淀 {{行业案例/功能清单/竞品分析/产品模板}}，提升团队 {{交付效率}}。
+   （管培生替换为：轮岗学习 {{业务/产品/AI}} 知识，成长为 {{复合型产品人才}}。）
+
+【任职要求】
+1. 学历背景：{{学历要求}}，{{届别}}；{{专业A}}、{{专业B}} 等相关专业优先。
+2. AI 认知：了解 {{大模型/智能体/RAG}} 的能力与局限，理解 AI 应用落地基本逻辑；对 {{方向}} 有明确兴趣，不是跟风。
+3. 产品思维：具备良好的 {{需求拆解}}、{{归纳抽象}} 能力，能把 {{业务问题}} 转化为 {{可落地方案}}。
+4. 业务沟通能力：逻辑表达清晰，擅长沟通倾听，能快速理解陌生行业业务，具备客户视角；善于跨团队协作。
+5. 软性素质：{{学习能力}} 强，{{自驱力}} 足，能接受 {{业务外出/客户现场办公}}。
+6. 加分项：有 {{真实项目/实习闭环}} 经验；能讲清自己亲自做了什么、第一版做了什么/没做什么。
+7. {{每周到岗 X 天}} 及以上，连续实习 {{X 个月}} 及以上优先。</code></pre></div>
+<hr class="sep">
+<h2 id="doc0--9-占位符词典">9 · 占位符词典</h2>
+<div class="tablewrap"><table><thead><tr><th>占位符</th><th>含义</th><th>建议取值</th></tr></thead><tbody><tr><td><code>{{岗位名称}}</code></td><td>方向 + 性质</td><td>AI 应用产品经理（校招）／智能体产品经理（实习）／AI 应用产品管培生</td></tr><tr><td><code>{{城市}}</code></td><td>办公城市</td><td>苏州／北京／深圳</td></tr><tr><td><code>{{类型}}</code></td><td>招聘性质</td><td>校招 · 管培生／实习／社招</td></tr><tr><td><code>{{标签1..3}}</code></td><td>平台检索标签</td><td>B 端产品／智能体／RAG／语义类 AI／机器学习类 AI</td></tr><tr><td><code>{{排除项1/2}}</code></td><td>不是什么</td><td>纯 PRD 岗／传统项目经理岗／纯算法岗</td></tr><tr><td><code>{{场景}}</code></td><td>工作主战场</td><td>客户现场／制造业产线／内部业务团队</td></tr><tr><td><code>{{输入}} → {{产出}}</code></td><td>价值转化链</td><td>真实业务问题 → 可落地的 AI 规则、流程与产品</td></tr><tr><td><code>{{本质定义}}</code></td><td>一句话角色定位</td><td>培养型现场业务产品副手／AI 产品经理</td></tr><tr><td><code>{{搭档角色}}</code> + <code>{{A 侧}}/{{B 侧}}</code></td><td>分工声明</td><td>与 Product Engineer 搭档：你偏业务调研与规则梳理，TA 偏 Agent 实现与系统集成</td></tr><tr><td><code>{{方向1/2}}</code></td><td>成长路径</td><td>AI 商业架构师／FDE／行业场景产品</td></tr><tr><td><code>{{对象}}</code></td><td>调研对象</td><td>B 端客户／业务团队／产线负责人</td></tr><tr><td><code>{{调研动作}}</code></td><td>调研方式</td><td>业务访谈／现场走访／需求澄清会</td></tr><tr><td><code>{{技术能力}}</code></td><td>用来判断的能力底座</td><td>大模型应用能力／Agent 能力</td></tr><tr><td><code>{{输出物}}</code></td><td>交付文档</td><td>PRD／原型／需求文档／场景用例／核心指标</td></tr><tr><td><code>{{AI 落地动作}}</code></td><td>AI 侧具体活</td><td>智能体工作流／提示词策略／RAG 知识库场景／AI 功能验收／badcase 归因</td></tr><tr><td><code>{{团队}}</code></td><td>协同方</td><td>产品／研发／算法／实施</td></tr><tr><td><code>{{业务指标}}</code></td><td>衡量口径</td><td>使用率／任务完成率／客户续约／交付周期</td></tr><tr><td><code>{{沉淀物}}</code></td><td>资产</td><td>行业案例／功能清单／竞品分析／产品模板</td></tr><tr><td><code>{{学历要求}}</code></td><td>门槛</td><td>本科及以上／211 或 985 本科及以上</td></tr><tr><td><code>{{届别}}</code></td><td>毕业时间</td><td>2027 届应届／2026、2027 届优先</td></tr><tr><td><code>{{专业 A/B/C}}</code></td><td>对口专业</td><td>计算机／软件工程／信息管理／工业工程／金融</td></tr><tr><td><code>{{软素质}}</code></td><td>可观测素质</td><td>学习能力强／自驱力足／扛得住事／能接受阶段性驻场</td></tr><tr><td><code>{{到岗天数 / 实习月数}}</code></td><td>硬约束</td><td>每周 4 天及以上／连续 6 个月及以上</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--10-缺省填充策略-没提供任职要求-加分项时怎么办">10 · 缺省填充策略（没提供任职要求 / 加分项时怎么办）</h2>
+<blockquote>结论先给：<strong>能推导的自动补并标注依据，不能推导的一律留占位 —— 绝不编。</strong></blockquote>
+<h3 id="doc0--10-1-先分清-可推导-与-不可推导">10.1 先分清「可推导」与「不可推导」</h3>
+<div class="tablewrap"><table><thead><tr><th>类别</th><th>判断标准</th><th>处理方式</th></tr></thead><tbody><tr><td><strong>可推导</strong></td><td>由「岗位名称 + 职能族 + 行业 + 岗位层级」必然成立的通用表述</td><td>自动补，<strong>并标明依据来自哪一层</strong></td></tr><tr><td><strong>不可推导</strong></td><td>属于这家公司的<strong>具体事实</strong>：薪资、编制、汇报线、工作地点、到岗时间、特殊资质、证照</td><td><strong>一律留 <code>{{占位符}}</code>，一个都不猜</strong></td></tr></tbody></table></div>
+<p>判断口诀：<strong>写出来之后，换一家公司还成立吗？</strong> 成立 → 可推导；不成立 → 那是事实，必须问。</p>
+<h3 id="doc0--10-2-五层填充阶梯-自上而下-命中即止">10.2 五层填充阶梯（自上而下，命中即止）</h3>
+<div class="tablewrap"><table><thead><tr><th>层级</th><th>来源</th><th>举例</th></tr></thead><tbody><tr><td><strong>L1</strong></td><td><strong>你给的原文</strong></td><td>你贴的「27 届，专业不限」→ 直接落 R1，不改写</td></tr><tr><td><strong>L2</strong></td><td><strong>岗位名称 → 职能族</strong></td><td>「AI 产品经理」→ 产品职能族的核心技能词 / 对口专业 / 软素质素材</td></tr><tr><td><strong>L3</strong></td><td><strong>行业</strong></td><td>制造业 → 补赛道措辞（<strong>仅在职能识别不出时兜底</strong>）</td></tr><tr><td><strong>L4</strong></td><td><strong>岗位层级</strong></td><td>管培生 / 实习 / 应届 → 「工作经验」维度改成「无需经验 + 1–2 段对口实习」</td></tr><tr><td><strong>L5</strong></td><td><strong>通用兜底 + 显式标注</strong></td><td>以上都无依据 → 写最确定的表述，并标 <code>{{待确认}}</code></td></tr></tbody></table></div>
+<p><strong>为什么 L2 必须优先于 L3</strong>：行业只决定「公司在哪个赛道」，不决定「这个岗位要什么技能」。同属互联网，后端工程师和 AI 产品经理的技能毫无交集 —— 按行业补位，就会补出「AI 产品经理要熟悉 Java / Spring Boot」。这是本项目踩过的真实坑。</p>
+<h3 id="doc0--10-3-逐模块默认写法-没提供时我写什么">10.3 逐模块默认写法（没提供时我写什么）</h3>
+<p><strong>岗位职责（M1–M5）</strong> —— 职责<strong>不编造业务细节</strong>，用职能族通用动作句式：</p>
+<div class="tablewrap"><table><thead><tr><th>模块</th><th>没提供时的默认写法</th><th>依据</th></tr></thead><tbody><tr><td>M1 需求洞察</td><td>「跟随/对接 {{对象}}，参与业务访谈与现场调研，理解业务流程，识别显性需求并挖掘潜在痛点」</td><td>职能族通用动作（L2），<strong><code>{{对象}}</code> 留占位</strong></td></tr><tr><td>M2 方案设计</td><td>「结合大模型 / Agent 能力判断问题可否解决，设计落地思路并预判边界；输出 PRD / 原型 / 场景用例」</td><td>职能族（L2）</td></tr><tr><td>M3 AI 落地</td><td>「参与智能体工作流 / 提示词策略 / RAG 知识库的设计与调优，负责 AI 功能验收与 badcase 归因」</td><td>L2；<strong>只有 AI 类职能族才给这条</strong></td></tr><tr><td>M4 协同迭代</td><td>「协同产品 / 研发 / 算法团队完成需求澄清与迭代跟进，跟踪上线后业务指标并持续迭代」</td><td>通用（L5）</td></tr><tr><td>M5 沉淀成长</td><td>「持续沉淀行业案例、功能清单与竞品分析，提升团队交付效率」；管培生换「轮岗学习业务 / 产品 / AI，成长为复合型产品人才」</td><td>L4（层级决定走哪条）</td></tr></tbody></table></div>
+<p><strong>任职要求（R1–R7）</strong> —— 要求<strong>全部可推导</strong>，是自动补的主力：</p>
+<div class="tablewrap"><table><thead><tr><th>模块</th><th>没提供时的默认写法</th><th>依据</th></tr></thead><tbody><tr><td>R1 学历专业</td><td>「本科及以上学历，{{专业}} 等相关专业优先」；学历不限时写「学历不限，以实际能力与项目经验为主要评估依据」</td><td>L2 职能族 <code>majors</code></td></tr><tr><td>R2 AI 认知</td><td>「了解大模型与智能体的能力与局限，理解 AI 应用落地基本逻辑；对 {{方向}} 有明确兴趣，不是跟风」</td><td>L2；<strong>非 AI 岗不写</strong></td></tr><tr><td>R3 产品思维</td><td>「具备良好的需求拆解与归纳抽象能力，能把业务问题转化为可落地方案」</td><td>L2</td></tr><tr><td>R4 沟通协作</td><td>「逻辑表达清晰，擅长沟通倾听，能快速理解陌生行业业务，具备客户视角；善于跨团队协作」</td><td>L2 / L5</td></tr><tr><td>R5 软性素质</td><td>「学习能力强，自驱力足，能接受业务外出与客户现场办公」</td><td>L2 职能族 <code>soft</code> 素材</td></tr><tr><td>R6 加分项</td><td>「有 {{方向}} 相关实习或项目经历者优先；能讲清自己亲自做了什么、第一版做了什么 / 没做了什么」</td><td>L2 职能族 <code>nice</code></td></tr><tr><td>R7 硬约束</td><td><strong>不生成</strong> —— 到岗天数、实习月数、驻场要求属公司事实，一律留 <code>{{占位符}}</code></td><td>✗ 不可推导</td></tr></tbody></table></div>
+<h3 id="doc0--10-4-三条红线">10.4 三条红线</h3>
+<ol>
+<li><strong>不编硬数字</strong> —— 薪资、编制、到岗时间、汇报线、地点。这类「补一个看起来合理的」是最容易出事的地方，一旦写进 JD 就是对外承诺。</li>
+<li><strong>空缺不沉默</strong> —— 没依据的项宁可写 <code>{{待确认}}</code>，也别用默认值悄悄糊过去。<strong>默认值最大的危害不是写错，是让空缺看起来像已确认。</strong></li>
+<li><strong>加分项不为凑数而写</strong> —— 宁可只写「如有相关经历欢迎在面试中说明」，也不硬凑四条。凑出来的加分项会把不匹配的人吸进来。</li>
+</ol>
+<h3 id="doc0--10-5-外部信息来源渠道-需要补事实时才用">10.5 外部信息来源渠道（需要补事实时才用）</h3>
+<div class="tablewrap"><table><thead><tr><th>渠道</th><th>能拿到什么</th><th>可信度</th><th>用法</th></tr></thead><tbody><tr><td><strong>公司自有数据</strong>（岗位库、在职员工画像、历史招聘记录）</td><td>内部一致的级别与口径</td><td>★★★</td><td>优先；能定 R1 / R2 的档位</td></tr><tr><td><strong>用人经理 / 内部访谈</strong></td><td>上面所有渠道拿不到的</td><td>★★★</td><td>终裁；不可推导项只能问出来</td></tr><tr><td><strong>公开招聘 JD</strong>（Boss 直聘、拉勾、猎聘、看准）</td><td>市场通用的<strong>措辞与模块结构</strong></td><td>★★</td><td>只借表述，<strong>不把别家的事实当自家事实</strong></td></tr><tr><td><strong>公司官网 / 产品页 / 技术博客</strong></td><td>业务方向、技术栈、产品形态</td><td>★★</td><td>用来选对职能族与行业</td></tr><tr><td><strong>行业报告 / 白皮书</strong></td><td>赛道趋势、职能配置惯例</td><td>★</td><td>仅作交叉验证</td></tr><tr><td><strong>代码里的合规基线</strong>（<code>server/hiring.js</code> 的 <code>checkOffer</code>）</td><td>最低工资、试用期上限等<strong>法定底线</strong></td><td>★★★</td><td><strong>不靠模型靠代码</strong>，命中直接阻断</td></tr></tbody></table></div>
+<h3 id="doc0--10-6-平台当前已实现到哪一步">10.6 平台当前已实现到哪一步</h3>
+<div class="tablewrap"><table><thead><tr><th>能力</th><th>现状</th></tr></thead><tbody><tr><td>五层阶梯中的 L2 / L3 / L4</td><td>✅ 已实现（<code>shared/req-lib.js</code> 职能族优先、行业兜底、<code>detectJunior</code>）</td></tr><tr><td>六维度自动补位 + 同义去重</td><td>✅ 已实现（<code>expandRequirements</code>；<code>coveredByUser</code> 防「护理质控」与「护理质量控制」堆叠）</td></tr><tr><td>跨职能族错配剔除</td><td>✅ 已实现（<code>stripMisfitAutoFill</code>，拦住「AI 产品经理熟悉 Java」）</td></tr><tr><td>加分项「已填 ≥3 条则不叠加模板」</td><td>✅ 已实现（HR 内容优先，避免同义重复）</td></tr><tr><td>加分项全空时</td><td>⚠️ 只输出一句「暂无特别加分项，如有相关经历欢迎在面试中说明」—— 兜住了，但没标<strong>原因</strong></td></tr><tr><td><strong>按 M1–M5 把职责归位到固定模块</strong></td><td>❌ 未实现（目前职责是职能族模板 + 你填的内容直接拼，不做模块归位）</td></tr><tr><td><strong>缺项显式标注 <code>{{待确认}}</code></strong></td><td>❌ 未实现（缺项静默用默认值，看不出哪些是补的、哪些是你确认的）</td></tr></tbody></table></div>
+<blockquote>后两项是这套策略与平台现状的<strong>唯一缺口</strong>。要让平台生成的 JD 也长成 M1–M5 / R1–R7 结构，需要改生成模板并递增 <code>REQ_LIB_VER</code>。</blockquote>
+<h2 id="doc0--11-套用示例-模板填一版">11 · 套用示例（模板填一版）</h2>
+<blockquote>下面是把模板套到「27 届校招 · Agent 产品经理」上的结果，用来对照格式。<strong>内容只是示例，重点是槽位怎么落。</strong></blockquote>
+<p><strong>Agent 产品经理（北京 · 27 届校招）</strong></p>
+<p>标签：智能体 / B 端产品 / 大模型应用</p>
+<p><strong>〔开篇定位〕</strong></p>
+<p>这个岗位不是纯 PRD 岗，也不是纯算法岗。核心是在真实用户场景里，把模糊的需求转成可落地的 Agent 方案，并持续跟进使用反馈与版本迭代。</p>
+<p>这个岗位本质上是：<strong>会思考、会干活的产品负责人</strong> —— 不要求你懂训练模型，但需要你懂它的能力边界在哪。</p>
+<p>你将与算法、工程团队并肩推进：你更偏场景定义与产品判断；TA 们更偏能力实现与工程落地。后续成长方向：AI 产品负责人 / 行业解决方案 / FDE。</p>
+<p><strong>〔岗位职责〕</strong></p>
+<ol>
+<li>跟着真实用户跑场景，参与需求访谈与现场观察，理解任务链路，识别显性需求并主动挖掘潜在痛点。</li>
+<li>结合大模型与 Agent 能力，判断哪些问题值得用 AI 解、哪些解不了，设计落地路径并预判效果与边界；输出 PRD、原型与场景用例。</li>
+<li>参与 Agent 工作流与提示词策略的设计与调优，负责 AI 功能的验收与 badcase 归因，持续提升任务完成率。</li>
+<li>协同算法、工程团队完成需求澄清与迭代跟进，推动方案上线；跟踪上线后的使用数据，评估价值并持续迭代。</li>
+<li>持续沉淀行业案例、功能清单与竞品分析，提升团队交付效率。</li>
+</ol>
+<p><strong>〔任职要求〕</strong></p>
+<ol>
+<li>学历背景：本科及以上，2027 届应届毕业生；专业不限，计算机、软件工程、工业工程等相关专业优先。</li>
+<li>AI 认知：了解大模型与智能体的能力与局限，理解 AI 应用落地基本逻辑；对 Agent 是真热爱，不是跟风。</li>
+<li>产品思维：具备良好的需求拆解与归纳抽象能力，能把模糊的用户场景转化为可落地的产品方案。</li>
+<li>业务沟通能力：逻辑表达清晰，擅长沟通倾听，具备用户视角与同理心；善于跨团队协作。</li>
+<li>软性素质：学习能力强，自驱力足，好奇、主动、扛得住事，愿意扎进真实用户场景。</li>
+<li>加分项：有 AI 产品实习经历；懂点技术，能和工程对话；有自己的 Side Project；对 Agent 的能力边界有自己的判断。</li>
+<li>每周到岗 4 天及以上、连续实习 6 个月及以上优先。</li>
+</ol>
+<hr class="sep">
+<h2 id="doc0--12-写完自检清单">12 · 写完自检清单</h2>
+<ul>
+<li>[ ] 职责条数在 <strong>5–6 条</strong>，要求条数在 <strong>5–7 条</strong>？超了没有？</li>
+<li>[ ] 每一条都能指出 <strong>动作 + 对象 + 结果</strong>？有没有只有形容词的条目？</li>
+<li>[ ] <strong>R2 AI 认知</strong> 是否落到了「能力边界」这种可验证的点上，而不是「对 AI 有热情」？</li>
+<li>[ ] 有没有出现 <strong>禁用词</strong>（有责任心／有团队精神／吃苦耐劳／抗压能力强）？</li>
+<li>[ ] <strong>数字</strong>是否都是实数（届别、学历、天数、月数、城市）？</li>
+<li>[ ] 术语是否全文统一（智能体 / Agent 只留一个）？</li>
+<li>[ ] 加了 <strong>M0 开篇定位段</strong> 吗？没加的话，候选人靠什么判断这是哪种 AI 产品岗？</li>
+<li>[ ] <strong>R7 硬约束</strong> 是不是放在了最后一条？</li>
+<li>[ ] 自动补出来的内容，<strong>标了依据</strong>吗（职能族 / 行业 / 层级 / 通用）？没标的会被当成已确认事实。</li>
+<li>[ ] 有没有把<strong>不可推导项</strong>（薪资、地点、到岗时间）也顺手填了？那是在替公司做承诺。</li>
+</ul>
+<hr class="sep">
+<p><em>模板版本 v1 · 生成时间 2026-09-29（北京时间）· 源：3 份 B 端 AI 应用岗位在招 JD</em></p></article></main>
+</div>
+<footer>生成时间：2026-09-29 10:45（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<script>
+const docs = [{"key": "doc0", "name": "AI 产品经理 · 岗位 JD 模板结构"}];
+
+function copyCode(btn) {
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1400);
+  });
+}
+
+function showDoc(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.doc === key));
+  document.querySelectorAll('article.doc').forEach(a => a.style.display = (a.dataset.doc === key ? '' : 'none'));
+  document.querySelectorAll('.tocgroup').forEach(g => g.style.display = (g.dataset.doc === key ? '' : 'none'));
+  resetHighlight();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showDoc(t.dataset.doc));
+
+// 滚动高亮目录
+const links = () => Array.from(document.querySelectorAll('.tocgroup:not([style*="none"]) .toclink'));
+window.addEventListener('scroll', () => {
+  const actives = links();
+  let cur = null;
+  for (const a of actives) {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el && el.getBoundingClientRect().top < 180) cur = a;
+  }
+  actives.forEach(a => a.style.color = '');
+  if (cur) { cur.style.color = 'var(--ac2)'; }
+});
+
+// 全文搜索 + 高亮
+let marks = [];
+function resetHighlight() {
+  document.querySelectorAll('mark').forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  marks = [];
+  document.getElementById('hint').textContent = '全文搜索';
+  document.getElementById('hint').style.color = 'var(--tx3)';
+}
+document.getElementById('q').addEventListener('input', e => {
+  const kw = e.target.value.trim();
+  resetHighlight();
+  if (kw.length < 2) return;
+  const activeArt = document.querySelector('article.doc:not([style*="none"])') || document.body;
+  let count = 0, first = null;
+  const walker = document.createTreeWalker(activeArt, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.trim().length > 1 && !/^(SCRIPT|STYLE|MARK)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const low = node.nodeValue.toLowerCase(), k = kw.toLowerCase();
+    if (low.indexOf(k) === -1) return;
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    while (true) {
+      const idx = rest.toLowerCase().indexOf(k); if (idx === -1) break;
+      frag.appendChild(document.createTextNode(rest.slice(0, idx)));
+      const m = document.createElement('mark'); m.textContent = rest.slice(idx, idx + kw.length);
+      frag.appendChild(m); marks.push(m); count++;
+      rest = rest.slice(idx + kw.length);
+    }
+    frag.appendChild(document.createTextNode(rest));
+    node.parentNode.replaceChild(frag, node);
+  });
+  const h = document.getElementById('hint');
+  h.textContent = count ? `命中 ${count} 处` : '无匹配';
+  h.style.color = count ? 'var(--grn)' : 'var(--red)';
+  if (count) { first = marks[0]; first.scrollIntoView({behavior:'smooth', block:'center'}); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.id !== 'q') { e.preventDefault(); document.getElementById('q').focus(); }
+  if (e.key === 'Escape') { document.getElementById('q').value = ''; resetHighlight(); }
+});
+</script>
+</body>
+</html>
