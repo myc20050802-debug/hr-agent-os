@@ -671,6 +671,18 @@ const html = fs.readFileSync(file, 'utf8');
     app.state.page = 'screen'; app.render();
   });
 
+  /* 14. 连接策略：后端自己托管原型时必须是「同源在线」——
+     不显示连接状态条，也不该发生任何跳转（跳转=白屏或丢会话）。 */
+  await tryAsync('连接策略：同源托管时直接进在线模式（无跳转 / 不显示状态条）', async () => {
+    if (!app.LIVE.on) throw new Error('从后端源打开时 LIVE.on 应为 true');
+    if (window.location.origin !== BASE) throw new Error('页面被意外跳转到 ' + window.location.origin);
+    const bar = $('#connBar');
+    if (!bar) throw new Error('缺少连接状态条 #connBar');
+    if (!bar.hidden) throw new Error('同源在线时不应显示连接状态条：' + bar.textContent.slice(0, 60));
+    /* 断言没有退化成跨源直连：跨源会把令牌/会话挂到别的源上，刷新即丢 */
+    if (window.__app.LIVE.authMode !== 'strict') throw new Error('authMode 应为 strict，实际 ' + window.__app.LIVE.authMode);
+  });
+
   log('\n================ 结果 ================');
   log('页面渲染异常：' + bad);
   log('运行时错误：' + errors.length);

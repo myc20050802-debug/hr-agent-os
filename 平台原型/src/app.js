@@ -145,6 +145,23 @@
      默认值写 strict：与服务端唯一支持的模式一致 —— 初值写 legacy 会让人以为还有后门。 */
   const LIVE = { on: false, mode: 'rule', authMode: 'strict' };
   const AUTH = { token: null, me: null, mustChange: false };
+
+  /* ---------- 后端定位（让「在哪儿打开都是在线模式」成为默认行为） ----------
+     原型有三种打开方式，过去只有第一种是在线的：
+       ① 后端自己托管 → http://127.0.0.1:8788/         （同源，天然在线）
+       ② 双击 index.html → file://…                    （相对路径 fetch 必然失败 → 离线）
+       ③ WorkBuddy 预览面板 → http://127.0.0.1:<随机端口> （跨源，相对路径打到预览服务 → 离线）
+     现在统一处理：先探当前源；探不到就探本机后端；探到了就切过去。
+     之所以 **不复用跨源直连**（后端已放行 127.0.0.1 任意来源）作为唯一方案：
+     跨源时 localStorage 里的令牌、Cookie 会话都挂在预览源上，刷新就丢，登录态会变得很脆。
+     顶层窗口直接跳转到后端自己的源，之后一切与同源完全一致。 */
+  const BACKEND_ORIGIN = 'http://127.0.0.1:8788';
+  let API_BASE = '';                 // '' = 同源；被嵌入预览面板时改写成绝对地址
+  const isTopWindow = () => { try { return window.self === window.top; } catch (e) { return false; } };
+  /* jsdom（无头测试）里没有 fetch，且 navigation 未实现 —— 必须识别出来，否则离线用例会被误跳转污染 */
+  const isHeadless = () => typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent || '');
+  /* 逃生开关：?offline=1 / #offline 强制离线演示（断网演示、离线用例都靠它） */
+  const wantOffline = () => /(^|[?&#])offline(=1)?($|[&#])/.test(location.search + location.hash);
   try { AUTH.token = localStorage.getItem('hr_token') || null; } catch (e) { /* 隐私模式禁 localStorage */ }
   function setToken(t) {
     AUTH.token = t || null;
@@ -166,7 +183,7 @@
   async function apiFetch(method, url, body, opts) {
     const headers = { 'Content-Type': 'application/json' };
     if (AUTH.token) headers['Authorization'] = 'Bearer ' + AUTH.token;
-    const r = await fetch(url, {
+    const r = await fetch(API_BASE + url, {
       method, headers, credentials: 'include',
       body: body ? JSON.stringify(body) : undefined
     });
@@ -240,7 +257,7 @@
       const err = el.querySelector('#accErr');
       err.textContent = '';
       try {
-        const r = await fetch('/api/auth/login', {
+        const r = await fetch(API_BASE + '/api/auth/login', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
           body: JSON.stringify({ identifier: el.querySelector('#accId').value.trim(), password: el.querySelector('#accPw').value })
         });
@@ -293,20 +310,74 @@
     initJobSelection();
     applyIdentity();
   }
-  async function liveBootstrap() {
-    /* 先用不需要鉴权的 /api/health 探测「有没有后端、是不是严格认证」，
-       这样未登录时能明确区分「离线演示」与「需要登录」，而不是把 401 当成离线。
-       注：后端已删除 AUTH_MODE=legacy 分支（留开关就是留后门），所以这里不再有伪身份路径。 */
-    let health = null;
-    try { health = await (await fetch('/api/health', { credentials: 'include' })).json(); }
-    catch (e) { return; }                        // 没有后端 → 保持离线演示态
-    if (!health || !health.ok) return;
-    LIVE.authMode = health.authMode || 'strict';
+  /* ---------- 连接状态条 ----------
+     只在「没连上后端」或「跨源连上了」这两种需要解释的状态下出现；
+     正常在线（同源）时保持 hidden，不占屏幕也不吵。 */
+  function connBar(html, kind) {
+    const el = document.getElementById('connBar');
+    if (!el) return;
+    if (!html) { el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    el.className = 'connbar' + (kind ? ' ' + kind : '');
+    el.innerHTML = html;
+  }
+
+  /** 探测某个源的 /api/health；1.2s 超时。返回 health 或 null（拿不到一律当「没有」） */
+  async function probeHealth(base) {
+    if (typeof fetch !== 'function') return null;
+    let timer = null;
+    try {
+      const ac = (typeof AbortController === 'function') ? new AbortController() : null;
+      if (ac) timer = setTimeout(() => ac.abort(), 1200);
+      const r = await fetch(base + '/api/health', { credentials: 'include', signal: ac ? ac.signal : undefined });
+      if (!r.ok) return null;
+      const j = await r.json();
+      return j && j.ok ? j : null;
+    } catch (e) { return null; }
+    finally { if (timer) clearTimeout(timer); }
+  }
+
+  async function afterHealth(health) {
+    LIVE.authMode = (health && health.authMode) || 'strict';
     try {
       await bootLive();
     } catch (e) {
       if (e && e.unauthenticated) { LIVE.on = false; showAuthGate('请输入演示账号登录（口令 Demo@2026）'); }
     }
+  }
+
+  async function liveBootstrap() {
+    /* ① 当前源就是后端（后端托管原型）→ 与从前完全一致，什么都不用做 */
+    const here = await probeHealth('');
+    if (here) { API_BASE = ''; connBar(''); return afterHealth(here); }
+
+    /* 显式要求离线（?offline=1 / #offline）→ 保持内置演示数据，连探测都不做 */
+    if (wantOffline()) { connBar(''); return; }
+
+    /* ② 探测本机后端（跨源 GET /api/health；后端只对 127.0.0.1/localhost 与 file:// 放行） */
+    const local = await probeHealth(BACKEND_ORIGIN);
+    if (!local) {
+      connBar('📴 <b>离线演示态</b> —— 没找到本地后端，当前用内置演示数据（刷新即复原）。'
+        + ' 要真实持久化（SQLite + Agent 引擎）：双击 <code>server/start.bat</code>，'
+        + ' 或直接说一句「启动服务」。'
+        + ' <a href="#" data-act="reconnect">重试连接</a>', 'off');
+      return;
+    }
+
+    /* ③ 顶层窗口 → 切到后端自己的源：之后 Cookie / 令牌 / 相对路径全部与同源一致。
+          无头环境（jsdom）不实现 navigation，跳过去只会产生一条 jsdomError 噪音 → 跳过。 */
+    if (isTopWindow() && !isHeadless() && location.origin !== BACKEND_ORIGIN) {
+      location.replace(BACKEND_ORIGIN + '/' + (location.hash || ''));
+      return;
+    }
+
+    /* ④ 被嵌在预览面板里（或跑在无头环境里）→ 不能导航：后端带
+          X-Frame-Options: SAMEORIGIN，跳过去会白屏。改为跨源直连 ——
+          后端已放行 127.0.0.1 任意来源，且预览源与后端同 site，Cookie 会话依然有效。 */
+    API_BASE = BACKEND_ORIGIN;
+    connBar('🟢 <b>在线模式</b> · 已连上 ' + BACKEND_ORIGIN + '（真实 SQLite + Agent 引擎）。'
+      + ' <a href="' + BACKEND_ORIGIN + '/" target="_blank" rel="noopener">在新标签打开完整版</a>', 'on');
+    return afterHealth(local);
   }
   async function liveRefresh() {
     if (!LIVE.on) return;
@@ -2735,6 +2806,23 @@ WHERE tenant_id = current_tenant() AND job_id = 'J-2026-118'<br>
       await switchIdentity();
     },
 
+    /* --- 连接状态条上的「重试连接」---
+       先清掉离线逃生开关（否则重试也会被自己拦住），再重跑一次连接探测。 */
+    async reconnect() {
+      try {
+        const u = new URL(location.href);
+        u.searchParams.delete('offline');
+        u.hash = String(u.hash || '').replace(/offline/g, '');
+        history.replaceState(null, '', u.toString());
+      } catch (e) { /* file:// 下 replaceState 可能被拒：不影响后续探测 */ }
+      connBar('⏳ 正在探测本地后端…', 'on');
+      await liveBootstrap();
+      if (LIVE.on) {
+        await liveRefresh(); render();
+        toast('已连上本地后端，切到在线模式（真实 SQLite）。');
+      }
+    },
+
     /* --- 真实后端专属：现场越权演示 / 重置数据 ---
        v0.10.0 起这个演示**不再伪造身份**：它用你当前登录的身份去请求，
        所以「HRD → 200」「员工 → 403」是同一条接口、
@@ -2928,7 +3016,7 @@ WHERE tenant_id = current_tenant() AND job_id = 'J-2026-118'<br>
       } else if (document.getElementById('authGate') && document.getElementById('authGate').style.display === 'flex') {
         toast('🔐 后端已启用真实身份认证：请选择一个演示角色登录（口令 Demo@2026）。');
       } else {
-        toast('👋 离线演示模式（内置假数据，无需登录）。要真实写库：在 server/ 目录执行 node --experimental-sqlite server.js，再刷新本页。');
+        toast('👋 离线演示模式（内置假数据，无需登录）。要真实写库：双击 server/start.bat（或 npm start），再点上方状态条的「重试连接」。');
       }
     }, 900);
   });
@@ -2936,7 +3024,7 @@ WHERE tenant_id = current_tenant() AND job_id = 'J-2026-118'<br>
   window.__app = { state, render, PAGES, NAV, canSee, AUTH, LIVE,
     /* 供无头回归测试用：直接驱动登录与身份切换 */
     login: async (identifier, password) => {
-      const r = await fetch('/api/auth/login', {
+      const r = await fetch(API_BASE + '/api/auth/login', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include',
         body: JSON.stringify({ identifier, password })
       });

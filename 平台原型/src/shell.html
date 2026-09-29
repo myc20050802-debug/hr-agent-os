@@ -8,6 +8,9 @@
 </head>
 <body>
 <a class="skiplink" href="#pageHost">跳到主内容</a>
+<!-- 连接状态条：只在「没连上后端」或「跨源连上了」时出现（默认 hidden）。
+     role="status" + aria-live：连接状态变化对屏幕阅读器用户同样是信息。 -->
+<div id="connBar" class="connbar" role="status" aria-live="polite" hidden></div>
 <div id="app">
   <!-- ============ 侧边栏（对应 PRD 第七部分菜单结构） ============ -->
   <aside>

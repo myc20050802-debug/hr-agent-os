@@ -308,3 +308,18 @@ textarea.i{resize:vertical;line-height:1.6}
 .skiplink{position:absolute;left:8px;top:-40px;z-index:99;background:#4c8dff;color:#fff;
   padding:8px 14px;border-radius:8px;font-size:13px;text-decoration:none;transition:top .15s}
 .skiplink:focus{top:8px}
+
+/* ---------- 连接状态条（离线提示 / 跨源在线提示） ----------
+   固定在左下角，避开右下角的 toast 区。
+   只在需要解释的状态下出现：正常同源在线时隐藏，不占注意力。 */
+.connbar{position:fixed;left:16px;bottom:16px;z-index:390;max-width:min(620px,calc(100vw - 32px));
+  background:var(--panel2);border:1px solid var(--line2);border-left:3px solid var(--yel);
+  border-radius:9px;padding:10px 14px;font-size:12.8px;line-height:1.55;color:var(--tx2);
+  box-shadow:var(--sh)}
+.connbar b{color:var(--tx)}
+.connbar code{font-family:var(--mono);background:var(--panel3);border:1px solid var(--line);
+  border-radius:4px;padding:1px 5px;font-size:12px;color:var(--ac2)}
+.connbar a{color:var(--ac2);text-decoration:none;border-bottom:1px dashed var(--ac2);cursor:pointer}
+.connbar a:hover{color:#fff}
+.connbar.on{border-left-color:var(--grn)}
+.connbar.off{border-left-color:var(--yel)}

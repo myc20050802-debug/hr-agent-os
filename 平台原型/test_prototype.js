@@ -347,6 +347,30 @@ JSDOM.fromFile(file, { runScripts: 'dangerously', pretendToBeVisual: true, virtu
       if (doc.getElementById('drawer').classList.contains('on')) throw new Error('Esc 未关闭抽屉');
     });
 
+    /* 连接策略：把「无论从哪儿打开都自动进在线模式」这条行为锁住。
+       背景：原型有三种打开方式（后端托管 / 双击 file:// / 预览面板跨源），
+       过去只有第一种是在线的，另外两种会静默落回离线演示 —— 用户看到的
+       「怎么又是离线模式」就是这个。 */
+    await tryAsync('连接策略：自动找后端 + 无头环境不误跳转 + 离线逃生开关', async () => {
+      const doc = window.document;
+      const bar = doc.getElementById('connBar');
+      if (!bar) throw new Error('缺少连接状态条 #connBar');
+      if (bar.getAttribute('role') !== 'status' || bar.getAttribute('aria-live') !== 'polite') {
+        throw new Error('连接状态条未声明 live region');
+      }
+
+      const html = fs.readFileSync(file, 'utf8');
+      if (html.indexOf('http://127.0.0.1:8788') === -1) throw new Error('内置后端地址缺失（从 file:// / 预览面板就找不到后端）');
+      if (html.indexOf('.connbar') === -1) throw new Error('连接状态条样式缺失');
+      if (html.indexOf('wantOffline') === -1) throw new Error('缺少离线逃生开关（?offline=1 / #offline）');
+      if (html.indexOf('isHeadless') === -1) throw new Error('缺少无头环境识别（离线用例会被误跳转打穿）');
+
+      /* 无头环境必须**停在离线态**：jsdom 没有 fetch、也没实现 navigation，
+         一旦误触发 location.replace，测试会直接红。这条断言就是那根护栏。 */
+      if (app.LIVE.on) throw new Error('无后端时应保持离线演示态');
+      if (!/^file:/.test(window.location.href)) throw new Error('离线用例里发生了跳转：' + window.location.href);
+    });
+
     log('\n================ 结果 ================');
     log('页面渲染异常：' + bad);
     log('运行时错误：' + errors.length);
