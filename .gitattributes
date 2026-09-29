@@ -1,0 +1,17 @@
+# 换行归一：默认 LF，Windows 批处理强制 CRLF（否则 .bat 在 cmd 下会解析失败）
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# 二进制
+*.db binary
+*.zip binary
+
+# 生成物标记：GitHub 会折叠其 diff，避免把「打包产物」误读为手写代码
+# 生成方式见 README「构建」一节
+平台原型/index.html            linguist-generated=true
+HR-AI-Agent平台_*.html         linguist-generated=true
+AI产品经理JD_模板结构.html      linguist-generated=true
+JD生成口径修复说明.html         linguist-generated=true
+AI-Agent产品经理_校招JD_排版版.html linguist-generated=true
+面试前缺口审计_待补清单.html     linguist-generated=true

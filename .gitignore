@@ -1,0 +1,40 @@
+# ============================================================
+#  HR-Agent OS · 忽略清单
+#  原则：运行时产物、密钥、PII 数据一律不入库；
+#        源码、迁移脚本、测试、文档全部入库。
+# ============================================================
+
+# ---- 1. 运行时数据库（含候选人 PII 原文，绝不入库）----
+# 库不存在时后端会自动种子重建，因此入库没有意义、只有风险
+server/hr_agent.db
+server/hr_agent.db-shm
+server/hr_agent.db-wal
+server/*.db
+server/*.db-shm
+server/*.db-wal
+
+# ---- 2. 密钥与日志 ----
+# .session_secret 是服务端会话签名密钥，泄露即可伪造任意身份
+server/.session_secret
+server/logs/
+*.log
+
+# ---- 3. 测试运行产物（结果文件，非测试代码）----
+_test_*.txt
+tools/_test_*.txt
+平台原型/_t_*.txt
+tools/_cache/
+
+# ---- 4. 生成的分享包（由 平台原型/build.py 产出，已过期副本）----
+分享包/
+
+# ---- 5. 工具与操作系统噪声 ----
+.workbuddy/
+__pycache__/
+*.py[cod]
+node_modules/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
