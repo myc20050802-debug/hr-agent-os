@@ -92,8 +92,18 @@ function runSuite(s) {
   console.log(C.d + '隔离实例 ' + BASE + ' · 临时库 ' + tmpDir + C.x + '\n');
 
   const jsdom = hasJsdom();
-  /* 默认（all）跑功能回归，跳过 optIn 套件；显式 --only load 时才跑压测。 */
-  const picked = SUITES.filter(s => (ONLY === 'all' ? !s.optIn : s.kind === ONLY));
+  /* 默认（all）跑功能回归，跳过 optIn 套件；显式 --only <kind|id> 时才跑压测。
+     --only 接受「档位」（backend / self / frontend / load）或「套件 id」（auth / hiring / jd / eval / screening / offline / live / load）。 */
+  const picked = SUITES.filter(s => (ONLY === 'all' ? !s.optIn : (s.kind === ONLY || s.id === ONLY)));
+  if (!picked.length) {
+    /* 静默跑 0 套件并打出「全部通过」是假绿 —— 与项目一贯的「不许假绿」相冲突，直接失败。 */
+    const kinds = [...new Set(SUITES.map(s => s.kind))].join(' / ');
+    const ids = SUITES.map(s => s.id).join(' / ');
+    console.error(C.r + '✗ --only ' + ONLY + ' 未匹配任何套件' + C.x);
+    console.error(C.d + '  档位：all / ' + kinds + C.x);
+    console.error(C.d + '  套件：' + ids + C.x);
+    process.exit(1);
+  }
   const needServer = picked.some(s => s.kind === 'backend' || s.kind === 'frontend' || s.kind === 'load');
 
   if (needServer) {
