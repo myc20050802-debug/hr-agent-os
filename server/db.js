@@ -364,7 +364,7 @@ function inTx(db, fn) {
 
 /* 重置：清空全部业务数据并重新写入种子（不删库文件，避免 Windows 文件锁 EBUSY） */
 function reseedRuntime(db) {
-  return inTx(db, () => {
+  const r = inTx(db, () => {
     /* audit_logs 受 v4 迁移的「append-only 触发器」保护，物理上禁止 DELETE。
        「重置演示数据」是**唯一**允许越过它的场景，因此显式摘除再恢复 ——
        用一个带名字的函数把风险框住，比偷偷绕过约束诚实。
@@ -380,24 +380,86 @@ function reseedRuntime(db) {
     });
     seed(db);
   });
+  /* 重置是一次批量写：写完立刻把 WAL 合并回主库。
+     否则演示机反复重置后，-wal 会累积成一个比库还大的文件（同一份数据存两遍）。 */
+  checkpoint(db, 'TRUNCATE');
+  return r;
 }
 
 function open(reset) {
-  if (reset && fs.existsSync(DB_FILE)) fs.rmSync(DB_FILE);
+  /* 重置：主库、-wal、-shm 三个文件要一起删。
+     只删主库会留下一个指向「已不存在数据库」的 WAL 索引文件，
+     下次打开可能读到旧页 —— 表现为「重置了但数据还在」，很难排查。 */
+  if (reset) {
+    for (const f of [DB_FILE, DB_FILE + '-wal', DB_FILE + '-shm']) {
+      try { if (fs.existsSync(f)) fs.rmSync(f); } catch { /* Windows 文件锁：交给后续 busy_timeout */ }
+    }
+  }
   const db = new DatabaseSync(DB_FILE);
   /* WAL：读写并发更友好（读不阻塞写），且写入提交不必每次都等全库 fsync。
      对「一个进程同步写 + 多个请求读」的本场景是实打实的改善。 */
   try { db.exec('PRAGMA journal_mode = WAL;'); } catch { /* 不支持则退回默认日志模式 */ }
   try { db.exec('PRAGMA busy_timeout = 5000;'); } catch { /* 忽略 */ }
+  /* 自动 checkpoint 阈值：默认 1000 页（约 4MB）。显式写出来是为了让它成为
+     「被知情的默认值」，而不是一个没人知道多少的隐藏参数。 */
+  try { db.exec('PRAGMA wal_autocheckpoint = 1000;'); } catch { /* 忽略 */ }
 
   /* 版本化迁移：可从**空库**一键建到最新版本；已有库只跑增量。 */
   const mig = migrations.run(db);
 
   const n = db.prepare(`SELECT COUNT(*) AS c FROM tenants`).get().c;
   if (n === 0) inTx(db, () => seed(db));
+  /* 建库/灌种子这种批量写之后立刻 checkpoint 一次，
+     否则新库会带着一个和主库差不多大的 -wal 交付出去。 */
+  checkpoint(db, 'TRUNCATE');
   db.__migration = mig;
   return db;
 }
 
+/* ===========================================================
+   WAL checkpoint
+   -----------------------------------------------------------
+   为什么必须显式做（而不是靠自动阈值）：
+     ① -wal 会随写入持续增长。只写不 checkpoint 时，磁盘上会出现
+        「库 200KB、-wal 8MB」的怪象，与「SQLite 很轻」的直觉相悖；
+     ② 冷启动要重放整个 WAL，启动时间随之变长；
+     ③ 最危险的一条 —— **直接拷贝 .db 文件拿到的是陈旧数据**。
+        备份脚本看文件名对、大小非零，就以为备份成功，恢复时才发现少数据。
+        这类问题不会报错，只会在真正需要回滚时爆炸。
+
+   三种模式的差别（SQLite 语义）：
+     PASSIVE  —— 尽力合并，不等待读者；有在途读事务时可能只做一部分
+     FULL     —— 等读者结束，尽量合并完
+     RESTART  —— 在 FULL 基础上要求读者重新开始
+     TRUNCATE —— 在 RESTART 基础上把 -wal 截为 0 字节
+   取舍：定时任务用 PASSIVE（不打扰在途请求）；关闭 / 重置这类「安全窗口」用 TRUNCATE。
+   =========================================================== */
+function checkpoint(db, mode = 'TRUNCATE') {
+  const m = String(mode).toUpperCase();
+  if (!['PASSIVE', 'FULL', 'RESTART', 'TRUNCATE'].includes(m)) {
+    throw new Error('非法 checkpoint 模式：' + mode + '（可用 PASSIVE/FULL/RESTART/TRUNCATE）');
+  }
+  try {
+    const row = db.prepare(`PRAGMA wal_checkpoint(${m})`).get() || {};
+    return { mode: m, busy: row.busy ?? 0, log: row.log ?? 0, checkpointed: row.checkpointed ?? 0 };
+  } catch (e) {
+    return { mode: m, error: e.message };
+  }
+}
+
+/** WAL 与主库的体积快照 —— 排查「库看着很小但磁盘占用大」时的第一站 */
+function walInfo(db) {
+  const size = p => { try { return fs.statSync(p).size; } catch { return 0; } };
+  let journalMode = null;
+  try { journalMode = db.prepare('PRAGMA journal_mode').get().journal_mode; } catch { /* 忽略 */ }
+  return {
+    journalMode,
+    dbBytes: size(DB_FILE),
+    walBytes: size(DB_FILE + '-wal'),
+    shmBytes: size(DB_FILE + '-shm'),
+  };
+}
+
 module.exports = { open, DB_FILE, reseedRuntime, migrate: (db) => migrations.run(db), schemaVersion,
+  checkpoint, walInfo,
   synthCandidates, extractKeywords, INDUSTRY_SKILLS, INDUSTRIES, migrations };

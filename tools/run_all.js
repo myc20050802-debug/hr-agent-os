@@ -33,6 +33,10 @@ const SUITES = [
   { id: 'screening', kind: 'self', name: '筛选运行（用量真实性 / 可重复运行）', file: 'tools/test_screening.js' },
   { id: 'offline', kind: 'frontend', name: '前端离线渲染与交互（无后端）', file: '平台原型/test_prototype.js' },
   { id: 'live', kind: 'frontend', name: '前端在线渲染与交互（真后端）', file: '平台原型/test_live.js' },
+  /* 压测单独一档：它比功能回归慢一个量级，且对机器负载敏感。
+     放进默认 npm test 会让「改一行代码等两分钟」，所以只在显式指定时跑：
+     node tools/run_all.js --only load */
+  { id: 'load', kind: 'load', name: '并发压测（P95 / P99 / 吞吐）', file: 'tools/test_load.js', optIn: true },
 ];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -88,8 +92,9 @@ function runSuite(s) {
   console.log(C.d + '隔离实例 ' + BASE + ' · 临时库 ' + tmpDir + C.x + '\n');
 
   const jsdom = hasJsdom();
-  const picked = SUITES.filter(s => ONLY === 'all' || s.kind === ONLY);
-  const needServer = picked.some(s => s.kind === 'backend' || s.kind === 'frontend');
+  /* 默认（all）跑功能回归，跳过 optIn 套件；显式 --only load 时才跑压测。 */
+  const picked = SUITES.filter(s => (ONLY === 'all' ? !s.optIn : s.kind === ONLY));
+  const needServer = picked.some(s => s.kind === 'backend' || s.kind === 'frontend' || s.kind === 'load');
 
   if (needServer) {
     server = startIsolatedServer();

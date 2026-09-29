@@ -119,6 +119,10 @@ const maintenance = setInterval(() => {
     auth.sweepExpired(db);
     const r = gov.sweepExpired(db, TENANT);
     if (r.anonymized) logger.info('留存期巡检已匿名化', { count: r.anonymized });
+    /* 顺带把 WAL 合并回主库（PASSIVE：不阻塞在途读者）。
+       为什么放在这里：本进程是唯一的写者，维护定时器天然是「安全窗口」；
+       让 -wal 长期增长没有任何好处，只会在需要备份时咬人。 */
+    dbmod.checkpoint(db, 'PASSIVE');
   } catch (e) { logger.error('维护任务失败', { err: e.message }); }
 }, MAINTENANCE_MS);
 maintenance.unref?.();
@@ -129,15 +133,20 @@ function shutdown(signal) {
   if (closing) return;
   closing = true;
   logger.info('收到关闭信号，开始优雅关闭', { signal, graceMs: config.http.shutdownGraceMs });
-  server.close(() => {
+  /* 关闭前把 WAL 合并并截断（TRUNCATE）：
+     退出后主库文件即是完整数据，拷贝走就能用，不需要连 -wal 一起拷。
+     这是「备份可用性」问题，不是优化。 */
+  const cp = dbmod.checkpoint(db, 'TRUNCATE');
+  logger.info('WAL 已 checkpoint', cp);
+  const finish = (code) => {
     try { db.close(); } catch { /* ignore */ }
     logger.info('服务已关闭');
-    process.exit(0);
-  });
+    process.exit(code);
+  };
+  server.close(() => finish(0));
   setTimeout(() => {
     logger.warn('优雅关闭超时，强制退出');
-    try { db.close(); } catch { /* ignore */ }
-    process.exit(1);
+    finish(1);
   }, config.http.shutdownGraceMs).unref?.();
 }
 process.on('SIGINT', () => shutdown('SIGINT'));
