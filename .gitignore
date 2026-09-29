@@ -25,11 +25,15 @@ tools/_test_*.txt
 平台原型/_t_*.txt
 tools/_cache/
 
-# ---- 4. 生成的分享包（由 平台原型/build.py 产出，已过期副本）----
+# ---- 4. 生成的分享包（由 平台原型/build.js 产出，已过期副本）----
 分享包/
 
 # ---- 5. 工具与操作系统噪声 ----
-.workbuddy/
+# .workbuddy/ 下大部分是本机工作记忆（个人，不入库），
+# 但 settings.json 是**项目级 hook 配置**（SessionStart → tools/dev-up.sh，
+# 即「打开项目就自动拉起后端」那条链路）—— 它是要共享的，必须入库。
+.workbuddy/*
+!.workbuddy/settings.json
 __pycache__/
 *.py[cod]
 node_modules/
