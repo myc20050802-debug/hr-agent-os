@@ -527,19 +527,27 @@ window.Agent = (function () {
     const kws = RL ? RL.extractKeywords([req]) : [];
     const kHit = kws.filter(w => hit(t, w));
     const coverage = kws.length ? kHit.length / kws.length : 0;
-    const r1 = coverage >= 0.7 ? 0.95 : coverage >= 0.5 ? 0.85 : coverage >= 0.35 ? 0.7 : coverage >= 0.2 ? 0.55 : 0.35;
+    /* 系数一律取自 shared/score-why.js 的阶梯（与后端同一份）。
+       写死在这里的后果：阶梯改了它不改，界面上「为什么是这个分」就开始说谎。 */
+    const SW = window.ScoreWhy;
+    const r1 = SW ? SW.coefOf('skill', coverage)
+      : (coverage >= 0.7 ? 0.95 : coverage >= 0.5 ? 0.85 : coverage >= 0.35 ? 0.7 : coverage >= 0.2 ? 0.55 : 0.35);
     const s1 = Math.round(40 * r1);
 
     /* ② 业务语境标签：取岗位所属职能族的业务标签（AI 产品经理 ≠ 后端研发） */
     const fnKey = RL ? RL.detectFunction('', req) : null;
     const fn = (fnKey && RL) ? RL.FUNCTIONS[fnKey] : null;
-    const bizHits = hitAny(fn ? fn.biz : []);
-    const r2 = bizHits.length >= 4 ? 1 : bizHits.length === 3 ? 0.9 : bizHits.length === 2 ? 0.72 : bizHits.length === 1 ? 0.55 : 0.2;
+    const bizPool = fn ? fn.biz : [];
+    const bizHits = hitAny(bizPool);
+    const r2 = SW ? SW.coefOf('biz', bizHits.length)
+      : (bizHits.length >= 4 ? 1 : bizHits.length === 3 ? 0.9 : bizHits.length === 2 ? 0.72 : bizHits.length === 1 ? 0.55 : 0.2);
     const s2 = Math.round(30 * r2);
 
     /* ③ 加分项：职能族加分项 + 通用亮点标签 */
-    const plusHits = hitAny([...(fn ? fn.plus : []), ...PLUS_GENERIC]);
-    const r4 = plusHits.length >= 3 ? 1 : plusHits.length === 2 ? 0.85 : plusHits.length === 1 ? 0.55 : 0;
+    const plusPool = [...(fn ? fn.plus : []), ...PLUS_GENERIC];
+    const plusHits = hitAny(plusPool);
+    const r4 = SW ? SW.coefOf('plus', plusHits.length)
+      : (plusHits.length >= 3 ? 1 : plusHits.length === 2 ? 0.85 : plusHits.length === 1 ? 0.55 : 0);
     const s4 = Math.round(15 * r4);
 
     /* ④ 稳定性：年限（岗位不设年限门槛时按 0.8 计，与后端一致）
@@ -563,7 +571,8 @@ window.Agent = (function () {
     }
     const ny = req.match(/(\d+)\s*年/);
     const needMust = ny ? parseFloat(ny[1]) : 0;
-    const r3 = needMust <= 0 ? 0.8 : years >= needMust * 2 ? 1 : years >= needMust * 1.3 ? 0.87 : years >= needMust ? 0.75 : 0.5;
+    const r3 = SW ? SW.coefOf('stab', years, needMust)
+      : (needMust <= 0 ? 0.8 : years >= needMust * 2 ? 1 : years >= needMust * 1.3 ? 0.87 : years >= needMust ? 0.75 : 0.5);
     const s3 = Math.round(15 * r3);
 
     const eduRank = /博士|硕士|研究生/.test(t) ? 3 : /本科|学士/.test(t) ? 2 : /大专|专科/.test(t) ? 1 : 0;
@@ -578,21 +587,32 @@ window.Agent = (function () {
     const total = Math.min(100, s1 + s2 + s3 + s4);
     const 在读 = /在读|应届|在校|实习|202\d\s*[/\-．.]\s*\d+\s*[-–—]\s*202\d/.test(t);
     const dims = [
-      { dim: '技能匹配', score: s1, max: 40,
+      { dim: '技能匹配', score: s1, max: 40, coef: r1,
         ev: !kws.length
           ? '岗位要求里没识别出可打分的技术词，本维度按底分计（建议在要求里写明技术栈）'
           : kHit.length
             ? `命中岗位关键词 ${kHit.length}/${kws.length} 项：${kHit.slice(0, 6).join('、')}`
             : `命中岗位关键词 0/${kws.length} 项（${kws.slice(0, 4).join('、')}）—— 完全未命中，本维度按底分计` },
-      { dim: '业务匹配', score: s2, max: 30,
+      { dim: '业务匹配', score: s2, max: 30, coef: r2,
         ev: bizHits.length ? `业务语境命中：${bizHits.join('、')}` : `未命中${fnKey ? RL.FUNCTIONS[fnKey].name : ''}类业务标签，本维度按底分计` },
-      { dim: '稳定性', score: s3, max: 15,
+      { dim: '稳定性', score: s3, max: 15, coef: r3,
         ev: years ? `总工作年限约 ${years} 年（岗位要求 ${needMust || '未设'} 年）`
           : 在读 ? `在校生 / 应届，简历无全职工作年限（岗位要求 ${needMust || '未设'} 年）`
             : `简历未体现工作年限（岗位要求 ${needMust || '未设'} 年），按未达标计` },
-      { dim: '加分项', score: s4, max: 15, ev: plusHits.length ? plusHits.join('、') : '无开源/专利/大厂/带人经验' }
+      { dim: '加分项', score: s4, max: 15, coef: r4, ev: plusHits.length ? plusHits.join('、') : '无开源/专利/大厂/带人经验' }
     ];
-    return { gate: false, score: total, grade: total >= 78 ? 'strong' : total >= 60 ? 'ok' : 'no', dims, hits: { kws, kHit, bizHits, plusHits } };
+    /* 归因（「为什么是这个分」）。与后端 scoreOne 调的是同一份 explain()，
+       所以同一个分数在两个入口下的解释不会出现两套说法。 */
+    const why = SW ? SW.explain({
+      score: total, dims,
+      ctx: {
+        kws, kHit, cov: coverage,
+        fnName: fn ? fn.name : '',
+        bizHits, bizPool, plusHits, plusPool,
+        years, needYears: needMust, inSchool: 在读,
+      },
+    }) : null;
+    return { gate: false, score: total, grade: total >= 78 ? 'strong' : total >= 60 ? 'ok' : 'no', dims, why, hits: { kws, kHit, bizHits, plusHits } };
   }
 
   /* ============ 员工自助问答引擎 ============ */

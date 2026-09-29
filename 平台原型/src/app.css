@@ -279,6 +279,27 @@ textarea.i{resize:vertical;line-height:1.6}
   padding:9px 12px;font-size:12.5px;color:var(--yel);margin:9px 0}
 .scanok{background:var(--grnbg);border:1px solid rgba(61,220,151,.3);border-radius:9px;
   padding:9px 12px;font-size:12.5px;color:var(--grn);margin:9px 0}
+
+/* ---- 打分归因（「为什么是这个分」） ----
+   每个分数下面都必须能回答这一问。结构与「维度表」刻意分开：
+   维度表回答「每一维多少分」，这里回答「总分为什么是这个数」。 */
+.why{border:1px solid var(--line2);border-radius:10px;margin:12px 0;overflow:hidden}
+.why-h{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;
+  padding:9px 13px;background:var(--panel3);border-bottom:1px solid var(--line)}
+.why-h .t{font-size:13.2px;font-weight:700;color:var(--tx)}
+.why-h .s{font-size:11.6px;color:var(--tx3)}
+.why-body{padding:11px 13px;background:var(--panel2)}
+.why-formula{font-family:var(--mono);font-size:13px;color:var(--ac2);display:inline-block;
+  margin:0 0 10px;padding:5px 10px;background:var(--panel3);border-radius:7px}
+.why-sec{margin:12px 0 0;font-size:12.6px;color:var(--tx2);line-height:1.65}
+.why-sec .lab{font-weight:700;color:var(--tx);margin-bottom:4px}
+.why-sec ul{margin:3px 0 0;padding-left:17px}
+.why-sec li{margin:4px 0}
+.why-sec.lift li::marker{color:var(--grn)}
+.why-sec .foot{color:var(--tx3);font-size:11.8px}
+.why-conf{background:var(--panel3);border-left:3px solid var(--yel);border-radius:0 7px 7px 0;
+  padding:7px 11px;margin-top:11px;font-size:12.3px;color:var(--tx2)}
+.why-conf.ok{border-left-color:var(--grn)}
 .toast{position:fixed;right:20px;bottom:20px;z-index:400;display:flex;flex-direction:column;gap:8px}
 .toast .t{background:var(--panel2);border:1px solid var(--line2);border-left:3px solid var(--grn);
   border-radius:9px;padding:10px 14px;font-size:12.8px;box-shadow:var(--sh);animation:slidein .2s ease}

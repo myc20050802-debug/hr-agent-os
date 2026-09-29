@@ -582,6 +582,80 @@
       <tbody>${rows.join('')}</tbody></table></div>`;
   }
 
+  /* ============ 打分归因（「为什么是这个分」） ============
+     归因本身由 shared/score-why.js 从**已经算好的分数**反推（后端 scoreOne 与
+     离线 scoreResume 调的是同一份 explain），这里只负责排版。
+     所以不存在「解释和分数对不上」的可能 —— 它们是同一组数字的两种表述。
+     约定：凡是界面上出现一个分数，就必须能在同屏给出它的 why。 */
+  function whyBlock(why, opt) {
+    if (!why || !why.terms || !why.terms.length) return '';
+    const o = opt || {};
+    const label = o.label || '为什么是';
+    const rows = why.terms.map(t => `<tr>
+        <td class="name">${esc(t.dim)}</td>
+        <td class="mono" style="white-space:nowrap">${t.max} × ${t.coef} = <b>${t.score}</b></td>
+        <td class="small muted">${esc(t.reason)}</td></tr>`).join('');
+
+    const drivers = [why.drivers && why.drivers.up, why.drivers && why.drivers.down]
+      .filter(Boolean).map(d => `<li>${esc(d.text)}</li>`).join('');
+
+    const lifts = (why.lift || []).map(l => {
+      const t = why.terms.find(x => x.dim === l.dim) || {};
+      const to = why.score + l.delta;
+      return `<li>${esc(l.text)}<div class="foot">${esc(l.dim)} ${t.score} → <b>${l.newDim}</b>（+${l.delta} 分）
+        → 总分约 <b>${to}</b>${l.reaches ? `，进「${esc(l.reaches)}」` : ''}${l.ceiling ? ` · 该维拉满可到 ${l.ceiling.newDim} 分（总分约 ${l.ceiling.total}）` : ''}</div></li>`;
+    }).join('');
+
+    /* 没有可走的路时不能留空 —— 空着会让人以为「解释不出来」。
+       真实情况通常是：能拿的都拿了，差距来自岗位本身没写的东西。 */
+    const liftHtml = lifts
+      ? `<ul>${lifts}</ul>`
+      : `<div class="foot">当前四个维度的阶梯上都没有「再努力一点就能涨分」的档位 ——
+          说明这份打分的差距不在措辞上，而在客观条件（年限 / 学历 / 岗位要求本身写得太笼统）。</div>`;
+
+    const th = why.threshold;
+    const thText = th
+      ? `当前档位「${esc(why.gradeName)}」（${esc(why.gradeRange)} 分），还差 <b>${th.need}</b> 分到「${esc(th.name)}」（${th.min} 分起）`
+      : `当前档位「${esc(why.gradeName)}」（${esc(why.gradeRange)} 分），已是最高档`;
+    const confCls = (why.confidence && why.confidence.level === '高') ? ' why-conf ok' : ' why-conf';
+    const notes = (why.notes || []).map(n => `<li><b>${esc(n.kind)}</b>：${esc(n.text)}</li>`).join('');
+
+    return `<div class="why">
+      <div class="why-h"><span class="t">${esc(label)} ${why.score} 分</span>
+        <span class="s">分数 = 各维满分 × 达成系数，逐项可核对 · 规则算出，不是模型的一句话结论</span></div>
+      <div class="why-body">
+        <div class="why-formula">${esc(why.formula)}</div>
+        ${tbl(['维度', '算式', '为什么是这个系数'], [rows])}
+        ${drivers ? `<div class="why-sec"><div class="lab">决定性因素</div><ul>${drivers}</ul></div>` : ''}
+        <div class="why-sec lift"><div class="lab">档位</div>${thText}</div>
+        <div class="why-sec lift"><div class="lab">再往前一步（预计得分）</div>${liftHtml}</div>
+        ${why.confidence ? `<div class="${confCls.trim()}"><b>置信度：${esc(why.confidence.level)}</b> —— ${esc(why.confidence.text)}</div>` : ''}
+        ${notes ? `<div class="why-sec"><div class="lab">口径说明</div><ul>${notes}</ul></div>` : ''}
+      </div></div>`;
+  }
+
+  /* 候选人打分归因。
+     落库的 why 优先 —— 那是**当时那次判断的原始记录**（含当时命中的关键词）。
+     老数据（v7 迁移之前打的）没有落库，用已存的四维分数现推一份：
+     宁可解释得粗一点、并标注「归因来源」，也不留「只有分数、没有原因」的空档。 */
+  function candWhy(c) {
+    if (c.why) return c.why;
+    if (c.grade == null || !window.ScoreWhy) return null;
+    const dims = c.reasons || [];
+    /* 被硬性门槛拦下的没有四维可比，只有一条「硬性门槛」记录 —— 那不是可归因的打分 */
+    if (dims.length < 3 || dims.some(d => d.dim === '硬性门槛')) return null;
+    return window.ScoreWhy.explain({ score: c.score, dims, ctx: { derived: true } });
+  }
+
+  /* 列表里的分数只放得下一个数字，但「每个分数都要有原因」这条不能破 ——
+     列表用悬停提示给一句话归因，完整归因在详情抽屉里。 */
+  function whyTip(c) {
+    const w = candWhy(c);
+    if (!w) return '';
+    const d = w.drivers && w.drivers.down;
+    return `为什么是 ${w.score} 分：${w.formula}（${w.gradeName}）` + (d ? ` · 主要失分：${d.text}` : ' · 各维均无失分');
+  }
+
   /* ============ 页面 ============ */
   const PAGES = {};
 
@@ -837,7 +911,7 @@
           cs.slice().sort((a, b) => (b.score == null ? -1 : b.score) - (a.score == null ? -1 : a.score)).map(c => `<tr>
             <td class="name">${esc(c.name)}<div class="small muted">${esc((c.edu || '').split('·')[0])} · ${c.years} 年 · ${esc(c.source || '')}${c.synthesized ? ' · <span class="tag">演示简历</span>' : ''}</div></td>
             <td>${c.score == null ? '<span class="muted small">待评分</span>' : `<div style="display:flex;align-items:center;gap:7px">
-              <b style="color:var(--${scoreColor(c.score) === 'g' ? 'grn' : scoreColor(c.score) === 'y' ? 'yel' : 'red'})">${c.score}</b>
+              <b title="${esc(whyTip(c))}" style="color:var(--${scoreColor(c.score) === 'g' ? 'grn' : scoreColor(c.score) === 'y' ? 'yel' : 'red'})">${c.score}</b>
               <div class="bar" style="width:44px"><i class="${scoreColor(c.score)}" style="width:${c.score}%"></i></div></div>`}</td>
             <td>${c.grade ? gradeTag(c.grade) : '<span class="tag y">未评分</span>'}</td>
             <td class="small" style="max-width:330px">${esc((c.reasons[0] && c.reasons[0].ev) || c.ruleHit || '')}</td>
@@ -984,7 +1058,7 @@
               <td class="name">${esc(c.name)}</td>
               <td class="small">${esc(c.job || '')}</td>
               <td>${stageTag(c.stage)}</td>
-              <td>${c.score != null ? `<span class="tag ${scoreColor(c.score)}">${c.score}</span>` : '<span class="small muted">—</span>'}</td>
+              <td>${c.score != null ? `<span class="tag ${scoreColor(c.score)}" title="${esc(whyTip(c))}">${c.score}</span>` : '<span class="small muted">—</span>'}</td>
               <td>${canSchedule
         ? `<button class="btn sm" data-act="schedForm" data-id="${esc(c.id)}">📅 安排面试</button>`
         : '<span class="small muted">🔒 需 interview:schedule</span>'}</td>
@@ -1169,7 +1243,7 @@
       ready.map(c => `<tr>
           <td class="name">${esc(c.name)}</td>
           <td class="small">${esc(c.job || '')}</td>
-          <td>${c.score != null ? `<span class="tag ${scoreColor(c.score)}">${c.score}</span>` : '<span class="small muted">—</span>'}</td>
+          <td>${c.score != null ? `<span class="tag ${scoreColor(c.score)}" title="${esc(whyTip(c))}">${c.score}</span>` : '<span class="small muted">—</span>'}</td>
           <td><span class="tag g">面试通过</span></td>
           <td>${canCreate
         ? `<button class="btn sm primary" data-act="offerForm" data-id="${esc(c.id)}">📄 起草 Offer</button>`
@@ -1542,7 +1616,7 @@
             <td class="small">${esc(c.job)}</td>
             <td class="mono small">${c.phone}<br><span class="pii">${esc(c.email)}</span></td>
             <td class="small">${esc((c.edu || '').split('·')[0] || '—')}<br>${c.years} 年</td>
-            <td><b style="color:var(--${scoreColor(c.score) === 'g' ? 'grn' : scoreColor(c.score) === 'y' ? 'yel' : 'red'})">${c.score}</b></td>
+            <td><b title="${esc(whyTip(c))}" style="color:var(--${scoreColor(c.score) === 'g' ? 'grn' : scoreColor(c.score) === 'y' ? 'yel' : 'red'})">${c.score}</b></td>
             <td>${gradeTag(c.grade)}</td><td>${stageTag(c.stage)}</td>
             <td><button class="btn sm" data-act="reveal" data-id="${c.id}">查看明文</button></td></tr>`))}
       </div>
@@ -1990,7 +2064,7 @@
       if (!LIVE.on) {
         let n = 0;
         D.candidates.forEach(c => {
-          if (c.jobId === id && c.score != null) { c.score = null; c.grade = null; c.reasons = []; c.ruleHit = null; n++; }
+          if (c.jobId === id && c.score != null) { c.score = null; c.grade = null; c.reasons = []; c.why = null; c.ruleHit = null; n++; }
         });
         closeDrawer(); render();
         toast(`已重置 ${n} 份评分（离线演示），可以重新运行筛选。`);
@@ -2211,6 +2285,7 @@ GitHub 有开源项目 800 star。期望薪资 35k。</textarea>
             <div class="small muted" style="margin-top:6px">关键词跟着「岗位要求」走，不写死：换一个岗位要求，同一份简历的分数会变。这正是它能用在所有职能族上的原因。</div>
           </div>
           ${tbl(['维度', '得分', '依据（可追溯到原文）'], [dims])}
+          ${whyBlock(r.why)}
           <div class="hr-note">注意：这里没有出现性别、年龄、婚育、户籍任何一个字段 —— 不是模型「没考虑」，而是它们<b>根本没有进入输入</b>。</div>`;
       };
     },
@@ -2231,6 +2306,7 @@ GitHub 有开源项目 800 star。期望薪资 35k。</textarea>
         <div class="small muted" style="margin:14px 0 6px">打分明细（每条依据均可追溯到简历原句）：</div>
         ${tbl(['维度', '得分', '依据'], c.reasons.map(r => `<tr><td class="name">${esc(r.dim)}</td>
           <td><b>${r.score}</b>${r.max ? ' / ' + r.max : ''}</td><td class="small muted">${esc(r.ev)}</td></tr>`))}
+        ${whyBlock(candWhy(c))}
         <div class="hr-note"><b>Agent 结论</b>：${esc(c.aiNote)}</div>
         ${c.parseOk ? '' : `<div class="scanwarn">⚠️ 解析状态：${esc(c.parseNote || '存在不确定字段')}</div>`}
         ${c.human ? `<div class="callout" style="margin-top:12px">已有人工结论：<b>${esc(humanLabel(c.human))}</b>${c.overrideCode ? ' · 原因码 <span class="mono">' + esc(c.overrideCode) + '</span>' : ''}${c.overrideReason ? '<br><span class="small muted">' + esc(c.overrideReason) + '</span>' : ''}</div>` : ''}

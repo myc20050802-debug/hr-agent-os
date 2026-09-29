@@ -43,6 +43,9 @@ shell = put(shell, '__CSS__', readSrc('app.css'));
 shell = put(shell, '__REQLIB__', readLF(path.join(SHARED, 'req-lib.js')));
 /* 推翻原因枚举：与后端同一份 shared/override-codes.js（避免前端能选、后端不认） */
 shell = put(shell, '__OVERRIDECODES__', readLF(path.join(SHARED, 'override-codes.js')));
+/* 打分归因：与后端同一份 shared/score-why.js。
+   必须内联同一份，否则前端算出的「为什么是这个分」会跟后端分数对不上。 */
+shell = put(shell, '__SCOREWHY__', readLF(path.join(SHARED, 'score-why.js')));
 shell = put(shell, '__DATA__', readSrc('data.js'));
 shell = put(shell, '__AGENT__', readSrc('agent.js'));
 shell = put(shell, '__APP__', readSrc('app.js'));
@@ -63,7 +66,7 @@ if (left) {
   process.exit(1);
 }
 /* 四段脚本各自暴露的全局变量，少一个说明某段 src 没被真正内联进去 */
-const MARKERS = ['window.ReqLib', 'window.OverrideCodes', 'window.DB', 'window.Agent', 'window.__app'];
+const MARKERS = ['window.ReqLib', 'window.OverrideCodes', 'window.ScoreWhy', 'window.DB', 'window.Agent', 'window.__app'];
 const miss = MARKERS.filter(k => shell.indexOf(k) < 0);
 if (miss.length) {
   console.error('✗ 产物里找不到预期内容（可能未内联成功）：' + miss.join(', '));
