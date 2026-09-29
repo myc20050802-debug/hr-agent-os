@@ -31,6 +31,7 @@ const SUITES = [
   { id: 'jd', kind: 'backend', name: 'JD 生成口径（原文还原 / 段落化 / 往返无损）', file: 'tools/test_jd.js' },
   { id: 'eval', kind: 'backend', name: '筛选质量评测（一致率 / 漏筛率 / 误筛率）', file: 'tools/test_eval.js' },
   { id: 'screening', kind: 'self', name: '筛选运行（用量真实性 / 可重复运行）', file: 'tools/test_screening.js' },
+  { id: 'devup', kind: 'self', name: '打开即在线（幂等启动 / CORS 白名单 / hook 接线）', file: 'tools/test_devup.js' },
   { id: 'offline', kind: 'frontend', name: '前端离线渲染与交互（无后端）', file: '平台原型/test_prototype.js' },
   { id: 'live', kind: 'frontend', name: '前端在线渲染与交互（真后端）', file: '平台原型/test_live.js' },
   /* 压测单独一档：它比功能回归慢一个量级，且对机器负载敏感。

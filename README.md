@@ -7,19 +7,45 @@
 ## 一分钟跑起来
 
 ```bash
-cd server
-node --experimental-sqlite server.js
+npm run dev        # 幂等：已在跑就直接返回，不会起第二个实例
 # 打开 http://127.0.0.1:8788
 ```
 
+等价的手工方式：`cd server && node --experimental-sqlite server.js`。
 Windows 双击 `server/start.bat` 即可（自动开浏览器）。
 要求 Node 22+（用到内置 `node:sqlite`）。
 
 **第一次打开会让你登录**（v0.10.0 起后端启用了真实身份认证，默认 `strict` 模式）。登录页列了 8 个演示账号（含 2 位**面试官**），**统一口令见登录页的「演示账号」提示栏**——口令刻意不打印到控制台/日志（stdout 常被重定向进文件，写口令等于发凭证）。
-不想登录？直接双击 `平台原型/index.html` 走**离线演示态**（不发任何网络请求，全功能可点）。
+不想登录？加 `?offline=1`（或 `#offline`）走**离线演示态**（不发任何网络请求，全功能可点）。
 
 想从干净数据开始：`node --experimental-sqlite server.js --reset`
 （`--reset` 会连库一起重建；也可以直接删掉 `server/hr_agent.db` 后重启——空库会自动跑迁移并重新种子。）
+
+### 不管从哪儿打开，都自动进在线模式
+
+过去原型有三种打开方式，**只有第一种是在线的**，另外两种会静默落回离线演示 ——
+「怎么又是离线模式」就是这个。现在三条路都收口了：
+
+| 打开方式 | 过去 | 现在 |
+|---|---|---|
+| 后端托管 `http://127.0.0.1:8788/` | 在线 | 在线（同源，行为不变） |
+| 双击 `平台原型/index.html`（`file://`） | 离线 | 探测到本机后端 → **自动跳转到 8788**，进入在线模式 |
+| WorkBuddy 预览面板（`http://127.0.0.1:<随机端口>`，跨源） | 离线 | **跨源直连** 8788（不跳转 —— 后端带 `X-Frame-Options: SAMEORIGIN`，跳过去会白屏） |
+
+两种机制支撑它：
+
+1. **项目级 SessionStart hook**（`.workbuddy/settings.json`）—— 每次打开这个项目就调
+   `tools/dev-up.sh` → `tools/dev-up.js`，**幂等**地把后端拉起来（已在跑就什么都不做）。
+   顺手还会比对 `schema` 版本：**在跑的实例比代码旧时会明确告警**，
+   避免「连是连上了，但连的是个缺列的旧进程」这种更难查的故障。
+   启动方式在 Windows 上走 WMI（`Win32_Process.Create` + `-WindowStyle Hidden`）——
+   实测宿主的 Job Object 会把普通 `spawn(detached)` 的子进程一起回收，而 WMI 创建的进程不在其中。
+2. **前端自动找后端**（`平台原型/src/app.js`）—— 先探当前源，失败再探 `127.0.0.1:8788`，
+   探到就切过去。左下角有一条**连接状态条**，只在「没连上」或「跨源连上了」时出现，
+   离线时会给出「双击 `server/start.bat`」和「重试连接」，不装作一切正常。
+
+验证这条链路：`npm run test:devup`（幂等启动 / CORS 白名单 / hook 接线 / 预览面板跨源场景）。
+后端已经在跑但版本旧了：`npm run dev:restart`。
 
 ---
 
@@ -27,11 +53,14 @@ Windows 双击 `server/start.bat` 即可（自动开浏览器）。
 
 | 文件 | 是什么 |
 |---|---|
-| `平台原型/index.html` | **可点击平台原型**，单文件 **450,757 bytes（约 440KB）**，23 个页面，双击即开 |
+| `平台原型/index.html` | **可点击平台原型**，单文件 **457,279 bytes（约 447KB）**，23 个页面，双击即开（探测到本机后端会自动切到在线） |
 | `server/` | **真实后端**：Node 原生 HTTP + SQLite + Agent 引擎，零依赖；**16 个模块按 L0–L5 分层** |
+| `.workbuddy/settings.json` | **项目级 hook**：SessionStart → `tools/dev-up.sh`，每次打开项目把后端幂等拉起 |
+| `tools/dev-up.js` / `tools/dev-up.sh` | **幂等启动器**：已在跑就不重复启；比 `schema` 版本、检陈旧实例；Windows 走 WMI 让进程活过宿主回收 |
 | `tools/golden/golden_set.json` | **人工标注黄金集**：3 个岗位 × 10 份简历 = 30 例，含人工档位标签与决定性因素说明 |
 | `tools/test_eval.js` | **筛选质量评测**：档位一致率 / ±1 档一致率 / 漏筛率 / 误筛率（与线上同一份 `evaluateCandidate`） |
 | `tools/test_load.js` | **并发压测**：读 / 写 / 读写混合三阶段，输出 P50 / P90 / P95 / P99 与吞吐 |
+| `tools/test_devup.js` | **「打开即在线」链路验收**：幂等启动 / CORS 白名单 / hook 接线 / 预览面板跨源场景 |
 | `tools/run_all.js` | **一键回归**：拉起隔离实例（独立端口 + 临时库）跑全部套件，不碰演示数据 |
 | `docs/01_产品需求草稿PRD.md` | 七部分 PRD 草稿（定位 / 架构 / 模块 / 底座 / 合规 / MVP / 菜单） |
 | `docs/02_搭建实操教程.md` | 8 阶段落地教程（含建表 SQL、工具注册中心、闸门代码） |
@@ -145,10 +174,12 @@ node --experimental-sqlite server.js
 一键跑全部（**推荐**）：起一个隔离实例（`127.0.0.1:8799` + 临时库），演示库 `server/hr_agent.db` 毫发无伤。
 
 ```bash
-node tools/run_all.js                 # 功能回归：7 套件
-node tools/run_all.js --only backend  # 只跑后端 5 套件
+node tools/run_all.js                 # 功能回归：8 套件
+node tools/run_all.js --only backend  # 只跑后端 5 套件（也可用套件 id：--only eval / --only auth）
 node tools/run_all.js --only load     # 并发压测（单独一档，不混进默认回归）
 ```
+
+> `--only` 打错字时**会报错退出**，而不是静默跑 0 套件假装通过 —— 假绿比红灯更贵。
 
 单套件（`--experimental-sqlite` 是因为要 require 服务端模块；`test_hiring` / `test_live` 需先启动 server）：
 
@@ -156,14 +187,15 @@ node tools/run_all.js --only load     # 并发压测（单独一档，不混进�
 node --experimental-sqlite tools/test_auth.js        # 可信底座 · 鉴权 / 权限 / 迁移 / 错误契约
 node --experimental-sqlite tools/test_hiring.js      # 招聘链路 · 状态机 / 合规闸门 / 行级隔离
 node --experimental-sqlite tools/test_jd.js          # JD 生成口径 · 原文还原 / 段落化 / 往返无损
-node --experimental-sqlite tools/test_eval.js        # 筛选质量评测 · 黄金集 + 一致率接口 · 55 项
+node --experimental-sqlite tools/test_eval.js        # 筛选质量评测 · 黄金集 + 一致率接口 · 56 项
 node --experimental-sqlite tools/test_screening.js   # 用量真实性 / 可重复运行 · 29 项
+node tools/test_devup.js                             # 打开即在线 · 幂等启动 / CORS / hook 接线 / 跨源场景 · 18 项
 cd 平台原型
-node test_prototype.js                               # 离线：23 页渲染 + 19 项交互（无需 server）
-node test_live.js                                    # 真后端：23 页渲染 + 24 项真链路（需先启动 server）
+node test_prototype.js                               # 离线：23 页渲染 + 20 项交互（无需 server）
+node test_live.js                                    # 真后端：23 页渲染 + 25 项真链路（需先启动 server）
 ```
 
-当前状态：**全部 0 失败 · 7 套件全绿**（后端 5 + 前端 2）。压测另跑，0 错误。
+当前状态：**全部 0 失败 · 8 套件全绿**（后端 5 + 自包含 1 + 前端 2）。压测另跑，0 错误。
 
 > 运行前端无头测试需要 `jsdom`：`NODE_PATH=<你的 workspace>/node_modules node test_live.js`（本项目自身不依赖任何 npm 包）。
 > 硬验证：删掉 `server/hr_agent.db` 后重启，空库自动跑到 `schemaVersion: 6`（19 张业务表 / 2 个触发器 / 20 个索引），无需人工干预。
