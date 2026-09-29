@@ -1,0 +1,28 @@
+{
+  "name": "hr-agent-os",
+  "version": "0.10.0",
+  "private": true,
+  "description": "B 端 HR AI Agent 平台 · 可运行的本地全栈 PoC。运行时零依赖（Node 原生 http + 内置 node:sqlite）；jsdom 仅用于前端无头测试。",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node --experimental-sqlite server/server.js",
+    "start:reset": "node --experimental-sqlite server/server.js --reset",
+    "build": "node 平台原型/build.js",
+    "test": "node tools/run_all.js",
+    "test:backend": "node tools/run_all.js --only backend",
+    "test:frontend": "node tools/run_all.js --only frontend",
+    "test:auth": "node --experimental-sqlite tools/test_auth.js",
+    "test:hiring": "node tools/test_hiring.js",
+    "test:jd": "node tools/test_jd.js",
+    "test:eval": "node tools/test_eval.js",
+    "test:screening": "node tools/test_screening.js",
+    "test:offline": "node 平台原型/test_prototype.js",
+    "test:live": "node 平台原型/test_live.js"
+  },
+  "devDependencies": {
+    "jsdom": ">=24"
+  }
+}
