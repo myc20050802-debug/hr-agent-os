@@ -26,7 +26,7 @@ const { logger } = require('./logger.js');
 const IDENTIFYING_FIELDS = [
   ['name', "'已删除'"], ['gender', 'NULL'], ['birth_date', 'NULL'], ['company', 'NULL'],
   ['edu_text', 'NULL'], ['skills', "'[]'"], ['business_tags', "'[]'"], ['plus_tags', "'[]'"],
-  ['ai_reasons', "'[]'"], ['ai_note', 'NULL'], ['override_reason', 'NULL'], ['source', 'NULL'],
+  ['ai_reasons', "'[]'"], ['ai_note', 'NULL'], ['override_reason', 'NULL'], ['override_code', 'NULL'], ['source', 'NULL'],
 ];
 
 const DEFAULT_POLICIES = [

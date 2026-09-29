@@ -23,6 +23,7 @@ const audit = require('./audit.js');
 const gov = require('./governance.js');
 const hiring = require('./hiring.js');
 const metrics = require('./metrics.js');
+const OverrideCodes = require('../shared/override-codes.js');
 const { badRequest, notFound, conflict, forbidden, AppError } = require('./errors.js');
 
 /* 演示租户：本期单租户。它是**服务端常量**，永不从请求读取 —— 见 rbac 文件头纪律。 */
@@ -191,9 +192,25 @@ function buildRouter(db) {
     authMode: config.auth.mode,
     schemaVersion: dbmod.schemaVersion(db),
     uptimeSec: metrics.snapshot().uptimeSec,
+    /* WAL 体积：只读的运维信息。写在这里是因为「库很小、磁盘却占了不少」
+       和「备份出来的 .db 少数据」这两个问题的第一现场都是它。 */
+    wal: dbmod.walInfo(db),
   }));
 
   r.get('/api/metrics', { need: 'metrics:read' }, rc => rc.ok({ metrics: metrics.snapshot() }));
+
+  /* 筛选一致率：AI 档位 vs 人工结论（样本来自真实操作，不做演示假数据）。
+     为什么单独开一个接口而不是塞进 /api/metrics：
+     /api/metrics 是运行计数器（请求数、时长），这里是**质量指标**，口径完全不同，
+     混在一起会让「0 次请求」和「0 个人工复核」难以区分。 */
+  r.get('/api/metrics/agreement', { need: 'metrics:read' }, rc => rc.ok({
+    agreement: engine.screeningAgreement(db, TENANT),
+    definitions: {
+      '档位一致率': '人工确认 AI 结论的样本 ÷ 全部有人工结论的样本',
+      humanOverrodeUp: 'AI 判不合适、人工推进（规则过严）',
+      humanOverrodeDown: 'AI 判合适、人工否决（规则过宽）',
+    },
+  }));
 
   /* ================= 认证 ================= */
   r.post('/api/auth/login', { public: true }, async rc => {
@@ -251,6 +268,8 @@ function buildRouter(db) {
       me: rbac.describe(rc.ctx),
       authMode: config.auth.mode,
       schemaVersion: dbmod.schemaVersion(db),
+      /* 推翻原因枚举由服务端下发（唯一真源），前端不再自己硬编码一份 */
+      overrideCodes: { decisions: OverrideCodes.DECISIONS, codes: OverrideCodes.CODES },
     },
     needFull(rc.ctx) ? scopeSnapshot(db, rc.ctx) : scopeSnapshot(db, rc.ctx)
   )));
@@ -440,25 +459,60 @@ function buildRouter(db) {
     return rc.ok(out);
   });
 
-  /* ================= 人工推翻 AI 结论 ================= */
+  /* ================= 人工推翻 / 确认 AI 结论 =================
+     为什么把「确认」也做成一条真实写入（原先只是一个 toast）：
+     只记录推翻，就永远算不出「人工与 AI 的一致率」——
+     样本里全是分歧，一致率恒为 0。确认 AI 结论同样是一次人工判断，
+     把它落库，一致率才有分母。这不是多加一个按钮，是让指标成立的前提。
+
+     原因码（override_code）只对推翻必填：确认 = 无异议，不需要归因。
+     取值域见 shared/override-codes.js —— 前后端同一份枚举。 */
   r.post('/api/candidates/:id/override', { need: 'screen:run' }, async rc => {
     const b = await rc.body();
-    if (!b.reason) throw badRequest('推翻必须填写原因，会进入优化数据集');
+    const decision = String(b.decision || '').trim();
+    if (!OverrideCodes.isValidDecision(decision)) {
+      throw badRequest('decision 必须是 confirmed / approved_by_human / rejected_by_human 之一');
+    }
+    const confirmed = decision === 'confirmed';
+    if (!confirmed) {
+      if (!b.reason || !String(b.reason).trim()) throw badRequest('推翻必须填写原因，会进入优化数据集');
+      if (!b.overrideCode || !OverrideCodes.isValidCode(b.overrideCode)) {
+        throw badRequest('推翻必须选择原因码（枚举见 /api/bootstrap 的 overrideCodes），当前为：' + (b.overrideCode || '空'));
+      }
+    }
     const c = db.prepare(`SELECT * FROM candidates WHERE id=?`).get(rc.params.id);
     if (!c) throw notFound('候选人不存在');
     const job = db.prepare(`SELECT dept_path FROM jobs WHERE id=?`).get(c.job_id);
     if (!rbac.inScope(rc.ctx, { deptPath: job && job.dept_path })) {
       throw denyScope(rc, 'candidate', rc.params.id, '候选人所属岗位超出本角色数据范围');
     }
-    db.prepare(`UPDATE candidates SET human_decision=?, override_reason=? WHERE id=?`)
-      .run(b.decision || 'rejected_by_human', b.reason, rc.params.id);
+
+    /* 方向自洽校验：推翻必须与 AI 建议**反向**。
+       AI 判 strong/ok（建议推进）时，「人工推进」不是推翻而是重复；
+       这种请求更像前端传错参数，直接拒掉，避免污染一致率样本。 */
+    if (!confirmed) {
+      const wantReject = OverrideCodes.aiAdvisesAdvance(c.ai_grade);
+      if (wantReject && decision === 'approved_by_human') {
+        throw badRequest('AI 已判为该推进，' + decision + ' 不构成推翻（AI 档位=' + (c.ai_grade || '未评分') + '）');
+      }
+      if (!wantReject && decision === 'rejected_by_human') {
+        throw badRequest('AI 已判为不适合，' + decision + ' 不构成推翻（AI 档位=' + (c.ai_grade || '未评分') + '）');
+      }
+    }
+
+    db.prepare(`UPDATE candidates SET human_decision=?, override_reason=?, override_code=?, human_decided_at=? WHERE id=?`)
+      .run(decision, confirmed ? null : String(b.reason).trim(), confirmed ? null : b.overrideCode, audit.nowCN(), rc.params.id);
+
+    const codeLabel = confirmed ? '人工确认 AI 结论' : ('原因码 ' + b.overrideCode + '（' + OverrideCodes.labelOfCode(b.overrideCode) + '）');
     audit.record(db, {
-      tenantId: TENANT, actorType: 'user', actorId: rc.ctx.userId, action: '人工推翻 AI 筛选结论',
+      tenantId: TENANT, actorType: 'user', actorId: rc.ctx.userId,
+      action: confirmed ? '人工确认 AI 筛选结论' : '人工推翻 AI 筛选结论',
       objectType: 'candidate', objectId: rc.params.id,
-      detail: '原因：' + b.reason + '（已进入优化数据集）', result: audit.RESULT.OK,
+      detail: (confirmed ? '' : '原因：' + b.reason + ' · ') + codeLabel + '（样本已计入一致率）',
+      result: audit.RESULT.OK,
     });
-    metrics.inc('screening.overrides');
-    return rc.ok({});
+    metrics.inc(confirmed ? 'screening.confirms' : 'screening.overrides');
+    return rc.ok({ decision, overrideCode: confirmed ? null : b.overrideCode });
   });
 
   /* 重置某岗位的 AI 评分，便于重复演示。
@@ -475,7 +529,8 @@ function buildRouter(db) {
     }
     const before = db.prepare(`SELECT COUNT(*) c FROM candidates WHERE job_id=? AND ai_score IS NOT NULL`).get(job.id).c;
     db.prepare(`UPDATE candidates SET ai_score=NULL, ai_grade=NULL, ai_reasons=NULL, ai_note=NULL,
-      human_decision=NULL, override_reason=NULL WHERE job_id=? AND ai_score IS NOT NULL`).run(job.id);
+      human_decision=NULL, override_reason=NULL, override_code=NULL, human_decided_at=NULL
+      WHERE job_id=? AND ai_score IS NOT NULL`).run(job.id);
     audit.record(db, {
       tenantId: TENANT, actorType: 'user', actorId: rc.ctx.userId, action: '重置岗位 AI 评分',
       objectType: 'job', objectId: job.id,
@@ -520,6 +575,7 @@ function buildRouter(db) {
         skills: J(c.skills), businessTags: J(c.business_tags), plusTags: J(c.plus_tags),
         score: c.ai_score, grade: c.ai_grade, reasons: J(c.ai_reasons), aiNote: c.ai_note,
         human: c.human_decision, overrideReason: c.override_reason,
+        overrideCode: c.override_code, humanDecidedAt: c.human_decided_at,
         consent: gov.validConsent(db, { tenantId: TENANT, candidateId: c.id }),
         retainUntil: c.retain_until, anonymizedAt: c.anonymized_at, masked,
       },

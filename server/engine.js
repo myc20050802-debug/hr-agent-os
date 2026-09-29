@@ -11,6 +11,7 @@
 const { extractKeywords, synthCandidates, INDUSTRY_SKILLS, INDUSTRIES } = require('./db.js');
 /* 任职要求 / JD 素材库（前后端共用，见 shared/req-lib.js） */
 const ReqLib = require('../shared/req-lib.js');
+const OverrideCodes = require('../shared/override-codes.js');
 
 const T = 'T-001';
 /* JD 素材库版本。
@@ -138,19 +139,16 @@ async function runScreening(db, { jobId = 'J-118', initiatorId = 'U-001' } = {})
   toolCall(db, taskId, 'guard.strip_protected', {}, { removed: ['gender', 'birth_date'] }, { ms: 3 });
 
   /* ⑤ 规则门槛（不消耗模型） */
-  const EDU_NAME = { 1: '大专', 2: '本科', 3: '硕士', 4: '博士' };
   /* 管培生 / 实习 / 应届岗不设年限门槛 —— 与 JD「工作经验」维度口径保持一致，
-     否则会出现「JD 写着欢迎应届生、门槛却把应届生全拦掉」的自相矛盾。 */
-  const juniorJob = ReqLib.detectJunior(job.title, [].concat(J(job.must_have), J(job.nice_have)));
+     否则会出现「JD 写着欢迎应届生、门槛却把应届生全拦掉」的自相矛盾。
+     判定逻辑统一在 ruleGate()，评测脚本用同一份，保证「评测说的」=「线上做的」。 */
+  const juniorJob = isJuniorJob(job);
   const gateYears = juniorJob ? null : job.must_years;
   const ruleBlocked = [], modelPool = [];
   for (const c of cands) {
-    const yr = c.years_exp == null ? 0 : c.years_exp;
-    const ed = c.edu_rank == null ? 0 : c.edu_rank;
-    if (gateYears != null && yr < gateYears) ruleBlocked.push([c, `工作年限 ${yr} 年 < 岗位要求 ${gateYears} 年`]);
-    else if (job.must_edu_rank != null && ed < job.must_edu_rank) ruleBlocked.push([c, `学历「${EDU_NAME[ed] || '未识别'}」低于岗位要求（${EDU_NAME[job.must_edu_rank]}及以上）`]);
-    else if (!c.parse_ok) modelPool.push([c, true]);
-    else modelPool.push([c, false]);
+    const reason = ruleGate(c, job);
+    if (reason) ruleBlocked.push([c, reason]);
+    else modelPool.push([c, !c.parse_ok]);
   }
   toolCall(db, taskId, 'rule.gate', { must_years: gateYears }, { blocked: ruleBlocked.length, passed: modelPool.length }, { ms: 2 });
   push('⚙️ 硬性门槛规则前置判断（不消耗模型）', 'rule.gate', { rule: true, ms: 2,
@@ -193,7 +191,7 @@ async function runScreening(db, { jobId = 'J-118', initiatorId = 'U-001' } = {})
     const note = modelNote
       ? (ruleNote.indexOf('⚠️') === 0 ? ruleNote.slice(0, ruleNote.indexOf('。') + 1) + modelNote : modelNote)
       : ruleNote;
-    db.prepare(`UPDATE candidates SET ai_score=?, ai_grade=?, ai_reasons=?, ai_note=?, human_decision=NULL WHERE id=?`)
+    db.prepare(`UPDATE candidates SET ai_score=?, ai_grade=?, ai_reasons=?, ai_note=?, human_decision=NULL, override_reason=NULL, override_code=NULL, human_decided_at=NULL WHERE id=?`)
       .run(r.score, r.grade, JSON.stringify(r.dims), note, c.id);
   }
   for (const [c, reason] of ruleBlocked) {
@@ -292,6 +290,96 @@ function parseFailNote(c, r) {
 }
 
 /* ===========================================================
+   规则判定（纯函数，不碰库、不调模型）
+   -----------------------------------------------------------
+   为什么要把「硬性门槛」和「维度打分」抽成独立可调用函数：
+   ① 筛选链路（runScreening）与质量评测（tools/test_eval.js）必须用**同一套判定**，
+      否则评测跑出来的准确率跟线上行为对不上，评测就成了摆设。
+   ② 抽出来之后没有任何隐式依赖（不读库、不发请求），可以在离线黄金集上批量回放。
+
+   分工（与产品口径一致）：
+     ruleGate  = 硬性门槛（年限 / 学历），规则前置、0 token，命中即出局
+     scoreOne  = 四维加权打分，产出 score + grade（strong / ok / no）
+     evaluate  = 上面两步的合成，等价于「这位候选人走完规则链路会得到什么结论」
+   =========================================================== */
+const EDU_NAME = { 1: '大专', 2: '本科', 3: '硕士', 4: '博士' };
+
+/** 岗位是否属于「管培生 / 实习 / 应届」类 —— 此类岗位不设工作年限门槛。 */
+const isJuniorJob = job => ReqLib.detectJunior(job.title, [].concat(J(job.must_have), J(job.nice_have)));
+
+/**
+ * 硬性门槛判定。
+ * @returns {string|null} 命中返回拦截原因（人话），通过返回 null
+ */
+function ruleGate(c, job) {
+  const gateYears = isJuniorJob(job) ? null : job.must_years;
+  const yr = c.years_exp == null ? 0 : c.years_exp;
+  const ed = c.edu_rank == null ? 0 : c.edu_rank;
+  if (gateYears != null && yr < gateYears) return `工作年限 ${yr} 年 < 岗位要求 ${gateYears} 年`;
+  if (job.must_edu_rank != null && ed < job.must_edu_rank) {
+    return `学历「${EDU_NAME[ed] || '未识别'}」低于岗位要求（${EDU_NAME[job.must_edu_rank]}及以上）`;
+  }
+  return null;
+}
+
+/**
+ * 完整规则判定：硬门槛 → 四维打分。
+ * @returns {{gate:boolean, score:number, grade:'strong'|'ok'|'no', reasons:Array, gateReason?:string}}
+ */
+function evaluateCandidate(c, job) {
+  const reason = ruleGate(c, job);
+  if (reason) return { gate: true, score: 0, grade: 'no', reasons: [{ dim: '硬性门槛', score: 0, max: 0, ev: reason }], gateReason: reason };
+  const r = scoreOne(c, job);
+  return { gate: false, score: r.score, grade: r.grade, reasons: r.dims };
+}
+
+/* ===========================================================
+   人工推翻 → 一致率（真实操作数据，不是演示数字）
+   -----------------------------------------------------------
+   样本 = 「既有 AI 档位、又有人工结论」的候选人。
+   人工结论只有三种（见 shared/override-codes.js）：
+     confirmed         一致
+     approved_by_human 不一致（AI 过严）
+     rejected_by_human 不一致（AI 过宽）
+   零样本时返回 rate: null 并显式说明 —— 不编一个 0% 或 100% 糊弄过去。
+   =========================================================== */
+function screeningAgreement(db, tenantId) {
+  const rows = db.prepare(
+    `SELECT ai_grade, human_decision, override_code FROM candidates
+      WHERE tenant_id=? AND ai_grade IS NOT NULL AND human_decision IS NOT NULL`
+  ).all(tenantId);
+
+  const byCodeMap = new Map();
+  let confirmed = 0, up = 0, down = 0;
+  for (const r of rows) {
+    /* 「是否一致」的口径唯一由 shared/override-codes.js 的 agrees() 定义，
+       这里不另写一份 if/else —— 否则口径会漂移成两套。 */
+    if (OverrideCodes.agrees(r.ai_grade, r.human_decision) === true) confirmed++;
+    else if (r.human_decision === 'approved_by_human') up++;
+    else if (r.human_decision === 'rejected_by_human') down++;
+    const code = r.human_decision === 'confirmed' ? null : (r.override_code || 'unclassified');
+    if (code) byCodeMap.set(code, (byCodeMap.get(code) || 0) + 1);
+  }
+  const samples = rows.length;
+  const byCode = Array.from(byCodeMap.entries())
+    .map(([code, count]) => ({ code, label: OverrideCodes.labelOfCode(code), count }))
+    .sort((a, b) => b.count - a.count);
+
+  return {
+    samples,
+    confirmed,
+    humanOverrodeUp: up,      // AI 判不合适、人推进 → 规则过严
+    humanOverrodeDown: down,  // AI 判合适、人否决 → 规则过宽
+    agreementRate: samples ? Number((confirmed / samples).toFixed(4)) : null,
+    byCode,
+    note: samples
+      ? '样本来自本租户真实人工操作；byCode 分布即「下一步该修什么」的排序清单'
+      : '尚无人工复核结论。在候选人详情里确认或推翻一次 AI 结论，即产生样本（不做演示假数据）',
+  };
+}
+
+
+/* ===========================================================
    审批：批准 → 真实执行写回；驳回 → 记录原因
    =========================================================== */
 function decide(db, apId, reviewerId, decision, reason) {
@@ -317,7 +405,7 @@ function decide(db, apId, reviewerId, decision, reason) {
       const rel = p.jobId
         ? db.prepare(`SELECT id FROM candidates WHERE ai_score IS NOT NULL AND stage='待人工复核' AND job_id=?`).all(p.jobId)
         : db.prepare(`SELECT id FROM candidates WHERE ai_score IS NOT NULL AND stage='待人工复核'`).all();
-      const clear = db.prepare(`UPDATE candidates SET ai_score=NULL, ai_grade=NULL, ai_reasons=NULL, ai_note=NULL, human_decision=NULL WHERE id=?`);
+      const clear = db.prepare(`UPDATE candidates SET ai_score=NULL, ai_grade=NULL, ai_reasons=NULL, ai_note=NULL, human_decision=NULL, override_reason=NULL, override_code=NULL, human_decided_at=NULL WHERE id=?`);
       for (const r of rel) { clear.run(r.id); released++; }
     }
 
@@ -1266,6 +1354,8 @@ function bootstrap(db) {
     score: c.ai_score == null ? null : c.ai_score, grade: c.ai_grade || null,
     stage: c.stage, parseOk: !!c.parse_ok, source: c.source, synthesized: !!c.synthesized,
     reasons: c.ai_reasons ? J(c.ai_reasons) : [], aiNote: c.ai_note || '',
+    /* 人工结论与原因码要跟着候选人一起下发，否则刷新后前端无法回显「已确认 / 已推翻」 */
+    human: c.human_decision || null, overrideReason: c.override_reason || null, overrideCode: c.override_code || null,
     ruleHit: c.ai_grade === 'no' && J(c.ai_reasons)[0] && J(c.ai_reasons)[0].dim === '硬性门槛' ? J(c.ai_reasons)[0].ev : null,
     parseNote: c.parse_ok ? null : 'PDF 为扫描件，工作经历时间解析不确定，需人工补录'
   }));
@@ -1315,4 +1405,6 @@ function userName(db, id) {
 
 module.exports = { runScreening, decide, chat, bootstrap, tryExportAll, audit, llm, llmConfigured, T,
   runJD, buildJD, scanJd, suggestRequirements, expandRequirements, renderReqs, eduRequirement, INDUSTRY_REQ, REQ_DIMS,
-  createJob, updateJob, deleteJob, autoSeedCandidates, nextJobId };
+  createJob, updateJob, deleteJob, autoSeedCandidates, nextJobId,
+  /* 规则判定与一致率：供评测脚本与指标接口复用（同一份逻辑，避免「评测/线上两套」） */
+  scoreOne, ruleGate, evaluateCandidate, isJuniorJob, screeningAgreement, OverrideCodes };

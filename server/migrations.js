@@ -20,6 +20,7 @@
      v3  governance            授权留痕 / 留存策略 / 删除请求（M8 数据治理）
      v4  audit_append_only     审计表 append-only 的**数据库层**约束（触发器）
      v5  hiring_pipeline       面试与 Offer 实体（把「已邀约」之后的链路补成真的）
+     v6  override_code         人工推翻原因结构化（把「进入优化数据集」从承诺变成可统计的枚举）
    =========================================================== */
 'use strict';
 const { logger } = require('./logger.js');
@@ -272,6 +273,23 @@ const MIGRATIONS = [
   {
     version: 5, name: 'hiring_pipeline',
     up(db) { db.exec(HIRING_SQL); },
+  },
+  {
+    /* v6 · 人工推翻原因结构化
+       为什么加：override_reason 是自由文本，能存不能用 —— 无法统计「规则最常错在哪」。
+       加上 override_code（枚举，取值见 shared/override-codes.js）后，
+       「推翻原因进入优化数据集」才第一次成为可聚合、可排序、可直接驱动改进的数据。
+       另加两个便于统计的索引：按人工结论筛选样本、按原因码分组。 */
+    version: 6, name: 'override_code',
+    up(db) {
+      const cols = db.prepare(`PRAGMA table_info(candidates)`).all().map(c => c.name);
+      if (!cols.includes('override_code')) db.exec(`ALTER TABLE candidates ADD COLUMN override_code TEXT`);
+      if (!cols.includes('human_decided_at')) db.exec(`ALTER TABLE candidates ADD COLUMN human_decided_at TEXT`);
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_cand_human     ON candidates(human_decision);
+        CREATE INDEX IF NOT EXISTS idx_cand_ovcode    ON candidates(override_code);
+      `);
+    },
   },
 ];
 
