@@ -528,7 +528,7 @@ function buildRouter(db) {
       throw denyScope(rc, 'job', rc.params.id, '岗位超出本角色数据范围');
     }
     const before = db.prepare(`SELECT COUNT(*) c FROM candidates WHERE job_id=? AND ai_score IS NOT NULL`).get(job.id).c;
-    db.prepare(`UPDATE candidates SET ai_score=NULL, ai_grade=NULL, ai_reasons=NULL, ai_note=NULL,
+    db.prepare(`UPDATE candidates SET ai_score=NULL, ai_grade=NULL, ai_reasons=NULL, ai_why=NULL, ai_note=NULL,
       human_decision=NULL, override_reason=NULL, override_code=NULL, human_decided_at=NULL
       WHERE job_id=? AND ai_score IS NOT NULL`).run(job.id);
     audit.record(db, {

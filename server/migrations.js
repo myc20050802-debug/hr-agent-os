@@ -291,6 +291,18 @@ const MIGRATIONS = [
       `);
     },
   },
+  {
+    version: 7, name: 'score_why',
+    up(db) {
+      /* 打分归因（为什么是这个分）。
+         为什么落库而不是每次现算：归因里含「本次命中了哪些关键词、差哪几个」，
+         这些上下文在读取时已经拿不全了（岗位关键词会随词库升级重算）。
+         落库后它就是**当时那次判断的原始记录** —— 复核历史评分时看到的是当时的理由，
+         而不是用今天的口径重算出来的理由。 */
+      const cols = db.prepare(`PRAGMA table_info(candidates)`).all().map(c => c.name);
+      if (!cols.includes('ai_why')) db.exec(`ALTER TABLE candidates ADD COLUMN ai_why TEXT`);
+    },
+  },
 ];
 
 const LATEST = MIGRATIONS.reduce((m, x) => Math.max(m, x.version), 0);

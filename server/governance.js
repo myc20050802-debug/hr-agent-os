@@ -22,11 +22,13 @@ const audit = require('./audit.js');
 const { badRequest, notFound } = require('./errors.js');
 const { logger } = require('./logger.js');
 
-/* 候选人的可识别字段 —— 匿名化时要抹掉的清单（含 JSON 数组字段） */
+/* 候选人的可识别字段 —— 匿名化时要抹掉的清单（含 JSON 数组字段）
+   注意 ai_why 也在清单里：归因文案里含具体业务标签与命中情况（如「命中 2 个
+   商业化、增长类业务标签」），属于对「这个人」的画像描述，匿名化时不能留下。 */
 const IDENTIFYING_FIELDS = [
   ['name', "'已删除'"], ['gender', 'NULL'], ['birth_date', 'NULL'], ['company', 'NULL'],
   ['edu_text', 'NULL'], ['skills', "'[]'"], ['business_tags', "'[]'"], ['plus_tags', "'[]'"],
-  ['ai_reasons', "'[]'"], ['ai_note', 'NULL'], ['override_reason', 'NULL'], ['override_code', 'NULL'], ['source', 'NULL'],
+  ['ai_reasons', "'[]'"], ['ai_why', 'NULL'], ['ai_note', 'NULL'], ['override_reason', 'NULL'], ['override_code', 'NULL'], ['source', 'NULL'],
 ];
 
 const DEFAULT_POLICIES = [
@@ -157,7 +159,9 @@ function exportSubjectData(db, { tenantId, candidateId }) {
       gender: c.gender, birth: c.birth_date, company: c.company, edu: c.edu_text,
       years: c.years_exp, skills: JSON.parse(c.skills || '[]'),
     },
-    screening: { score: c.ai_score, grade: c.ai_grade, note: c.ai_note, human: c.human_decision },
+    /* 「为什么给了这个分」是自动决策的说明，属于当事人有权知悉的内容
+       （《个人信息保护法》第 24 条自动化决策的透明度要求）—— 导出时一并给出。 */
+    screening: { score: c.ai_score, grade: c.ai_grade, note: c.ai_note, why: c.ai_why ? JSON.parse(c.ai_why) : null, human: c.human_decision },
     consents: listConsents(db, { tenantId, candidateId }),
     retention: { retainUntil: c.retain_until, anonymizedAt: c.anonymized_at },
     generatedAt: nowCN(),

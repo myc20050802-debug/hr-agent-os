@@ -12,6 +12,10 @@ const { extractKeywords, synthCandidates, INDUSTRY_SKILLS, INDUSTRIES } = requir
 /* 任职要求 / JD 素材库（前后端共用，见 shared/req-lib.js） */
 const ReqLib = require('../shared/req-lib.js');
 const OverrideCodes = require('../shared/override-codes.js');
+/* 打分归因（前后端共用，见 shared/score-why.js）。
+   系数阶梯也只在这里一份 —— 原本 scoreOne 与前端 scoreResume 各抄了一套，
+   任何一侧改了阶梯，另一侧的「为什么是这个分」就会开始说谎。 */
+const ScoreWhy = require('../shared/score-why.js');
 
 const T = 'T-001';
 /* JD 素材库版本。
@@ -204,11 +208,11 @@ async function runScreening(db, { jobId = 'J-118', initiatorId = 'U-001' } = {})
     const note = modelNote
       ? (ruleNote.indexOf('⚠️') === 0 ? ruleNote.slice(0, ruleNote.indexOf('。') + 1) + modelNote : modelNote)
       : ruleNote;
-    db.prepare(`UPDATE candidates SET ai_score=?, ai_grade=?, ai_reasons=?, ai_note=?, human_decision=NULL, override_reason=NULL, override_code=NULL, human_decided_at=NULL WHERE id=?`)
-      .run(r.score, r.grade, JSON.stringify(r.dims), note, c.id);
+    db.prepare(`UPDATE candidates SET ai_score=?, ai_grade=?, ai_reasons=?, ai_why=?, ai_note=?, human_decision=NULL, override_reason=NULL, override_code=NULL, human_decided_at=NULL WHERE id=?`)
+      .run(r.score, r.grade, JSON.stringify(r.dims), r.why ? JSON.stringify(r.why) : null, note, c.id);
   }
   for (const [c, reason] of ruleBlocked) {
-    db.prepare(`UPDATE candidates SET ai_score=0, ai_grade='no', ai_reasons=?, ai_note=? WHERE id=?`)
+    db.prepare(`UPDATE candidates SET ai_score=0, ai_grade='no', ai_reasons=?, ai_why=NULL, ai_note=? WHERE id=?`)
       .run(JSON.stringify([{ dim: '硬性门槛', score: 0, max: 0, ev: reason }]), '硬性条件不满足，被规则前置拦截（未消耗模型调用）。', c.id);
   }
   push('⚙️ PII 脱敏后写入评分结果', 'guard.mask_pii', { rule: true, ms: 4,
@@ -266,6 +270,11 @@ function kwHit(list, kws) {
   return out;
 }
 
+/**
+ * 四维加权打分。系数取自 shared/score-why.js 的 LADDERS（唯一来源），
+ * 同时产出 why（归因）—— 分数与「为什么是这个分」必须同源，否则会互相打脸。
+ * @returns {{score:number, grade:string, dims:Array, why:object}}
+ */
 function scoreOne(c, job) {
   const skills = J(c.skills), biz = J(c.business_tags), plus = J(c.plus_tags);
   const kws = J(job.keywords).length ? J(job.keywords) : extractKeywords([...J(job.must_have), ...J(job.nice_have)]);
@@ -275,30 +284,47 @@ function scoreOne(c, job) {
 
   const skillHit = kwHit(skills, kws);
   const coverage = kws.length ? skillHit.length / kws.length : (skills.length ? 0.8 : 0.4);
-  const r1 = coverage >= 0.7 ? 0.95 : coverage >= 0.5 ? 0.85 : coverage >= 0.35 ? 0.7 : coverage >= 0.2 ? 0.55 : 0.35;
+  const r1 = ScoreWhy.coefOf('skill', coverage);
   const s1 = Math.round(wx * r1);
 
   const bizN = biz.length;
-  const r2 = bizN >= 4 ? 1 : bizN === 3 ? 0.9 : bizN === 2 ? 0.72 : bizN === 1 ? 0.55 : 0.2;
+  const r2 = ScoreWhy.coefOf('biz', bizN);
   const s2 = Math.round(wy * r2);
 
   const mustYears = job.must_years == null ? 0 : job.must_years;
   const yr = c.years_exp == null ? 0 : c.years_exp;
-  const r3 = mustYears <= 0 ? 0.8 : yr >= mustYears * 2 ? 1 : yr >= mustYears * 1.3 ? 0.87 : yr >= mustYears ? 0.75 : 0.5;
+  const r3 = ScoreWhy.coefOf('stab', yr, mustYears);
   const s3 = Math.round(wz * r3);
 
   const plusN = plus.length;
-  const r4 = plusN >= 3 ? 1 : plusN === 2 ? 0.85 : plusN === 1 ? 0.55 : 0;
+  const r4 = ScoreWhy.coefOf('plus', plusN);
   const s4 = Math.round(wu * r4);
 
   const score = Math.min(100, s1 + s2 + s3 + s4);
   const dims = [
-    { dim: '技能匹配', score: s1, max: wx, ev: `命中岗位关键词 ${skillHit.length}/${kws.length} 项：${(skillHit.slice(0, 5).join('、') || '无')}` },
-    { dim: '业务匹配', score: s2, max: wy, ev: biz.length ? `业务经验：${biz.join('、')}` : '简历未体现相关业务经验' },
-    { dim: '稳定性', score: s3, max: wz, ev: `总工作年限 ${yr} 年（岗位要求 ${mustYears} 年）` },
-    { dim: '加分项', score: s4, max: wu, ev: plus.length ? plus.join('、') : '无加分项' }
+    { dim: '技能匹配', score: s1, max: wx, coef: r1, ev: `命中岗位关键词 ${skillHit.length}/${kws.length} 项：${(skillHit.slice(0, 5).join('、') || '无')}` },
+    { dim: '业务匹配', score: s2, max: wy, coef: r2, ev: biz.length ? `业务经验：${biz.join('、')}` : '简历未体现相关业务经验' },
+    { dim: '稳定性', score: s3, max: wz, coef: r3, ev: `总工作年限 ${yr} 年（岗位要求 ${mustYears} 年）` },
+    { dim: '加分项', score: s4, max: wu, coef: r4, ev: plus.length ? plus.join('、') : '无加分项' }
   ];
-  return { score, grade: score >= 78 ? 'strong' : score >= 60 ? 'ok' : 'no', dims };
+  /* 职能族：业务标签只有「该族的标签池」才有意义，归因文案要写清楚是哪个族。
+     入参与 db.js 生成 JD 时完全一致（title + 硬性/加分要求），保证不会出现
+     「JD 是产品岗、归因却说技术族业务标签」的错位。 */
+  const fnKey = ReqLib.detectFunction(job.title || '', [...J(job.must_have), ...J(job.nice_have)]);
+  const fn = fnKey ? ReqLib.FUNCTIONS[fnKey] : null;
+  const why = ScoreWhy.explain({
+    score, dims,
+    ctx: {
+      kws, kHit: skillHit,
+      kwsMiss: kws.filter(k => kwHit(skills, [k]).length === 0),
+      cov: coverage,
+      fnName: fn ? fn.name : '',
+      bizHits: biz, bizPool: fn ? fn.biz : [],
+      plusHits: plus, plusPool: fn ? fn.plus : [],
+      years: yr, needYears: mustYears, juniorJob: mustYears <= 0,
+    },
+  });
+  return { score, grade: score >= 78 ? 'strong' : score >= 60 ? 'ok' : 'no', dims, why };
 }
 function parseFailNote(c, r) {
   return (!c.parse_ok ? '⚠️ 简历解析存在不确定字段，评分置信度低，建议人工核对。' : '')
@@ -341,13 +367,13 @@ function ruleGate(c, job) {
 
 /**
  * 完整规则判定：硬门槛 → 四维打分。
- * @returns {{gate:boolean, score:number, grade:'strong'|'ok'|'no', reasons:Array, gateReason?:string}}
+ * @returns {{gate:boolean, score:number, grade:'strong'|'ok'|'no', reasons:Array, why:object|null, gateReason?:string}}
  */
 function evaluateCandidate(c, job) {
   const reason = ruleGate(c, job);
-  if (reason) return { gate: true, score: 0, grade: 'no', reasons: [{ dim: '硬性门槛', score: 0, max: 0, ev: reason }], gateReason: reason };
+  if (reason) return { gate: true, score: 0, grade: 'no', reasons: [{ dim: '硬性门槛', score: 0, max: 0, ev: reason }], why: null, gateReason: reason };
   const r = scoreOne(c, job);
-  return { gate: false, score: r.score, grade: r.grade, reasons: r.dims };
+  return { gate: false, score: r.score, grade: r.grade, reasons: r.dims, why: r.why };
 }
 
 /* ===========================================================
@@ -422,7 +448,7 @@ function decide(db, apId, reviewerId, decision, reason) {
       const rel = p.jobId
         ? db.prepare(`SELECT id FROM candidates WHERE ai_score IS NOT NULL AND stage='待人工复核' AND job_id=?`).all(p.jobId)
         : db.prepare(`SELECT id FROM candidates WHERE ai_score IS NOT NULL AND stage='待人工复核'`).all();
-      const clear = db.prepare(`UPDATE candidates SET ai_score=NULL, ai_grade=NULL, ai_reasons=NULL, ai_note=NULL, human_decision=NULL, override_reason=NULL, override_code=NULL, human_decided_at=NULL WHERE id=?`);
+      const clear = db.prepare(`UPDATE candidates SET ai_score=NULL, ai_grade=NULL, ai_reasons=NULL, ai_why=NULL, ai_note=NULL, human_decision=NULL, override_reason=NULL, override_code=NULL, human_decided_at=NULL WHERE id=?`);
       for (const r of rel) { clear.run(r.id); released++; }
     }
 
@@ -1371,6 +1397,9 @@ function bootstrap(db) {
     score: c.ai_score == null ? null : c.ai_score, grade: c.ai_grade || null,
     stage: c.stage, parseOk: !!c.parse_ok, source: c.source, synthesized: !!c.synthesized,
     reasons: c.ai_reasons ? J(c.ai_reasons) : [], aiNote: c.ai_note || '',
+    /* 打分归因跟着候选人一起下发 —— 「每个分数都要有原因」是界面约定，
+       不能让前端自己去猜。旧数据（v7 之前打的）没有 ai_why，前端会退化成只显示维度依据。 */
+    why: c.ai_why ? J(c.ai_why) : null,
     /* 人工结论与原因码要跟着候选人一起下发，否则刷新后前端无法回显「已确认 / 已推翻」 */
     human: c.human_decision || null, overrideReason: c.override_reason || null, overrideCode: c.override_code || null,
     ruleHit: c.ai_grade === 'no' && J(c.ai_reasons)[0] && J(c.ai_reasons)[0].dim === '硬性门槛' ? J(c.ai_reasons)[0].ev : null,
