@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>从 PoC 到可用软件的落地路径</title>
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+  --line:#262c39; --line2:#323a4b;
+  --tx:#e7eaf1; --tx2:#a8b1c2; --tx3:#6f7a8d;
+  --ac:#4c8dff; --ac2:#7aa9ff; --grn:#3ddc97; --yel:#f5b942; --red:#ff6b6b; --pur:#a78bfa;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:15px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+header{position:sticky;top:0;z-index:50;background:rgba(13,15,20,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:14px 26px 0}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1.brand{font-size:17px;margin:0;letter-spacing:.3px}
+.sub{color:var(--tx3);font-size:12.5px}
+.searchbox{margin-left:auto;display:flex;align-items:center;gap:8px}
+input#q{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:9px;
+  padding:8px 12px;width:240px;font-size:13px;outline:none}
+input#q:focus{border-color:var(--ac)}
+.hint{font-size:12px;color:var(--tx3)}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx2);
+  padding:9px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac2);border-bottom-color:var(--ac);font-weight:600}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1560px;margin:0 auto}
+aside{position:sticky;top:112px;align-self:start;height:calc(100vh - 112px);overflow-y:auto;
+  padding:22px 14px 60px 26px;border-right:1px solid var(--line)}
+.tocgroup{display:flex;flex-direction:column;gap:1px}
+.toclink{display:block;color:var(--tx2);text-decoration:none;font-size:13px;padding:5px 9px;
+  border-radius:7px;line-height:1.45}
+.toclink:hover{background:var(--panel2);color:var(--tx)}
+.toclink.lvl2{padding-left:20px}
+.toclink.lvl3{padding-left:32px;font-size:12.5px;color:var(--tx3)}
+main{padding:26px 34px 120px;min-width:0}
+.docmeta{font:12px var(--mono);color:var(--tx3);margin-bottom:18px;
+  border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;display:inline-block}
+article h1{font-size:27px;margin:26px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+article h2{font-size:21px;margin:38px 0 14px;padding:9px 0 9px 13px;border-left:3px solid var(--ac);
+  background:linear-gradient(90deg,rgba(76,141,255,.09),transparent);border-radius:0 8px 8px 0}
+article h3{font-size:17px;margin:28px 0 10px;color:var(--ac2)}
+article h4{font-size:15px;margin:20px 0 8px;color:var(--tx2)}
+p{margin:9px 0}
+a{color:var(--ac2)}
+strong{color:#fff;font-weight:650}
+em{color:var(--yel);font-style:normal}
+code{font:12.6px var(--mono);background:var(--panel2);border:1px solid var(--line);
+  padding:1.5px 5px;border-radius:5px;color:#ffd479}
+.codeblock{margin:14px 0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0a0c11}
+.codetop{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);font:11.5px var(--mono);color:var(--tx3)}
+.copybtn{background:var(--panel2);border:1px solid var(--line2);color:var(--tx2);font-size:11.5px;
+  padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.copybtn:hover{color:var(--tx);border-color:var(--ac)}
+pre{margin:0;padding:14px 16px;overflow-x:auto}
+pre code{background:none;border:none;padding:0;color:#cfd8e6;font-size:12.6px;line-height:1.62}
+blockquote{margin:14px 0;padding:13px 16px;background:linear-gradient(90deg,rgba(167,139,250,.10),rgba(167,139,250,.02));
+  border-left:3px solid var(--pur);border-radius:0 10px 10px 0;color:#d9def0}
+blockquote p{margin:4px 0}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+th{background:var(--panel);text-align:left;padding:10px 12px;font-weight:640;color:var(--ac2);
+  border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(76,141,255,.05);color:var(--tx)}
+ul,ol{margin:9px 0;padding-left:24px}
+li{margin:5px 0;color:var(--tx2)}
+li strong{color:var(--tx)}
+hr.sep{border:none;border-top:1px solid var(--line);margin:26px 0}
+mark{background:rgba(245,185,66,.34);color:#fff;border-radius:3px;padding:0 2px}
+.hidden{display:none !important}
+footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-size:12.5px;text-align:center}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}aside{display:none}main{padding:20px 16px 90px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 class="brand">从 PoC 到可用软件的落地路径</h1>
+    <span class="sub">HR-Agent OS · 三档可用性路径 / 部署 / 备份 / 真实数据入口</span>
+    <div class="searchbox">
+      <span class="hint" id="hint">全文搜索</span>
+      <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs"><button class="tab active" data-doc="doc0">HR-Agent OS · 从 PoC 到「可以用的软件」的落地路径</button></div>
+</header>
+<div class="wrap">
+  <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--HR-Agent-OS-从-PoC-到-可以用的软件-的落地路径" data-text="HR-Agent OS · 从 PoC 到「可以用的软件」的落地路径">HR-Agent OS · 从 PoC 到「可以用的软件」的落地路径</a><a class="toclink lvl2" href="#doc0--零-先对齐一件事-可以用-不是一个档位-是三个" data-text="零、先对齐一件事：「可以用」不是一个档位，是三个">零、先对齐一件事：「可以用」不是一个档位，是三个</a><a class="toclink lvl2" href="#doc0--一-现状盘点-缺的不是功能-是三件很具体的事" data-text="一、现状盘点：缺的不是功能，是三件很具体的事">一、现状盘点：缺的不是功能，是三件很具体的事</a><a class="toclink lvl2" href="#doc0--二-A-档-让面试官点开就能用-1-2-天-性价比最高" data-text="二、A 档 · 让面试官点开就能用（1–2 天，性价比最高）">二、A 档 · 让面试官点开就能用（1–2 天，性价比最高）</a><a class="toclink lvl3" href="#doc0--A1-先选-怎么让别人访问到-三条路-按场景挑" data-text="A1 · 先选「怎么让别人访问到」——三条路，按场景挑">A1 · 先选「怎么让别人访问到」——三条路，按场景挑</a><a class="toclink lvl3" href="#doc0--A2-云服务器正式部署-如果要长期可用" data-text="A2 · 云服务器正式部署（如果要长期可用）">A2 · 云服务器正式部署（如果要长期可用）</a><a class="toclink lvl3" href="#doc0--A3-HTTPS-与-COOKIE_SECURE-必须成对出现" data-text="A3 · HTTPS 与 COOKIE_SECURE 必须成对出现">A3 · HTTPS 与 COOKIE_SECURE 必须成对出现</a><a class="toclink lvl3" href="#doc0--A4-演示安全网-一旦公网可达-必做" data-text="A4 · 演示安全网（一旦公网可达，必做）">A4 · 演示安全网（一旦公网可达，必做）</a><a class="toclink lvl3" href="#doc0--A5-三处顺手清理-各-10-分钟" data-text="A5 · 三处顺手清理（各 10 分钟）">A5 · 三处顺手清理（各 10 分钟）</a><a class="toclink lvl2" href="#doc0--三-B-档-给一个真实-HR-小组用-2-4-周" data-text="三、B 档 · 给一个真实 HR 小组用（2–4 周）">三、B 档 · 给一个真实 HR 小组用（2–4 周）</a><a class="toclink lvl3" href="#doc0--B1-备份与恢复-第一优先-先于一切功能" data-text="B1 · 备份与恢复（第一优先，先于一切功能）">B1 · 备份与恢复（第一优先，先于一切功能）</a><a class="toclink lvl3" href="#doc0--B2-真实简历入口-这是-真用-的门槛" data-text="B2 · 真实简历入口（这是「真用」的门槛）">B2 · 真实简历入口（这是「真用」的门槛）</a><a class="toclink lvl3" href="#doc0--B3-模型接入-否则真实简历的评分质量撑不住" data-text="B3 · 模型接入（否则真实简历的评分质量撑不住）">B3 · 模型接入（否则真实简历的评分质量撑不住）</a><a class="toclink lvl3" href="#doc0--B4-运维补齐" data-text="B4 · 运维补齐">B4 · 运维补齐</a><a class="toclink lvl3" href="#doc0--B5-身份-从演示口令换成企业身份源" data-text="B5 · 身份：从演示口令换成企业身份源">B5 · 身份：从演示口令换成企业身份源</a><a class="toclink lvl2" href="#doc0--四-C-档-对外卖-2-6-月" data-text="四、C 档 · 对外卖（2–6 月）">四、C 档 · 对外卖（2–6 月）</a><a class="toclink lvl2" href="#doc0--五-别做的事-省下的是几周" data-text="五、别做的事（省下的是几周）">五、别做的事（省下的是几周）</a><a class="toclink lvl2" href="#doc0--六-最小可用路径-如果只做一件事" data-text="六、最小可用路径（如果只做一件事）">六、最小可用路径（如果只做一件事）</a><a class="toclink lvl2" href="#doc0--附录-A-验收口径-A-档" data-text="附录 A · 验收口径（A 档）">附录 A · 验收口径（A 档）</a><a class="toclink lvl2" href="#doc0--附录-B-一句话回答-离能用的软件还差什么" data-text="附录 B · 一句话回答「离能用的软件还差什么」">附录 B · 一句话回答「离能用的软件还差什么」</a></div></aside>
+  <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">11_从PoC到可用软件的落地路径.md</div><h1 id="doc0--HR-Agent-OS-从-PoC-到-可以用的软件-的落地路径">HR-Agent OS · 从 PoC 到「可以用的软件」的落地路径</h1>
+<blockquote>审计时间：2026-09-29（北京时间） 审计方法：读码 + 实测（非引用历史文档）。所有「现状」标注可核验出处。 与 <code>docs/05_从PoC到企业级的差距清单.md</code> 的关系：<strong>那份已过时</strong>——它写作于身份还能用 <code>X-User</code> 请求头伪造的时代，其 P0-1（认证）/ P0-2（权限）现在<strong>已完成</strong>。本文覆盖其后的真实状态。 纪律：不编硬数字。工作量标注为<strong>估算</strong>，非承诺。</blockquote>
+<hr class="sep">
+<h2 id="doc0--零-先对齐一件事-可以用-不是一个档位-是三个">零、先对齐一件事：「可以用」不是一个档位，是三个</h2>
+<p><strong>这是本文最重要的一句话：把「可用」和「企业级」混为一谈，是这类项目最常见、也最致命的误判。</strong></p>
+<p>因为它会让你在最该上线的时候，去做换数据库、做多租户——结果永远没有「用起来」的那一天。</p>
+<div class="tablewrap"><table><thead><tr><th>档</th><th>使用者</th><th>一句话验收标准</th><th>估算</th></tr></thead><tbody><tr><td><strong>A · 演示可达</strong></td><td>面试官 / 售前听众 / 你自己</td><td>给他一个链接，他打开、登录、能完整点一遍</td><td><strong>1–2 天</strong></td></tr><tr><td><strong>B · 团队可用</strong></td><td>一个真实 HR 小组（3–10 人）</td><td>每天拿<strong>真简历</strong>跑，重启不丢数据，出错有人知道</td><td><strong>2–4 周</strong></td></tr><tr><td><strong>C · 对外可卖</strong></td><td>付费客户（含私有化）</td><td>两个客户数据不串、能过合规审查、能签 SLA</td><td><strong>2–6 月</strong></td></tr></tbody></table></div>
+<p><strong>绝大多数人问「怎么变成能用的软件」时，真正想要的是 A 档，却按 C 档的清单在准备。</strong> 本文先给 A 档的完整可执行路径。</p>
+<hr class="sep">
+<h2 id="doc0--一-现状盘点-缺的不是功能-是三件很具体的事">一、现状盘点：缺的不是功能，是三件很具体的事</h2>
+<p>先说<strong>已经有的</strong>（这些是资产，不该被「离可用还差得远」这句话抹掉）：</p>
+<div class="tablewrap"><table><thead><tr><th>能力</th><th>出处</th><th>状态</th></tr></thead><tbody><tr><td>认证：不透明令牌 + 服务端 <code>sessions</code> 表、scrypt 哈希、防账号枚举（计时对齐）、5 次锁定、改密即踢下线</td><td><code>server/auth.js</code></td><td>✅ 生产级思路</td></tr><tr><td>权限：三层（能力 × 范围 × 字段），403 写审计</td><td><code>server/rbac.js</code></td><td>✅</td></tr><tr><td>审计：数据库触发器保证 append-only</td><td><code>server/db.js</code></td><td>✅</td></tr><tr><td>迁移：版本化，空库可一键建到最新</td><td><code>server/migrations.js</code></td><td>✅</td></tr><tr><td>一键启动 / 一键回归 / 压测 / 评测集</td><td><code>package.json</code>、<code>tools/run_all.js</code></td><td>✅</td></tr><tr><td>运维：WAL checkpoint、优雅关闭、限流、安全头、路径穿越防护</td><td><code>server/http-kernel.js</code>、<code>server.js</code></td><td>✅</td></tr><tr><td>可观测：结构化日志 + 延迟分位</td><td><code>server/logger.js</code>、<code>server/metrics.js</code></td><td>有，但进程内</td></tr></tbody></table></div>
+<p>再说<strong>真正卡住「可用」的</strong>（按挡路程度排序）：</p>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>缺口</th><th>证据</th><th>卡住哪一档</th></tr></thead><tbody><tr><td>1</td><td><strong>绑死 <code>127.0.0.1</code></strong>，别人根本访问不到</td><td><code>config.js:77</code> <code>host: str('HOST','127.0.0.1')</code></td><td>A</td></tr><tr><td>2</td><td><strong>无任何部署产物</strong>：无 Dockerfile / CI / 反代配置 / <code>.env.example</code></td><td>全仓 Glob 无命中</td><td>A</td></tr><tr><td>3</td><td><strong>无 HTTPS</strong> → 会话 Cookie 明文传输，不能上公网</td><td><code>config.js:96</code> <code>cookieSecure: false</code></td><td>A</td></tr><tr><td>4</td><td><strong>前端 500KB 且 <code>Cache-Control: no-store</code></strong> → 每次刷新重下整包</td><td><code>http-kernel.js:169</code> 全局设 no-store；静态服务无 ETag</td><td>A（体验）</td></tr><tr><td>5</td><td><strong>无备份与恢复</strong>，库文件删了就全丢</td><td>全仓无备份脚本（只有注释讨论备份重要性）</td><td>A（安全网）/ B</td></tr><tr><td>6</td><td><strong>没有真实简历入口</strong>：候选人只能由 <code>seed-candidates</code> 合成</td><td><code>routes.js:317</code> 仅有合成种子；无文件上传 / 无 PDF 解析</td><td>B</td></tr><tr><td>7</td><td><strong>模型未接入</strong>，按规则打分</td><td><code>/api/health</code> → <code>mode:"rule"</code></td><td>B（真实简历质量）</td></tr><tr><td>8</td><td><strong>指标进程内</strong>：重启清零、无 <code>/metrics</code> 端点、无告警</td><td><code>metrics.js</code> 用内存固定桶</td><td>B</td></tr><tr><td>9</td><td><strong>单租户写死</strong> <code>const TENANT = 'T-001'</code></td><td><code>routes.js:30</code></td><td>C</td></tr><tr><td>10</td><td><strong>SQLite 单写者</strong>，并发写有天花板</td><td><code>db.js</code> + ADR-005</td><td>C</td></tr><tr><td>11</td><td>数据治理半落地（有 <code>consent_given</code> / <code>retain_until</code> 字段，无删除/加密闭环）</td><td><code>db.js</code> 注释 vs 无实现</td><td>C</td></tr><tr><td>12</td><td>CORS 仍允许 <code>X-User</code> 头（服务端已不读它）</td><td><code>http-kernel.js:204</code></td><td>噪音，顺手清</td></tr></tbody></table></div>
+<blockquote><strong>一句话结论</strong>：<strong>它不是一个「功能不全的半成品」，是一个「功能齐全但别人访问不到、数据没兜底、真简历进不来」的作品。</strong> 前两点属于 A 档，第三点属于 B 档。</blockquote>
+<hr class="sep">
+<h2 id="doc0--二-A-档-让面试官点开就能用-1-2-天-性价比最高">二、A 档 · 让面试官点开就能用（1–2 天，性价比最高）</h2>
+<h3 id="doc0--A1-先选-怎么让别人访问到-三条路-按场景挑">A1 · 先选「怎么让别人访问到」——三条路，按场景挑</h3>
+<div class="tablewrap"><table><thead><tr><th>路径</th><th>适用</th><th>耗时</th><th>代价</th></tr></thead><tbody><tr><td><strong>① 内网直连</strong></td><td>面试现场、同事在同一 WiFi</td><td>5 分钟</td><td>只能同网段访问</td></tr><tr><td><strong>② 临时公网隧道</strong>（推荐给面试）</td><td>给面试官一个链接，他随时能点</td><td>10 分钟</td><td>URL 每次重启会变、<strong>公开可访问</strong>（需配 A4）</td></tr><tr><td><strong>③ 云服务器正式部署</strong></td><td>长期可用、多人用</td><td>半天</td><td>需要服务器与域名</td></tr></tbody></table></div>
+<p><strong>路径 ①（最快）</strong>：改绑所有网卡，用本机局域网 IP 访问。</p>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code># server/.env
+HOST=0.0.0.0
+PORT=8788</code></pre></div>
+<p>然后 <code>ipconfig</code> 查本机 IP（如 <code>192.168.1.20</code>），同一 WiFi 下的人访问 <code>http://192.168.1.20:8788</code>。</p>
+<p>⚠️ 此时<strong>不要</strong>设 <code>COOKIE_SECURE=1</code>——HTTP 下 Secure Cookie 不会被浏览器发送，你会登录不上（见 A3）。</p>
+<p><strong>路径 ②（面试首选）</strong>：本地照常跑在 <code>127.0.0.1</code>，用 Cloudflare 快速隧道把它暴露成一个 HTTPS 公网地址。</p>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code># 安装（Windows）
+winget install --id Cloudflare.cloudflared
+
+# 起隧道（保持本地服务在跑）
+cloudflared tunnel --url http://127.0.0.1:8788
+# → 输出形如 https://xxxx-yyyy.trycloudflare.com 的公网地址，自带证书</code></pre></div>
+<p><strong>它顺带解决了三件事</strong>：HTTPS（第 3 条缺口）、边缘 gzip 压缩（第 4 条的一半）、公网可达（第 1 条）。<strong>代价是必须做 A4</strong>——因为此刻全世界都能访问你的演示系统。</p>
+<hr class="sep">
+<h3 id="doc0--A2-云服务器正式部署-如果要长期可用">A2 · 云服务器正式部署（如果要长期可用）</h3>
+<p>三步：容器化 → 反代 + 自动证书 → 守护进程。</p>
+<p><strong>⚠️ 容器化前必须先改一处代码</strong>：现在数据库路径与会话密钥都写死在 <code>server/</code> 目录下（<code>config.js:47</code>、<code>config.js:153</code>），容器重启即丢。要先让它们可配置并挂卷：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">js</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>// server/config.js —— 建议改法（当前是写死的）
+db: { file: str('DB_FILE', path.join(SERVER_DIR, 'hr_agent.db')) },
+// 会话密钥同理：secretFile: str('SESSION_SECRET_FILE', path.join(SERVER_DIR, '.session_secret'))</code></pre></div>
+<p>改完再容器化，数据才落在卷上而不是容器里。</p>
+<div class="codeblock"><div class="codetop"><span class="lang">dockerfile</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code># Dockerfile（放在仓库根）
+FROM node:22-alpine
+WORKDIR /app
+COPY package.json ./
+COPY server ./server
+COPY shared ./shared
+COPY 平台原型 ./平台原型
+ENV NODE_ENV=production HOST=0.0.0.0 PORT=8788 \
+    DB_FILE=/data/hr_agent.db SESSION_SECRET_FILE=/data/.session_secret
+VOLUME ["/data"]
+EXPOSE 8788
+# node:sqlite 在 Node 22 需显式开启实验开关；Node 24+ 可去掉
+CMD ["node","--experimental-sqlite","server/server.js"]</code></pre></div>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>docker build -t hr-agent .
+docker run -d --name hr-agent \
+  -p 127.0.0.1:8788:8788 \
+  -v /srv/hr-agent/data:/data \
+  --restart unless-stopped \
+  hr-agent</code></pre></div>
+<p><strong>反代 + 自动 HTTPS（Caddy，两行配置）</strong>：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">caddyfile</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code># /etc/caddy/Caddyfile
+hr.example.com {
+  reverse_proxy 127.0.0.1:8788
+  encode gzip               # 补上缺失的压缩
+}</code></pre></div>
+<p>Caddy 会自动申请并续期 Let's Encrypt 证书——<strong>不需要你手写任何 TLS 配置</strong>。</p>
+<p><strong>守护（不用 Docker 时）</strong>：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">ini</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code># /etc/systemd/system/hr-agent.service
+[Unit]
+Description=HR-Agent OS
+After=network.target
+
+[Service]
+WorkingDirectory=/opt/hr-agent
+ExecStart=/usr/bin/node --experimental-sqlite server/server.js
+Environment=NODE_ENV=production HOST=127.0.0.1 PORT=8788 COOKIE_SECURE=1
+EnvironmentFile=/opt/hr-agent/server/.env
+Restart=always
+RestartSec=3
+User=hr
+
+[Install]
+WantedBy=multi-user.target</code></pre></div>
+<hr class="sep">
+<h3 id="doc0--A3-HTTPS-与-COOKIE_SECURE-必须成对出现">A3 · HTTPS 与 <code>COOKIE_SECURE</code> 必须成对出现</h3>
+<p>这是最容易踩的坑：<strong>两个开关要一起动</strong>。</p>
+<div class="tablewrap"><table><thead><tr><th>场景</th><th>设置</th><th>后果</th></tr></thead><tbody><tr><td>本地 HTTP 演示</td><td><code>COOKIE_SECURE</code> 不设（默认 false）</td><td>正常</td></tr><tr><td>走隧道 / 域名（HTTPS）</td><td><code>NODE_ENV=production</code> + <code>COOKIE_SECURE=1</code></td><td>正常，且生产校验会<strong>强制</strong>你设（<code>config.js:140</code>）</td></tr><tr><td>只设了 <code>COOKIE_SECURE=1</code> 却用 HTTP 访问</td><td>——</td><td>❌ 登录成功但 Cookie 不发送 → <strong>表现为「一直没登录」</strong></td></tr></tbody></table></div>
+<p>第三条是最真实的排障陷阱，先记住它。</p>
+<hr class="sep">
+<h3 id="doc0--A4-演示安全网-一旦公网可达-必做">A4 · 演示安全网（一旦公网可达，<strong>必做</strong>）</h3>
+<p><code>config.js</code> 层面做了很多正确的事，但它保护不了你自己制造的暴露面。公网可达后，演示口令 <code>Demo@2026</code>（<code>auth.js:27</code>）和 <code>/api/admin/reset</code> 这类接口对任何人开放。四件事：</p>
+<ol>
+<li><strong>改掉共享演示口令</strong>：设 <code>DEMO_PASSWORD</code> 环境变量为一次性强口令，或干脆给面试官一个<strong>只读演示账号</strong>。</li>
+<li><strong>危险接口加开关</strong>：<code>/api/admin/reset</code>（清库重灌）在公网演示时必须禁用——建议加 <code>ALLOW_RESET=1</code> 之类的显式开关，默认关。</li>
+<li><strong>演示数据冻结</strong>：面试前跑一次 <code>npm run start:reset</code>，得到一个<strong>确定的初始态</strong>（同样的岗位、同样的候选人、同样的评分）——这样你彩排和现场看到的完全一致。</li>
+<li><strong>定时重置兜底</strong>：若面试官会自己乱点，加一个每小时重置的计划任务，保证回到干净态。</li>
+</ol>
+<blockquote>判断依据很简单：<strong>「演示」的失败不是报错，是被改坏之后再也回不到你准备好的那一版。</strong></blockquote>
+<hr class="sep">
+<h3 id="doc0--A5-三处顺手清理-各-10-分钟">A5 · 三处顺手清理（各 10 分钟）</h3>
+<div class="tablewrap"><table><thead><tr><th>清理项</th><th>位置</th><th>为什么</th></tr></thead><tbody><tr><td>删掉 CORS 里的 <code>X-User</code></td><td><code>http-kernel.js:204</code></td><td>服务端早已不读它，但允许它会让任何看代码的人怀疑「是不是还留着后门」</td></tr><tr><td>加 <code>server/.env.example</code></td><td>新建</td><td>部署时<strong>必须</strong>知道有哪些开关（现在只能翻 <code>config.js</code> 源码）</td></tr><tr><td>静态资源给 ETag / 长缓存，<code>no-store</code> 只留给 API</td><td><code>http-kernel.js:169</code>、<code>serveStatic()</code></td><td>500KB 前端每次刷新重下；单文件内容变了文件名不变，用 ETag 最稳</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--三-B-档-给一个真实-HR-小组用-2-4-周">三、B 档 · 给一个真实 HR 小组用（2–4 周）</h2>
+<p>到这里才需要动这些。顺序不能反。</p>
+<h3 id="doc0--B1-备份与恢复-第一优先-先于一切功能">B1 · 备份与恢复（<strong>第一优先，先于一切功能</strong>）</h3>
+<p>有数据的系统，<strong>没有备份就等于数据已经丢了</strong>。SQLite 的在线备份只需一行：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">js</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>// tools/backup.js（零依赖，可在服务运行时执行）
+db.exec(`VACUUM INTO 'backups/hr_${stamp}.db'`);   // 事务一致，不锁写者</code></pre></div>
+<p>配一个每日计划任务 + 保留最近 N 份 + <strong>每季度做一次恢复演练</strong>（把备份文件当主库起一次，确认真的能用）。</p>
+<blockquote>为什么要强调「演练」：<code>db.js:427</code> 的注释自己写过这个坑——「备份脚本看文件名对、大小非零，就以为备份成功，恢复时才发现少数据」。</blockquote>
+<h3 id="doc0--B2-真实简历入口-这是-真用-的门槛">B2 · 真实简历入口（这是「真用」的门槛）</h3>
+<p>现状：候选人只能由 <code>POST /api/jobs/:id/seed-candidates</code> 合成（<code>routes.js:317</code>），<strong>没有任何文件上传或文本粘贴通道</strong>。而真实 HR 手里的简历是 PDF / Word。</p>
+<p>零依赖约束下两条路：</p>
+<ul>
+<li><strong>薄方案</strong>：前端解析 PDF（<code>pdf.js</code> 一个文件）+ 把文本 POST 给现有接口 → 改动最小，但解析质量不可控；</li>
+<li><strong>稳方案</strong>：服务端收文件落对象存储，抽取文本后入库 → 多一个依赖（如 <code>pdf-parse</code>），但可控。</li>
+</ul>
+<p>⚠️ 无论哪条，<strong>简历文本属于个人信息</strong>，落盘与备份都要纳入 <code>docs/05</code> P1-3 说的治理闭环。</p>
+<h3 id="doc0--B3-模型接入-否则真实简历的评分质量撑不住">B3 · 模型接入（否则真实简历的评分质量撑不住）</h3>
+<p>规则模式在<strong>种子数据</strong>上表现可控，但真实简历的措辞千变万化，纯关键词覆盖率打分必然失真。而项目已经为此做好了准备：</p>
+<ul>
+<li><code>engine.js</code> 里 <code>llm()</code> 骨架已实现（超时 20s、失败返回 <code>null</code> 由上层降级）；</li>
+<li><code>config.js:119-124</code> 三个环境变量已预留；</li>
+<li><code>agent_tasks.token_cost</code> 字段已建。</li>
+</ul>
+<p>接入后仍要补的（<code>docs/05</code> P2-3 已列）：<strong>供应商抽象（换模型只改配置）、重试退避、token 真实记账、Prompt 版本化</strong>。</p>
+<blockquote>顺序提醒：<strong>先有评测集，再接模型。</strong> 这个项目已经有 30 例黄金集（<code>tools/golden/golden_set.json</code>）——接模型后立刻能回答「涨了还是跌了」。没有评测就接模型，等于把可解释的规则换成不可解释的玄学。</blockquote>
+<h3 id="doc0--B4-运维补齐">B4 · 运维补齐</h3>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>现状</th><th>要加</th></tr></thead><tbody><tr><td>指标</td><td>进程内固定桶，重启清零</td><td>暴露 <code>/metrics</code>（Prometheus 文本格式），换实现不改契约</td></tr><tr><td>告警</td><td>无</td><td>错误率 / 健康检查失败 → 至少一条通知（邮件或企微机器人）</td></tr><tr><td>日志</td><td>有结构化日志文件</td><td>加轮转（否则磁盘会被写满）</td></tr><tr><td>进程</td><td>手动启动</td><td>systemd / Docker <code>--restart</code> + 健康检查探测</td></tr></tbody></table></div>
+<h3 id="doc0--B5-身份-从演示口令换成企业身份源">B5 · 身份：从演示口令换成企业身份源</h3>
+<p>现在所有账号共享一个初始口令（<code>auth.js:26-27</code>，带 <code>must_change_password=1</code>）。真实团队要接<strong>企业微信 / 钉钉 / LDAP / OIDC</strong>，且不自己存密码。</p>
+<p>好消息是<strong>架构已经对了</strong>：会话表是真相来源、支持即时吊销（<code>revokeAllForUser</code>）——换身份源只需替换 <code>POST /api/auth/login</code> 的实现，<strong>不用动授权与审计</strong>。</p>
+<hr class="sep">
+<h2 id="doc0--四-C-档-对外卖-2-6-月">四、C 档 · 对外卖（2–6 月）</h2>
+<p>这一档才是 <code>docs/05</code> 写的内容，此处只给顺序（细节见那份文档）：</p>
+<div class="tablewrap"><table><thead><tr><th>阶段</th><th>做什么</th><th>为什么这个顺序</th></tr></thead><tbody><tr><td>①</td><td><strong>PostgreSQL</strong> + 连接池（表结构与 PG 同源，只需换适配层）</td><td>解并发写天花板；这是高风险动作，要在数据还少时做</td></tr><tr><td>②</td><td><strong>多租户 RLS</strong>（把 <code>const TENANT = 'T-001'</code> 换成数据库级行级安全）</td><td>「靠约束不靠约定」；现在漏一个 <code>WHERE</code> 就是跨客户数据泄漏</td></tr><tr><td>③</td><td><strong>数据治理闭环</strong>：到期自动清理、PII 加密、数据主体删除接口</td><td>《个人信息保护法》硬要求；HR 数据是最敏感的一类</td></tr><tr><td>④</td><td><strong>合规与运营</strong>：等保材料、SLA、计费、审计导出</td><td>到这一步才敢签合同</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--五-别做的事-省下的是几周">五、别做的事（省下的是几周）</h2>
+<div class="tablewrap"><table><thead><tr><th>别做</th><th>为什么</th></tr></thead><tbody><tr><td>❌ 在 A 档就换 PostgreSQL</td><td>换库是高风险数据迁移；目的是「让别人点开能用」，跟数据库无关</td></tr><tr><td>❌ 上线前做多租户</td><td>只有一个客户时，多租户是纯粹的成本，不产生任何价值</td></tr><tr><td>❌ 为了「看起来是 AI」先接模型</td><td>没有评测的模型接入 = 把可解释的规则换成不可解释的玄学，且无法回答效果问题</td></tr><tr><td>❌ 把「企业级」当成上线前提</td><td>「可用」和「企业级」是两件事；前者 2 天，后者半年</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--六-最小可用路径-如果只做一件事">六、最小可用路径（如果只做一件事）</h2>
+<blockquote><strong>把 <code>127.0.0.1</code> 换成别人能点开的地址，并且让数据每天备份一次。</strong></blockquote>
+<p>具体到命令，就是：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code># 1. 起服务（照旧）
+npm start
+
+# 2. 另开一个终端，10 秒拿到公网 HTTPS 地址
+cloudflared tunnel --url http://127.0.0.1:8788
+
+# 3. 把地址发给面试官；面试前先 npm run start:reset 冻结演示数据</code></pre></div>
+<p><strong>加上 A4 的四条安全网，这已经是一个「可以用的软件」</strong>——只是它的使用者是面试官而不是 HR 团队。而对一个 AI 产品经理的面试来说，<strong>能让面试官亲自点一遍</strong>，比任何架构文档都有说服力。</p>
+<hr class="sep">
+<h2 id="doc0--附录-A-验收口径-A-档">附录 A · 验收口径（A 档）</h2>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>验收项</th><th>通过标准</th></tr></thead><tbody><tr><td>1</td><td>外部可达</td><td>用手机 4G（非同一 WiFi）打开链接，页面完整加载</td></tr><tr><td>2</td><td>可登录</td><td>输入演示账号能进，且刷新后仍保持登录（验证 Cookie 与 Secure 设置匹配）</td></tr><tr><td>3</td><td>全链路可点</td><td>从岗位 → 生成 JD → 跑筛选 → 看评分 → 审批，无死按钮</td></tr><tr><td>4</td><td>数据可冻结</td><td><code>npm run start:reset</code> 后，每次演示的初始态完全一致</td></tr><tr><td>5</td><td>危险接口已关</td><td>公网环境下无法调用 reset 接口；演示口令非默认值</td></tr><tr><td>6</td><td>首屏可接受</td><td>弱网下首屏加载 &lt; 5s（隧道/反代已启用压缩）</td></tr><tr><td>7</td><td>崩了能回来</td><td>杀掉进程后，<code>--restart</code> / systemd 能自动拉起</td></tr></tbody></table></div>
+<h2 id="doc0--附录-B-一句话回答-离能用的软件还差什么">附录 B · 一句话回答「离能用的软件还差什么」</h2>
+<blockquote>「差的不是功能。认证、权限、审计、迁移、测试、压测我都做完了，9 个套件全绿。 差的是三件跟功能无关的事：<strong>别人访问不到</strong>（绑在 127.0.0.1、没有部署产物）、<strong>数据没有兜底</strong>（没有备份）、<strong>真实简历进不来</strong>（只有合成数据）。 前两件是 1–2 天的事——隧道加 HTTPS、加一份每日备份，它就是一个能让面试官亲自点一遍的东西。第三件加上模型接入，才是能给真实 HR 小组用。 至于换 PostgreSQL、做多租户，那是『卖给别人』才需要的；<strong>只有第一个客户还没来的时候就做多租户，才会永远等不到那个客户。</strong>」</blockquote>
+<hr class="sep">
+<p><em>本文档为落地路径分析，不含实施承诺。所有「现状」均可在本仓库核验；配置片段为建议方案，未在本机实测。</em></p></article></main>
+</div>
+<footer>生成时间：2026-09-29 17:58（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<script>
+const docs = [{"key": "doc0", "name": "HR-Agent OS · 从 PoC 到「可以用的软件」的落地路径"}];
+
+function copyCode(btn) {
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1400);
+  });
+}
+
+function showDoc(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.doc === key));
+  document.querySelectorAll('article.doc').forEach(a => a.style.display = (a.dataset.doc === key ? '' : 'none'));
+  document.querySelectorAll('.tocgroup').forEach(g => g.style.display = (g.dataset.doc === key ? '' : 'none'));
+  resetHighlight();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showDoc(t.dataset.doc));
+
+// 滚动高亮目录
+const links = () => Array.from(document.querySelectorAll('.tocgroup:not([style*="none"]) .toclink'));
+window.addEventListener('scroll', () => {
+  const actives = links();
+  let cur = null;
+  for (const a of actives) {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el && el.getBoundingClientRect().top < 180) cur = a;
+  }
+  actives.forEach(a => a.style.color = '');
+  if (cur) { cur.style.color = 'var(--ac2)'; }
+});
+
+// 全文搜索 + 高亮
+let marks = [];
+function resetHighlight() {
+  document.querySelectorAll('mark').forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  marks = [];
+  document.getElementById('hint').textContent = '全文搜索';
+  document.getElementById('hint').style.color = 'var(--tx3)';
+}
+document.getElementById('q').addEventListener('input', e => {
+  const kw = e.target.value.trim();
+  resetHighlight();
+  if (kw.length < 2) return;
+  const activeArt = document.querySelector('article.doc:not([style*="none"])') || document.body;
+  let count = 0, first = null;
+  const walker = document.createTreeWalker(activeArt, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.trim().length > 1 && !/^(SCRIPT|STYLE|MARK)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const low = node.nodeValue.toLowerCase(), k = kw.toLowerCase();
+    if (low.indexOf(k) === -1) return;
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    while (true) {
+      const idx = rest.toLowerCase().indexOf(k); if (idx === -1) break;
+      frag.appendChild(document.createTextNode(rest.slice(0, idx)));
+      const m = document.createElement('mark'); m.textContent = rest.slice(idx, idx + kw.length);
+      frag.appendChild(m); marks.push(m); count++;
+      rest = rest.slice(idx + kw.length);
+    }
+    frag.appendChild(document.createTextNode(rest));
+    node.parentNode.replaceChild(frag, node);
+  });
+  const h = document.getElementById('hint');
+  h.textContent = count ? `命中 ${count} 处` : '无匹配';
+  h.style.color = count ? 'var(--grn)' : 'var(--red)';
+  if (count) { first = marks[0]; first.scrollIntoView({behavior:'smooth', block:'center'}); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.id !== 'q') { e.preventDefault(); document.getElementById('q').focus(); }
+  if (e.key === 'Escape') { document.getElementById('q').value = ''; resetHighlight(); }
+});
+</script>
+</body>
+</html>

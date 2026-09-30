@@ -38,13 +38,21 @@ loadDotEnv();
 
 const str = (k, d) => (process.env[k] == null || process.env[k] === '' ? d : String(process.env[k]));
 const num = (k, d) => { const n = Number(process.env[k]); return Number.isFinite(n) ? n : d; };
-const bool = (k, d) => { const v = process.env[k]; if (v == null || v === '') return d; return /^(1|true|yes|on)$/i.test(v); };
+const bool = (k, d) => { const v = process.env[k]; if (v == null || v === '' ) return d; return /^(1|true|yes|on)$/i.test(v); };
+const abs = (k, d) => (process.env[k] ? path.resolve(process.env[k]) : d);
+
+/* 环境名要在 config 对象之前定，因为「生产环境默认关掉什么」依赖它 */
+const ENV = str('NODE_ENV', 'development');
+const IS_PROD = ENV === 'production';
 
 /* ---------- 会话密钥：持久化，缺失则生成（0600） ---------- */
 function loadSecret() {
   const fromEnv = process.env.SESSION_SECRET;
   if (fromEnv && fromEnv.length >= 16) return { value: fromEnv, source: 'env' };
-  const f = path.join(SERVER_DIR, '.session_secret');
+  /* 路径可覆盖：容器/私有化部署常把状态目录挂在卷上，写死在代码目录里
+     会导致「容器一重建，所有人被踢下线」——重启后签名密钥变了，
+     库里所有会话立即失效。 */
+  const f = abs('SESSION_SECRET_FILE', path.join(SERVER_DIR, '.session_secret'));
   if (fs.existsSync(f)) {
     const v = fs.readFileSync(f, 'utf8').trim();
     if (v.length >= 32) return { value: v, source: 'file' };
@@ -67,10 +75,23 @@ const secret = loadSecret();
 const AUTH_MODE = 'strict';
 
 const config = {
-  env: str('NODE_ENV', 'development'),
+  env: ENV,
   root: ROOT,
   serverDir: SERVER_DIR,
   staticRoot: path.join(ROOT, '平台原型'),
+
+  /* 数据文件：库文件与会话密钥一样，路径必须可覆盖 —— 部署时数据目录挂在卷上，
+     写死在代码目录里就意味着「重建即丢数据」。db.js / tools/backup.js 都读这里。 */
+  db: {
+    file: abs('DB_PATH', path.join(SERVER_DIR, 'hr_agent.db')),
+  },
+
+  /* 演示维护开关 —— 这里刻意**不是**「默认打开、生产再关」：
+     /api/reset 会清空运行期表，放在公网就是一个「点一下数据全没」的按钮。
+     所以默认值按环境给：生产默认关。 */
+  admin: {
+    allowReset: bool('ALLOW_RESET', !IS_PROD),
+  },
 
   http: {
     port: num('PORT', 8788),
@@ -137,11 +158,26 @@ function validate() {
   if (!config.auth.secret || config.auth.secret.length < 16) errs.push('SESSION_SECRET 过短（需 ≥16 字符）');
   /* 生产环境必须开 COOKIE_SECURE：否则会话 Cookie 会以明文 http 传输，
      中间人可直接窃取身份。这是「配置错误就别启动」的典型场景。 */
-  if (config.env === 'production' && config.auth.cookieSecure !== true) {
+  if (IS_PROD && config.auth.cookieSecure !== true) {
     errs.push('生产环境必须设置 COOKIE_SECURE=1（禁止明文 http 传输会话 Cookie）');
   }
   if (errs.length) throw new Error('[config] 配置校验失败：\n  - ' + errs.join('\n  - '));
   return true;
+}
+
+/* ---------- 启动期告警：不拦启动，但必须让人看见 ----------
+   与 validate 的分工：validate 管「配错一定出事」，这里管「配了就该知道」。
+   ALLOW_RESET=1 在公网等于对外开放一个清库按钮 —— 不禁止（有人就是拿它做
+   公网演示），但每次启动都喊一遍，且横幅里标红。 */
+function warnings() {
+  const w = [];
+  if (IS_PROD && config.admin.allowReset) {
+    w.push('生产环境开启了 ALLOW_RESET：/api/reset 会清空运行期表，确认这是有意为之（公网暴露即事故）');
+  }
+  if (!IS_PROD && config.auth.cookieSecure) {
+    w.push('开发环境开启了 COOKIE_SECURE：若用 http 访问，浏览器不会发送会话 Cookie（表现成「登录后立刻掉线」）');
+  }
+  return w;
 }
 
 /* 启动横幅用：不打印密钥本身，只说明来源 */
@@ -150,7 +186,8 @@ config.describe = () => ({
   authMode: config.auth.mode,
   secretSource: config.auth.secretSource,
   llm: config.llm.url ? 'llm' : 'rule',
-  db: path.join(SERVER_DIR, 'hr_agent.db'),
+  db: config.db.file,
+  allowReset: config.admin.allowReset,
 });
 
-module.exports = { config, validate };
+module.exports = { config, validate, warnings };

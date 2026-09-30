@@ -34,6 +34,8 @@
       </div>
       <button class="iconbtn" id="switchBtn" title="切换演示身份" aria-label="切换演示身份" data-act="doSwitch"
               style="margin-left:auto;flex:0 0 auto">🔁</button>
+      <button class="iconbtn" id="pwdBtn" title="修改密码" aria-label="修改密码" data-act="doChangePassword"
+              style="flex:0 0 auto;display:none">🔑</button>
       <button class="iconbtn" id="logoutBtn" title="退出登录" aria-label="退出登录" data-act="doLogout"
               style="flex:0 0 auto">⎋</button>
     </div>
@@ -49,7 +51,9 @@
       <span class="tag" id="whoami" style="display:none;cursor:help"></span>
       <span class="tag g" id="liveBadge" style="display:none;cursor:help">🟢 真实后端</span>
       <button class="iconbtn" title="通知" aria-label="通知">🔔</button>
-      <button class="iconbtn" title="重置演示数据" aria-label="重置演示数据" data-act="resetDemo">♻</button>
+      <!-- 重置入口由服务端能力开关控制（bootstrap.caps.reset）：
+           生产环境关闭时本按钮隐藏，而不是让 HR 点了才看到 403 -->
+      <button class="iconbtn" id="resetBtn" title="重置演示数据" aria-label="重置演示数据" data-act="resetDemo">♻</button>
       <button class="iconbtn" title="帮助" aria-label="帮助">❓</button>
       <span class="tag y" id="apprTag" style="cursor:pointer" role="button" tabindex="0" data-act="go" data-page="approvals">✋ 待审核 3</span>
     </header>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JD 已填内容润色口径 v12</title>
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+  --line:#262c39; --line2:#323a4b;
+  --tx:#e7eaf1; --tx2:#a8b1c2; --tx3:#6f7a8d;
+  --ac:#4c8dff; --ac2:#7aa9ff; --grn:#3ddc97; --yel:#f5b942; --red:#ff6b6b; --pur:#a78bfa;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:15px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+header{position:sticky;top:0;z-index:50;background:rgba(13,15,20,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:14px 26px 0}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1.brand{font-size:17px;margin:0;letter-spacing:.3px}
+.sub{color:var(--tx3);font-size:12.5px}
+.searchbox{margin-left:auto;display:flex;align-items:center;gap:8px}
+input#q{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:9px;
+  padding:8px 12px;width:240px;font-size:13px;outline:none}
+input#q:focus{border-color:var(--ac)}
+.hint{font-size:12px;color:var(--tx3)}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx2);
+  padding:9px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac2);border-bottom-color:var(--ac);font-weight:600}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1560px;margin:0 auto}
+aside{position:sticky;top:112px;align-self:start;height:calc(100vh - 112px);overflow-y:auto;
+  padding:22px 14px 60px 26px;border-right:1px solid var(--line)}
+.tocgroup{display:flex;flex-direction:column;gap:1px}
+.toclink{display:block;color:var(--tx2);text-decoration:none;font-size:13px;padding:5px 9px;
+  border-radius:7px;line-height:1.45}
+.toclink:hover{background:var(--panel2);color:var(--tx)}
+.toclink.lvl2{padding-left:20px}
+.toclink.lvl3{padding-left:32px;font-size:12.5px;color:var(--tx3)}
+main{padding:26px 34px 120px;min-width:0}
+.docmeta{font:12px var(--mono);color:var(--tx3);margin-bottom:18px;
+  border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;display:inline-block}
+article h1{font-size:27px;margin:26px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+article h2{font-size:21px;margin:38px 0 14px;padding:9px 0 9px 13px;border-left:3px solid var(--ac);
+  background:linear-gradient(90deg,rgba(76,141,255,.09),transparent);border-radius:0 8px 8px 0}
+article h3{font-size:17px;margin:28px 0 10px;color:var(--ac2)}
+article h4{font-size:15px;margin:20px 0 8px;color:var(--tx2)}
+p{margin:9px 0}
+a{color:var(--ac2)}
+strong{color:#fff;font-weight:650}
+em{color:var(--yel);font-style:normal}
+code{font:12.6px var(--mono);background:var(--panel2);border:1px solid var(--line);
+  padding:1.5px 5px;border-radius:5px;color:#ffd479}
+.codeblock{margin:14px 0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0a0c11}
+.codetop{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);font:11.5px var(--mono);color:var(--tx3)}
+.copybtn{background:var(--panel2);border:1px solid var(--line2);color:var(--tx2);font-size:11.5px;
+  padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.copybtn:hover{color:var(--tx);border-color:var(--ac)}
+pre{margin:0;padding:14px 16px;overflow-x:auto}
+pre code{background:none;border:none;padding:0;color:#cfd8e6;font-size:12.6px;line-height:1.62}
+blockquote{margin:14px 0;padding:13px 16px;background:linear-gradient(90deg,rgba(167,139,250,.10),rgba(167,139,250,.02));
+  border-left:3px solid var(--pur);border-radius:0 10px 10px 0;color:#d9def0}
+blockquote p{margin:4px 0}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+th{background:var(--panel);text-align:left;padding:10px 12px;font-weight:640;color:var(--ac2);
+  border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(76,141,255,.05);color:var(--tx)}
+ul,ol{margin:9px 0;padding-left:24px}
+li{margin:5px 0;color:var(--tx2)}
+li strong{color:var(--tx)}
+hr.sep{border:none;border-top:1px solid var(--line);margin:26px 0}
+mark{background:rgba(245,185,66,.34);color:#fff;border-radius:3px;padding:0 2px}
+.hidden{display:none !important}
+footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-size:12.5px;text-align:center}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}aside{display:none}main{padding:20px 16px 90px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 class="brand">JD 已填内容润色口径 v12</h1>
+    <span class="sub">HR-Agent OS · 招聘 Agent · 规则打底 + LLM 增强</span>
+    <div class="searchbox">
+      <span class="hint" id="hint">全文搜索</span>
+      <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs"><button class="tab active" data-doc="doc0">JD 工作台 · 「任职要求 / 加分项」已填内容润色口径（v12）</button></div>
+</header>
+<div class="wrap">
+  <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--JD-工作台-任职要求-加分项-已填内容润色口径-v12" data-text="JD 工作台 · 「任职要求 / 加分项」已填内容润色口径（v12）">JD 工作台 · 「任职要求 / 加分项」已填内容润色口径（v12）</a><a class="toclink lvl2" href="#doc0--一-需求原文" data-text="一、需求原文">一、需求原文</a><a class="toclink lvl2" href="#doc0--二-差额-缺的是-润色-不是-丰富" data-text="二、差额：缺的是「润色」，不是「丰富」">二、差额：缺的是「润色」，不是「丰富」</a><a class="toclink lvl2" href="#doc0--三-实现分三层" data-text="三、实现分三层">三、实现分三层</a><a class="toclink lvl3" href="#doc0--第-1-层-规则润色-默认-离线可用" data-text="第 1 层 · 规则润色（默认，离线可用）">第 1 层 · 规则润色（默认，离线可用）</a><a class="toclink lvl3" href="#doc0--第-2-层-结构锁-防止-润色-变成-创作" data-text="第 2 层 · 结构锁（防止「润色」变成「创作」）">第 2 层 · 结构锁（防止「润色」变成「创作」）</a><a class="toclink lvl3" href="#doc0--第-3-层-LLM-增强-可选-配了模型才走" data-text="第 3 层 · LLM 增强（可选，配了模型才走）">第 3 层 · LLM 增强（可选，配了模型才走）</a><a class="toclink lvl2" href="#doc0--四-规则清单-白名单-可逐条审计" data-text="四、规则清单（白名单，可逐条审计）">四、规则清单（白名单，可逐条审计）</a><a class="toclink lvl3" href="#doc0--4-1-通用清洗-对任何条目都安全" data-text="4.1 通用清洗（对任何条目都安全）">4.1 通用清洗（对任何条目都安全）</a><a class="toclink lvl3" href="#doc0--4-2-口语-书面" data-text="4.2 口语 → 书面">4.2 口语 → 书面</a><a class="toclink lvl3" href="#doc0--4-3-句首冗余引导语-句尾语气词" data-text="4.3 句首冗余引导语 / 句尾语气词">4.3 句首冗余引导语 / 句尾语气词</a><a class="toclink lvl3" href="#doc0--4-4-加分项统一句式" data-text="4.4 加分项统一句式">4.4 加分项统一句式</a><a class="toclink lvl2" href="#doc0--五-改前-vs-改后-同一份输入的真实产出" data-text="五、改前 vs 改后（同一份输入的真实产出）">五、改前 vs 改后（同一份输入的真实产出）</a><a class="toclink lvl2" href="#doc0--六-顺手修掉的两个真-bug" data-text="六、顺手修掉的两个真 bug">六、顺手修掉的两个真 bug</a><a class="toclink lvl2" href="#doc0--七-规则改在哪" data-text="七、规则改在哪">七、规则改在哪</a><a class="toclink lvl2" href="#doc0--八-回归证据-都是实跑-不是推断" data-text="八、回归证据（都是实跑，不是推断）">八、回归证据（都是实跑，不是推断）</a><a class="toclink lvl2" href="#doc0--九-边界-还没做" data-text="九、边界（还没做）">九、边界（还没做）</a></div></aside>
+  <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">JD生成口径说明_v12_已填内容润色.md</div><h1 id="doc0--JD-工作台-任职要求-加分项-已填内容润色口径-v12">JD 工作台 · 「任职要求 / 加分项」已填内容润色口径（v12）</h1>
+<blockquote><strong>平台</strong>：HR-Agent OS · 本地全栈 PoC（<code>C:\Users\mayunchong\WorkBuddy\hr平台</code>） <strong>场景</strong>：招聘 Agent · JD 工作台 → 「生成 JD 并做合规扫描」 <strong>需求提出</strong>：2026-09-29（北京时间） <strong>词库版本</strong>：<code>REQ_LIB_VER</code> 11 → <strong>12</strong>（老 JD 启动时自动重算）</blockquote>
+<h2 id="doc0--一-需求原文">一、需求原文</h2>
+<blockquote>在 JD 工作台中生成岗位 JD 时，请按以下规则处理「任职要求」和「加分项」两栏内容： 若「任职要求」栏已有内容，则在保留其核心信息的基础上进一步丰富和润色生成 JD； 若该栏为空，则按原有默认逻辑生成。若「加分项」栏已有内容，则依据这些内容进行 美化和完善后再生成；若为空，则按原有默认逻辑处理。请确保最终生成的 JD 语言流畅、 表述专业，并忠实于已有的输入内容，不要凭空添加未提供的信息。</blockquote>
+<h2 id="doc0--二-差额-缺的是-润色-不是-丰富">二、差额：缺的是「润色」，不是「丰富」</h2>
+<p>改之前先把现状摊开看，避免改错地方：</p>
+<div class="tablewrap"><table><thead><tr><th>栏目</th><th>改动前实际行为</th><th>与需求的差额</th></tr></thead><tbody><tr><td>任职要求（已填）</td><td>原样保留、按六维度归位；缺失维度用职能族素材补齐</td><td>「丰富」已有，<strong>「润色」缺失</strong></td></tr><tr><td>任职要求（空）</td><td>按职能族生成完整六维度</td><td>一致，无需改</td></tr><tr><td>加分项（已填）</td><td>已填优先，≥3 条不再叠加模板</td><td>原样输出，<strong>未「美化完善」</strong></td></tr><tr><td>加分项（空）</td><td>职能族加分项补齐到 4 条</td><td>一致，仅统一句式</td></tr></tbody></table></div>
+<p>结论：<strong>要补的是「已填内容的书面化改写」这一层</strong>，其余逻辑不动。</p>
+<h2 id="doc0--三-实现分三层">三、实现分三层</h2>
+<h3 id="doc0--第-1-层-规则润色-默认-离线可用">第 1 层 · 规则润色（默认，离线可用）</h3>
+<p>落在 <code>shared/req-lib.js</code> 新增的<strong>第八节</strong>，前后端共用同一份 —— 后端 <code>server/engine.js</code></p>
+<p>与离线原型 <code>平台原型/src/agent.js</code> 都调 <code>ReqLib.polishMustItem / polishNiceItem</code>。</p>
+<p>零依赖、确定性、可回归。</p>
+<p>三条硬约束写进了代码注释：</p>
+<ol>
+<li><strong>只改表述，不改语义</strong>，绝不新增 HR 没提供的事实；</li>
+<li><strong>全部白名单</strong>：口语词命中才替换，不命中一律原样透传（宁可少润色，不可改跑偏）；</li>
+<li><strong>幂等</strong>：同一段文字润色两次结果一致（<code>runJD → buildJD</code> 会连着展开两次）。</li>
+</ol>
+<h3 id="doc0--第-2-层-结构锁-防止-润色-变成-创作">第 2 层 · 结构锁（防止「润色」变成「创作」）</h3>
+<p>润色环节<strong>不许增删条目</strong>。维度名、维度顺序、每维条目数、条目顺序，全部要求与规则层产物</p>
+<p>逐条对齐；对不上就整单作废。这条锁是刻意加的：只要给「润色」留出走样空间，它就会</p>
+<p>开始替你「补两条更专业的」—— 那就违反了「不要凭空添加未提供的信息」。</p>
+<h3 id="doc0--第-3-层-LLM-增强-可选-配了模型才走">第 3 层 · LLM 增强（可选，配了模型才走）</h3>
+<div class="tablewrap"><table><thead><tr><th>条件</th><th>行为</th></tr></thead><tbody><tr><td>未配 <code>LLM_API_URL</code> / <code>LLM_API_KEY</code></td><td>纯规则层产物，<strong>离线原型与本地 PoC 照旧可用</strong></td></tr><tr><td>配了模型 + HR 填过内容</td><td>规则层产物作为底稿交模型做流畅度加工，返回结果过结构校验</td></tr><tr><td>配了模型但返回结构对不上</td><td>整单作废，退回规则层结果，并在执行轨迹里写明原因</td></tr></tbody></table></div>
+<p>模型用量一律取真实 <code>usage</code>，<strong>不编造 token 数</strong>（沿用项目既有约定：用量要么是真的，要么不显示）。</p>
+<h2 id="doc0--四-规则清单-白名单-可逐条审计">四、规则清单（白名单，可逐条审计）</h2>
+<h3 id="doc0--4-1-通用清洗-对任何条目都安全">4.1 通用清洗（对任何条目都安全）</h3>
+<ul>
+<li>剥行首残留列表符号 / 序号：<code>· • - 1. （1） ①</code> 及 Markdown 标题符</li>
+<li>去 emoji 与装饰符</li>
+<li>中文语境下把半角 <code>, ; : ? !</code> 归一为全角</li>
+<li>条目收尾去句末标点（正文由 <code>paragraphize</code> 统一补「；」「。」）</li>
+<li><strong>不动「数字与单位之间的空格」</strong> —— 「3 年以上」是项目统一排版口径，且有断言依赖</li>
+</ul>
+<h3 id="doc0--4-2-口语-书面">4.2 口语 → 书面</h3>
+<div class="tablewrap"><table><thead><tr><th>命中</th><th>替换为</th></tr></thead><tbody><tr><td>懂点技术（能和工程对话）</td><td>了解基础技术（、能与研发、工程团队顺畅沟通）</td></tr><tr><td>聪明有灵气</td><td>思维敏捷</td></tr><tr><td>有灵气</td><td>有悟性</td></tr><tr><td>表达清楚 / 说话清楚</td><td>表达清晰</td></tr><tr><td>靠谱</td><td>可靠</td></tr><tr><td>不懂就问</td><td>主动澄清</td></tr><tr><td>上手快</td><td>能快速上手</td></tr><tr><td>有这些更香 / 更香</td><td>有相关经历者优先 / 更具优势</td></tr></tbody></table></div>
+<blockquote><strong>维护提醒</strong>（已写进代码注释）：往白名单加词前先跑 <code>tools/test_jd.js</code>。 已知<strong>不许动</strong>的词：<code>真热爱</code>（软技能维度归位判定依赖它）、 <code>3 年以上采购经验</code> / <code>熟悉供应商开发与成本管控</code> / <code>模型评测</code> （在线与离线两条「已填内容未被保留」断言依赖它们）。</blockquote>
+<h3 id="doc0--4-3-句首冗余引导语-句尾语气词">4.3 句首冗余引导语 / 句尾语气词</h3>
+<ul>
+<li>句首删：<code>我们希望你能 / 希望你 / 最好能 / 最好是 / 需要有 / 要求你 / 要求 / 必须 / 务必</code></li>
+<li><code>要能</code> → <code>能</code>、<code>得能</code> → <code>能</code>（<strong>是替换不是删除</strong>，不丢实义字）</li>
+<li>句尾删语气词：<code>吧 哦 啦 哈 嘛 哟 哒 呢</code>（仅当删完还剩得下一个词）</li>
+<li>兜底：若框架语被删光，退回清洗后的原文 —— 绝不产出空条目</li>
+</ul>
+<h3 id="doc0--4-4-加分项统一句式">4.4 加分项统一句式</h3>
+<div class="tablewrap"><table><thead><tr><th>条目形态</th><th>处理</th><th>例</th></tr></thead><tbody><tr><td>已含「优先 / 更佳」</td><td>只清洗</td><td>（幂等，二次展开不会叠成「者优先者优先」）</td></tr><tr><td>谓词开头（有 / 具备 / 持 / 了解…）</td><td>直接补「者优先」</td><td>有自己的 Side Project → 有自己的 Side Project <strong>者优先</strong></td></tr><tr><td>名词短语收尾（…经历 / 资质 / 证书 / 项目）</td><td>前缀「有」再补「者优先」</td><td>AI 产品实习经历 → <strong>有</strong> AI 产品实习经历<strong>者优先</strong></td></tr><tr><td>其余</td><td>保守补「者优先」</td><td>—</td></tr></tbody></table></div>
+<h2 id="doc0--五-改前-vs-改后-同一份输入的真实产出">五、改前 vs 改后（同一份输入的真实产出）</h2>
+<p><strong>输入</strong>：任职要求 = <code>最好是 3 年以上 AI 产品经验</code> / <code>聪明有灵气，表达清楚</code> / <code>我们希望你能主动推进项目呢</code>；</p>
+<p>加分项 = <code>AI产品实习经历</code> / <code>懂点技术能和工程对话</code> / <code>有自己的Side Project</code></p>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>改动前（原样照搬）                          改动后（保留核心信息 + 润色）
+──────────────────────────────────────    ──────────────────────────────────────
+**（二）工作经验**                          **（二）工作经验**
+最好是 3 年以上 AI 产品经验；有 1–2 段…      3 年以上 AI 产品经验；有 1–2 段…
+
+**（五）软技能**                            **（五）软技能**
+…聪明有灵气，表达清楚；我们希望你能           …思维敏捷，表达清晰；主动推进项目；
+  主动推进项目呢；…（模板句）                    …（模板句）
+
+**三、加分项**                              **三、加分项**
+AI产品实习经历；懂点技术能和工程对话；         有AI产品实习经历者优先；了解基础技术、
+有自己的Side Project。                        能与研发、工程团队顺畅沟通者优先；
+                                             有自己的Side Project者优先。</code></pre></div>
+<p>核心信息一字未丢：<code>3 年以上 AI 产品经验</code>、<code>AI产品实习经历</code>、<code>Side Project</code> 原样在库里，</p>
+<p>只是换了副更专业的说法。</p>
+<h2 id="doc0--六-顺手修掉的两个真-bug">六、顺手修掉的两个真 bug</h2>
+<p>这两个都不是润色引入的，是被新用例逼出来的旧账：</p>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>问题</th><th>根因</th><th>修法</th></tr></thead><tbody><tr><td>1</td><td>硬性条件里出现<strong>两条一模一样</strong>的要求</td><td><code>expandRequirements</code> 被 <code>runJD → buildJD</code> 连着调用两次；「有 1–2 段对口实习经历者优先」在二次展开时匹配不上 <code>REQ_EXP</code>，落进专业技能桶，而判重只扫 <code>s2</code> → 又补一遍</td><td>判重改为扫<strong>全部已填内容</strong>；<code>REQ_EXP</code> 补上「实习」（它本来就属于工作经验维度）</td></tr><tr><td>2</td><td>JD 正文的加分项与存库 <code>nice_have</code> <strong>对不上</strong></td><td><code>buildJD</code> 二次展开时把模板补位项当成「HR 新填的内容」又润了一遍，正文带「者优先」而库里不带</td><td>传入 <code>dims</code> 时（即已展开产物）加分项直接取传进来的那份；同时统一由一道工序美化，避免同一岗位在新老数据上出现两种排版</td></tr></tbody></table></div>
+<blockquote>关于「加分项栏为空」：<strong>模板的选取逻辑（选哪几条、补到几条）一字未动</strong>， 只是渲染时统一成「…者优先」的对外句式。这么做是为了消除一个真实的不一致 —— 老岗位经版本自愈重算时，库里的 <code>nice_have</code> 已分不清哪条是 HR 写的、哪条是模板补的， 若只美化「用户那几条」，同一个岗位换次版本就换一副面孔。 <strong>若你希望留空时保持模板原样（不带「者优先」），说一声，改一行即可。</strong></blockquote>
+<h2 id="doc0--七-规则改在哪">七、规则改在哪</h2>
+<div class="tablewrap"><table><thead><tr><th>文件</th><th>改动</th></tr></thead><tbody><tr><td><code>shared/req-lib.js</code></td><td>新增<strong>第八节：已填内容的润色与美化</strong>（<code>baseCleanJd</code> / <code>SPOKEN_FIX</code> / <code>stripFraming</code> / <code>polishMustItem</code> / <code>polishNiceItem</code> / <code>polishMust</code> / <code>polishNice</code>），并加进导出</td></tr><tr><td><code>server/engine.js</code></td><td><code>REQ_LIB_VER</code> 11→12；<code>expandRequirements</code> 接入润色；<code>REQ_EXP</code> 补「实习」；工作经验判重扫全桶；<code>buildJD</code> 加分项取值修正；新增 LLM 润色层（<code>JD_POLISH_PROMPT</code> / <code>applyLlmPolish</code>）与执行轨迹两步</td></tr><tr><td><code>平台原型/src/agent.js</code></td><td>同源规则镜像（离线与在线产出一致）</td></tr><tr><td><code>平台原型/src/app.js</code></td><td>工作台标签/占位符、「Agent 依据」与生成提示文案</td></tr><tr><td><code>平台原型/index.html</code></td><td>重新打包（单文件原型）</td></tr><tr><td><code>tools/test_jd.js</code></td><td>旧口径的「加分项精确等于原样文本」断言改为行为断言；新增 <strong>6b 节</strong>锁定 v12 口径</td></tr></tbody></table></div>
+<h2 id="doc0--八-回归证据-都是实跑-不是推断">八、回归证据（都是实跑，不是推断）</h2>
+<div class="tablewrap"><table><thead><tr><th>套件</th><th>结果</th></tr></thead><tbody><tr><td><code>tools/test_jd.js</code> JD 生成口径</td><td><strong>91 / 91</strong>（改动前 61 / 62，新增 29 项）</td></tr><tr><td><code>tools/run_all.js</code> 全量</td><td><strong>8 套件全部通过</strong></td></tr><tr><td><code>平台原型/test_prototype.js</code> 离线</td><td>23 页 0 异常 · 22 项交互 0 错误</td></tr><tr><td><code>平台原型/test_live.js</code> 在线</td><td>23 页 0 异常 · 26 项真实链路交互 0 错误</td></tr><tr><td>库内岗位按 v12 口径重算</td><td><code>jd_ver=12</code>，启动自愈不回退</td></tr></tbody></table></div>
+<p>新增的 6b 节用行为断言锁死三件事：</p>
+<p>① 口语被书面化；② 核心信息一字不丢、不新增（技术栈词不得混入加分项）；</p>
+<p>③ 二次展开幂等（不叠「者优先者优先」、硬性条件条数与顺序不变）。</p>
+<p>断言刻意<strong>不写死具体文案</strong> —— 将来扩白名单时不会因为换了个词就误报。</p>
+<h2 id="doc0--九-边界-还没做">九、边界（还没做）</h2>
+<ul>
+<li><strong>白名单是保守的</strong>：只收「命中后一定更专业、且语义等价」的词。</li>
+</ul>
+<p>没见过的口语写法会原样透传，不会丢字 —— 宁可少润色，不可改跑偏。</p>
+<ul>
+<li><strong>不做中英之间加空格</strong>：那会改动一堆既有断言的字符串，收益低于风险，这轮不做。</li>
+<li><strong>软技能段可能出现同义重复</strong>：HR 写的「表达清晰」与模板句里的「表达清晰」会同时出现。</li>
+</ul>
+<p>属模板与用户内容的既有重叠，本轮未处理。</p>
+<ul>
+<li><strong>LLM 层在当前环境未实跑</strong>（本机未配 <code>LLM_API_URL</code>），只做了结构校验的代码路径与</li>
+</ul>
+<p>降级分支；实跑证据待配模型后补。</p></article></main>
+</div>
+<footer>生成时间：2026-09-29 17:11（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<script>
+const docs = [{"key": "doc0", "name": "JD 工作台 · 「任职要求 / 加分项」已填内容润色口径（v12）"}];
+
+function copyCode(btn) {
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1400);
+  });
+}
+
+function showDoc(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.doc === key));
+  document.querySelectorAll('article.doc').forEach(a => a.style.display = (a.dataset.doc === key ? '' : 'none'));
+  document.querySelectorAll('.tocgroup').forEach(g => g.style.display = (g.dataset.doc === key ? '' : 'none'));
+  resetHighlight();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showDoc(t.dataset.doc));
+
+// 滚动高亮目录
+const links = () => Array.from(document.querySelectorAll('.tocgroup:not([style*="none"]) .toclink'));
+window.addEventListener('scroll', () => {
+  const actives = links();
+  let cur = null;
+  for (const a of actives) {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el && el.getBoundingClientRect().top < 180) cur = a;
+  }
+  actives.forEach(a => a.style.color = '');
+  if (cur) { cur.style.color = 'var(--ac2)'; }
+});
+
+// 全文搜索 + 高亮
+let marks = [];
+function resetHighlight() {
+  document.querySelectorAll('mark').forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  marks = [];
+  document.getElementById('hint').textContent = '全文搜索';
+  document.getElementById('hint').style.color = 'var(--tx3)';
+}
+document.getElementById('q').addEventListener('input', e => {
+  const kw = e.target.value.trim();
+  resetHighlight();
+  if (kw.length < 2) return;
+  const activeArt = document.querySelector('article.doc:not([style*="none"])') || document.body;
+  let count = 0, first = null;
+  const walker = document.createTreeWalker(activeArt, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.trim().length > 1 && !/^(SCRIPT|STYLE|MARK)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const low = node.nodeValue.toLowerCase(), k = kw.toLowerCase();
+    if (low.indexOf(k) === -1) return;
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    while (true) {
+      const idx = rest.toLowerCase().indexOf(k); if (idx === -1) break;
+      frag.appendChild(document.createTextNode(rest.slice(0, idx)));
+      const m = document.createElement('mark'); m.textContent = rest.slice(idx, idx + kw.length);
+      frag.appendChild(m); marks.push(m); count++;
+      rest = rest.slice(idx + kw.length);
+    }
+    frag.appendChild(document.createTextNode(rest));
+    node.parentNode.replaceChild(frag, node);
+  });
+  const h = document.getElementById('hint');
+  h.textContent = count ? `命中 ${count} 处` : '无匹配';
+  h.style.color = count ? 'var(--grn)' : 'var(--red)';
+  if (count) { first = marks[0]; first.scrollIntoView({behavior:'smooth', block:'center'}); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.id !== 'q') { e.preventDefault(); document.getElementById('q').focus(); }
+  if (e.key === 'Escape') { document.getElementById('q').value = ''; resetHighlight(); }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HR-Agent OS · A 档上线手册</title>
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+  --line:#262c39; --line2:#323a4b;
+  --tx:#e7eaf1; --tx2:#a8b1c2; --tx3:#6f7a8d;
+  --ac:#4c8dff; --ac2:#7aa9ff; --grn:#3ddc97; --yel:#f5b942; --red:#ff6b6b; --pur:#a78bfa;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:15px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+header{position:sticky;top:0;z-index:50;background:rgba(13,15,20,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:14px 26px 0}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1.brand{font-size:17px;margin:0;letter-spacing:.3px}
+.sub{color:var(--tx3);font-size:12.5px}
+.searchbox{margin-left:auto;display:flex;align-items:center;gap:8px}
+input#q{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:9px;
+  padding:8px 12px;width:240px;font-size:13px;outline:none}
+input#q:focus{border-color:var(--ac)}
+.hint{font-size:12px;color:var(--tx3)}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx2);
+  padding:9px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac2);border-bottom-color:var(--ac);font-weight:600}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1560px;margin:0 auto}
+aside{position:sticky;top:112px;align-self:start;height:calc(100vh - 112px);overflow-y:auto;
+  padding:22px 14px 60px 26px;border-right:1px solid var(--line)}
+.tocgroup{display:flex;flex-direction:column;gap:1px}
+.toclink{display:block;color:var(--tx2);text-decoration:none;font-size:13px;padding:5px 9px;
+  border-radius:7px;line-height:1.45}
+.toclink:hover{background:var(--panel2);color:var(--tx)}
+.toclink.lvl2{padding-left:20px}
+.toclink.lvl3{padding-left:32px;font-size:12.5px;color:var(--tx3)}
+main{padding:26px 34px 120px;min-width:0}
+.docmeta{font:12px var(--mono);color:var(--tx3);margin-bottom:18px;
+  border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;display:inline-block}
+article h1{font-size:27px;margin:26px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+article h2{font-size:21px;margin:38px 0 14px;padding:9px 0 9px 13px;border-left:3px solid var(--ac);
+  background:linear-gradient(90deg,rgba(76,141,255,.09),transparent);border-radius:0 8px 8px 0}
+article h3{font-size:17px;margin:28px 0 10px;color:var(--ac2)}
+article h4{font-size:15px;margin:20px 0 8px;color:var(--tx2)}
+p{margin:9px 0}
+a{color:var(--ac2)}
+strong{color:#fff;font-weight:650}
+em{color:var(--yel);font-style:normal}
+code{font:12.6px var(--mono);background:var(--panel2);border:1px solid var(--line);
+  padding:1.5px 5px;border-radius:5px;color:#ffd479}
+.codeblock{margin:14px 0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0a0c11}
+.codetop{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);font:11.5px var(--mono);color:var(--tx3)}
+.copybtn{background:var(--panel2);border:1px solid var(--line2);color:var(--tx2);font-size:11.5px;
+  padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.copybtn:hover{color:var(--tx);border-color:var(--ac)}
+pre{margin:0;padding:14px 16px;overflow-x:auto}
+pre code{background:none;border:none;padding:0;color:#cfd8e6;font-size:12.6px;line-height:1.62}
+blockquote{margin:14px 0;padding:13px 16px;background:linear-gradient(90deg,rgba(167,139,250,.10),rgba(167,139,250,.02));
+  border-left:3px solid var(--pur);border-radius:0 10px 10px 0;color:#d9def0}
+blockquote p{margin:4px 0}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+th{background:var(--panel);text-align:left;padding:10px 12px;font-weight:640;color:var(--ac2);
+  border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(76,141,255,.05);color:var(--tx)}
+ul,ol{margin:9px 0;padding-left:24px}
+li{margin:5px 0;color:var(--tx2)}
+li strong{color:var(--tx)}
+hr.sep{border:none;border-top:1px solid var(--line);margin:26px 0}
+mark{background:rgba(245,185,66,.34);color:#fff;border-radius:3px;padding:0 2px}
+.hidden{display:none !important}
+footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-size:12.5px;text-align:center}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}aside{display:none}main{padding:20px 16px 90px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 class="brand">HR-Agent OS · A 档上线手册</h1>
+    <span class="sub"></span>
+    <div class="searchbox">
+      <span class="hint" id="hint">全文搜索</span>
+      <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs"><button class="tab active" data-doc="doc0">HR-Agent OS · A 档上线手册</button></div>
+</header>
+<div class="wrap">
+  <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--HR-Agent-OS-A-档上线手册" data-text="HR-Agent OS · A 档上线手册">HR-Agent OS · A 档上线手册</a><a class="toclink lvl2" href="#doc0--零-三十秒先看清楚现状-npm-run-preflight" data-text="零、三十秒先看清楚现状：npm run preflight">零、三十秒先看清楚现状：npm run preflight</a><a class="toclink lvl3" href="#doc0--每个检查项在防什么" data-text="每个检查项在防什么">每个检查项在防什么</a><a class="toclink lvl2" href="#doc0--一-这次-A-档到底改了什么" data-text="一、这次 A 档到底改了什么">一、这次 A 档到底改了什么</a><a class="toclink lvl3" href="#doc0--关于最后一行" data-text="关于最后一行">关于最后一行</a><a class="toclink lvl2" href="#doc0--二-三条发布路径-挑一条走" data-text="二、三条发布路径，挑一条走">二、三条发布路径，挑一条走</a><a class="toclink lvl3" href="#doc0--路线-1-cloudflared-最快-适合-现在就要给链接" data-text="路线 1 · cloudflared（最快，适合「现在就要给链接」）">路线 1 · cloudflared（最快，适合「现在就要给链接」）</a><a class="toclink lvl3" href="#doc0--路线-2-局域网-IP-同一-WiFi-公司内网-无公网暴露" data-text="路线 2 · 局域网 IP（同一 WiFi / 公司内网，无公网暴露）">路线 2 · 局域网 IP（同一 WiFi / 公司内网，无公网暴露）</a><a class="toclink lvl3" href="#doc0--路线-3-一台云服务器-长期可用" data-text="路线 3 · 一台云服务器（长期可用）">路线 3 · 一台云服务器（长期可用）</a><a class="toclink lvl2" href="#doc0--三-上线前必做的四件事" data-text="三、上线前必做的四件事">三、上线前必做的四件事</a><a class="toclink lvl3" href="#doc0--4-1-改掉演示口令" data-text="4.1 改掉演示口令">4.1 改掉演示口令</a><a class="toclink lvl3" href="#doc0--4-2-备份" data-text="4.2 备份">4.2 备份</a><a class="toclink lvl3" href="#doc0--4-3-关掉重置" data-text="4.3 关掉重置">4.3 关掉重置</a><a class="toclink lvl3" href="#doc0--4-4-COOKIE_SECURE-必须与访问方式成对" data-text="4.4 COOKIE_SECURE 必须与访问方式成对">4.4 COOKIE_SECURE 必须与访问方式成对</a><a class="toclink lvl2" href="#doc0--四-演示当天" data-text="四、演示当天">四、演示当天</a><a class="toclink lvl2" href="#doc0--五-验收清单-发链接之前照着打勾" data-text="五、验收清单（发链接之前照着打勾）">五、验收清单（发链接之前照着打勾）</a><a class="toclink lvl2" href="#doc0--六-出了问题先看这三处" data-text="六、出了问题先看这三处">六、出了问题先看这三处</a><a class="toclink lvl2" href="#doc0--七-这段管子到这里为止-下一截是什么" data-text="七、这段管子到这里为止 —— 下一截是什么">七、这段管子到这里为止 —— 下一截是什么</a></div></aside>
+  <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">12_上线部署手册_A档.md</div><h1 id="doc0--HR-Agent-OS-A-档上线手册">HR-Agent OS · A 档上线手册</h1>
+<blockquote>目标：<strong>给别人一个链接，他能登录、能把主流程点完一遍，并且演示数据是稳定的。</strong> 不管到的事：迁移 PostgreSQL、多租户隔离、真实简历解析 —— 那些是 B/C 档，写在 <code>docs/11</code> 里。 编写日期 2026-09-30 · 实测环境 Windows 11 + Node 22.22.2 + Git Bash。 手册里每条命令都标注了 <strong>【实测】</strong> 或 <strong>【未实测】</strong>；没标的默认没在本机跑过。</blockquote>
+<hr class="sep">
+<h2 id="doc0--零-三十秒先看清楚现状-npm-run-preflight">零、三十秒先看清楚现状：<code>npm run preflight</code></h2>
+<p>发出链接之前先跑它。它是<strong>只读</strong>的（不改动任何数据），把「知道就不会错、不知道就一定会错」的那几条一次性查完：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>npm run preflight</code></pre></div>
+<p>本机（开发 + 只监听 127.0.0.1）的真实输出 <strong>【实测】</strong>：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>HR-Agent OS · 上线前自检（只读）
+  ────────────────────────────────────────────────────────
+  ✓ 配置校验通过
+  · 开发环境 · COOKIE_SECURE 关闭（本地 http 演示的正确取值）
+  · 监听 127.0.0.1:8788
+  · 演示重置已开启（非生产环境，符合预期）
+  ✓ 会话密钥来源：file（重启不掉线）
+  ✓ 库文件存在：server/hr_agent.db（416 KB）
+  ✓ 数据目录可写
+  ⚠ 库文件在代码目录内：容器/重建部署会连数据一起丢掉
+  ⚠ 9 个账号仍在使用演示口令「Demo@2026」：本机演示是预期状态
+  ✓ 最近备份 hr_agent_20260930-091606.db（刚刚）· 共 1 份
+  · 规则模式：未配 LLM_API_URL，打分与润色全走确定性规则
+  ────────────────────────────────────────────────────────</code></pre></div>
+<p>退出码 <code>0</code> = 没有阻断项可以发链接；<code>1</code> = 有阻断项，处理完再发。</p>
+<p><code>⚠</code> 不阻断上线，但每一条都值得在「正式对外」之前处理掉。</p>
+<h3 id="doc0--每个检查项在防什么">每个检查项在防什么</h3>
+<div class="tablewrap"><table><thead><tr><th>检查项</th><th>它防的事故</th><th>处理动作</th></tr></thead><tbody><tr><td>配置校验</td><td>生产环境配错就直接启动起来</td><td>按报错提示补 <code>.env</code></td></tr><tr><td>COOKIE_SECURE × 访问协议</td><td>「登录成功，下一秒又回到登录页」</td><td>HTTPS 就设 <code>1</code>，HTTP 必须留空</td></tr><tr><td>重置开关</td><td>公网上留着一个清库按钮</td><td>见 §4.3</td></tr><tr><td>会话密钥来源</td><td>重启一次所有人被登出</td><td>配 <code>SESSION_SECRET_FILE</code> 指向持久目录</td></tr><tr><td>库文件路径</td><td>容器重建连数据一起丢</td><td><code>DB_PATH</code> 指向挂载卷</td></tr><tr><td>演示口令</td><td>谁都能用 <code>Demo@2026</code> 登录</td><td>见 §4.1</td></tr><tr><td>备份</td><td>库是唯一副本，误删就没了</td><td><code>npm run backup</code></td></tr></tbody></table></div>
+<blockquote>本机演示专属的两条 <strong><code>⚠</code> 是预期状态</strong>：库在代码目录里（本地单实例跑）、共享演示口令（文档里就是这么写的）。 一旦监听地址离开 <code>127.0.0.1</code>，这两条会自动升级成阻断。</blockquote>
+<hr class="sep">
+<h2 id="doc0--一-这次-A-档到底改了什么">一、这次 A 档到底改了什么</h2>
+<p><code>docs/11</code> 提的清单里有 5 项属于 A 档，现在<strong>全部落地</strong>，另有 1 项是落地过程中补出来的：</p>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>改之前</th><th>改之后</th><th>验证</th></tr></thead><tbody><tr><td>配置</td><td>端口/库路径/密钥散落在代码里</td><td><code>server/.env</code>（示例见 <code>server/.env.example</code>），优先级：环境变量 &gt; <code>.env</code> &gt; 默认值</td><td><code>test_ops</code> 用 <code>DB_PATH</code> 起两个隔离实例</td></tr><tr><td>Cookie / 环境约束</td><td><code>cookieSecure</code> 恒 false</td><td><code>NODE_ENV=production</code> 时<strong>强制</strong> <code>COOKIE_SECURE=1</code>、<code>ALLOW_RESET</code> 默认关闭；不满足拒绝启动</td><td>配置校验用例</td></tr><tr><td>静态资源</td><td>500 KB 每次全量重传，全局 <code>no-store</code></td><td>gzip + ETag 协商缓存 + <code>Vary</code>；HTML 用 <code>no-cache</code></td><td>500 KB → <strong>166 KB</strong>（实测压缩比 33.1%），304 命中无 body</td></tr><tr><td>源码暴露</td><td><code>/src/app.js</code>、<code>/build.js</code> 可直接下载</td><td>一律 404；编码斜杠的目录穿越同样被拦</td><td><code>/src/app.js</code> → 404 <strong>【实测】</strong></td></tr><tr><td>CORS</td><td>允许头里残留已废弃的 <code>X-User</code></td><td>与实际认证方式对齐（含 <code>X-Session-Token</code>，不含 <code>X-User</code>）</td><td>预检响应断言</td></tr><tr><td>重置</td><td><code>/api/reset</code> 对任何登录者开放</td><td>受 <code>ALLOW_RESET</code> 约束；<code>bootstrap.caps.reset</code> 下发到前端 → 按钮按能力显隐（<strong>不是点了才 403</strong>）</td><td>开发放行 / 生产拒绝 <strong>【实测】</strong></td></tr><tr><td>备份</td><td>无（库是唯一副本且无备份手段）</td><td><code>tools/backup.js</code>：<code>VACUUM INTO</code> 在线快照 + integrity 校验 + <code>--verify</code> / <code>--restore</code> + 保留策略</td><td>含「服务在跑时拒绝恢复」<strong>【实测】</strong></td></tr><tr><td><strong>改密入口</strong></td><td>无；上面那条「还在用演示口令」的结论<strong>没有梯子</strong></td><td>登录后右上角 🔑 走真实接口改密；待改密时按钮高亮 + 登录提示</td><td>8 项新增断言（见下）</td></tr></tbody></table></div>
+<h3 id="doc0--关于最后一行">关于最后一行</h3>
+<p>写 <code>preflight</code> 时发现一个尴尬：它判定「9 个账号仍在用演示口令 → 阻断」，但整个界面里<strong>没有任何地方能改密码</strong>。</p>
+<p>只服务端有 <code>/api/auth/change-password</code> 是不够的 —— 那意味着「你要自个儿去 curl」。</p>
+<p>所以补了三步，并且每一步都进了回归（<code>tools/test_ops.js</code> 第五节，共 <strong>48/48 通过</strong>）：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>✓ 改密前：初始口令仍可登录
+✓ 当前密码不对 → 拒绝改密（否则会话被盗可以先改密永久占号）
+✓ 新密码不足 8 位 → 拒绝
+✓ 新旧密码相同 → 拒绝（否则「已改密」是假的）
+✓ 改密成功，并返回被吊销的会话数
+✓ 改密后旧口令立即失效
+✓ 新口令可以登录
+✓ 登录响应里的「待改密」标记已清零（preflight 的判定依据）</code></pre></div>
+<p>最后一条是关键：<strong>改完了要让 <code>preflight</code> 自己说通过了</strong>，而不是让人记得「我改过了」。</p>
+<hr class="sep">
+<h2 id="doc0--二-三条发布路径-挑一条走">二、三条发布路径，挑一条走</h2>
+<h3 id="doc0--路线-1-cloudflared-最快-适合-现在就要给链接">路线 1 · cloudflared（最快，适合「现在就要给链接」）</h3>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code># 1) 先把服务跑起来
+npm run dev                      # 幂等：已在跑就不重复启动；库不存在会自动建并灌种子
+
+# 2) 另开一个终端，拿公网 HTTPS 地址（10 秒左右）
+cloudflared tunnel --url http://127.0.0.1:8788
+# → 输出形如 https://xxxx-yyyy.trycloudflare.com</code></pre></div>
+<ul>
+<li>顺带解决了 HTTPS 和边缘 gzip，本机不用配任何 TLS。<strong>【未实测】</strong>（本机没装 cloudflared）</li>
+<li>地址每次重启都变，适合临时分享；要固定域名得注册 named tunnel。</li>
+<li>⚠️ 这一步之后你的实例就<strong>对外可达</strong>了 —— §4 的 4 件事必须做完。</li>
+</ul>
+<h3 id="doc0--路线-2-局域网-IP-同一-WiFi-公司内网-无公网暴露">路线 2 · 局域网 IP（同一 WiFi / 公司内网，无公网暴露）</h3>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>cp server/.env.example server/.env   # server/.env 已在 .gitignore 里，不会被提交</code></pre></div>
+<p>编辑 <code>server/.env</code>：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">ini</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>HOST=0.0.0.0
+PORT=8788
+ALLOW_RESET=0</code></pre></div>
+<p>然后别人访问 <code>http://&lt;你的内网IP&gt;:8788</code>。<strong>【未实测】</strong></p>
+<p>同网段是明文 HTTP，不要在公共 WiFi / 展会网络里这么做。</p>
+<h3 id="doc0--路线-3-一台云服务器-长期可用">路线 3 · 一台云服务器（长期可用）</h3>
+<p><code>docs/11</code> 的 §A2 给了 Dockerfile + Caddyfile + systemd 三份片段（<strong>均标注未实测</strong>）。照抄之前先记住两件事：</p>
+<ol>
+<li><strong><code>DB_PATH</code> 必须指向挂载卷</strong>，否则容器重建 = 数据全丢（这是 <code>preflight</code> 里那条 <code>⚠</code> 想说的事）；</li>
+<li><strong><code>SESSION_SECRET_FILE</code> 同样要指向挂载卷</strong>，否则每次重启所有人被登出。</li>
+</ol>
+<hr class="sep">
+<h2 id="doc0--三-上线前必做的四件事">三、上线前必做的四件事</h2>
+<h3 id="doc0--4-1-改掉演示口令">4.1 改掉演示口令</h3>
+<p>两种方式，任选：</p>
+<p><strong>界面（逐个账号）</strong>：登录 → 右上角 🔑 → 填当前密码 <code>Demo@2026</code> + 新密码两次 → 确认。改完该账号所有会话会被吊销，用新密码重新登录。</p>
+<p><strong>命令行（一次改完 9 个账号）</strong>：<strong>【未实测】</strong> —— 别在本机演示库上跑，跑完你就得重建种子了。</p>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>BASE=http://127.0.0.1:8788
+OLD='Demo@2026'
+NEW='换成你自己的强口令'
+
+for U in U-000 U-001 U-002 U-003 U-004 U-005 U-006 U-007 U-008; do
+  TOKEN=$(curl -s -X POST "$BASE/api/auth/login" -H 'Content-Type: application/json' \
+          -d "{\"identifier\":\"$U\",\"password\":\"$OLD\"}" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')
+  curl -s -X POST "$BASE/api/auth/change-password" \
+       -H 'Content-Type: application/json' -H "X-Session-Token: $TOKEN" \
+       -d "{\"oldPassword\":\"$OLD\",\"newPassword\":\"$NEW\"}"
+  echo "  &lt;- $U"
+done</code></pre></div>
+<p>新密码约束：≥ 8 位、不能与当前密码相同，且必须给出正确的当前密码（服务端三重校验，见 <code>server/auth.js</code> 的 <code>changePassword</code>）。</p>
+<h3 id="doc0--4-2-备份">4.2 备份</h3>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>npm run backup            # 在线快照，不用停服  【实测】
+npm run backup:list       # 看看有哪些</code></pre></div>
+<p><strong>【实测】</strong> 一次真实备份的输出：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>✓ 备份完成  backups\hr_agent_20260930-091606.db
+   大小 376 KB · 岗位 21 · 候选人 79 · 用户 9 · 审计 9 · schema v7
+   校验值 sha256 b6223632b5e2d3f3…（同目录 .json 清单）</code></pre></div>
+<p>注意它备份的是<strong>单数</strong>：把它挪到另一块盘（<code>--dir D:/hr-backup</code>），否则「备份」和「原件」一起没了等于没备份。</p>
+<p>为什么用 <code>VACUUM INTO</code> 而不是复制文件：WAL 模式下复制 <code>-wal</code>/<code>-shm</code> 得到的是不一致快照，恢复后可能报 <code>database disk image is malformed</code>；<code>VACUUM INTO</code> 产出的是内部一致的完整库，而且<strong>只读连接就能执行</strong>，不阻塞正在写入的服务。</p>
+<h3 id="doc0--4-3-关掉重置">4.3 关掉重置</h3>
+<div class="codeblock"><div class="codetop"><span class="lang">ini</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code># server/.env
+NODE_ENV=production     # 副作用：ALLOW_RESET 默认关闭 + 强制 COOKIE_SECURE=1
+COOKIE_SECURE=1</code></pre></div>
+<p>生产实例上 <code>POST /api/reset</code> 返回 <strong>403</strong>，且文案说明是「开关关着」而不是「你没权限」（避免让人以为是权限配错了）；</p>
+<p>命令行 <code>--reset</code> 同样被拒并直接退出 —— <strong>开关只有一个，不存在「UI 关了但命令行还能清库」的缝</strong>。</p>
+<p>前端按钮不是「点了才报 403」：服务 <code>bootstrap</code> 下发 <code>caps.reset</code>，前端按这个能力决定按钮显隐 ——</p>
+<p>没有这个能力就<strong>根本看不见这个按钮</strong>，而不是看见、点下去、弹一个「无权限」。</p>
+<h3 id="doc0--4-4-COOKIE_SECURE-必须与访问方式成对">4.4 <code>COOKIE_SECURE</code> 必须与访问方式成对</h3>
+<div class="tablewrap"><table><thead><tr><th>访问入口</th><th>取值</th><th>取错的症状</th></tr></thead><tbody><tr><td><code>https://…</code></td><td><code>1</code></td><td>不设：会话 Cookie 明文传输</td></tr><tr><td><code>http://…</code>（本机、内网）</td><td>留空 / <code>0</code></td><td>设了：浏览器不发 Cookie → <strong>登录成功却立刻回到登录页</strong></td></tr></tbody></table></div>
+<p>这条不需要人记，<code>preflight</code> 第一项就会问。</p>
+<hr class="sep">
+<h2 id="doc0--四-演示当天">四、演示当天</h2>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>npm run dev                 # 起来，确认 http://127.0.0.1:8788 能开
+npm run backup              # 讲之前先留一份
+npm run start:reset         # 想让演示数据回到初始状态用这个
+npm run preflight           # 最后看一眼有没有变成阻断项</code></pre></div>
+<p>⚠️ <code>npm run start:reset</code> 走的是命令行 <code>--reset</code>，<strong>受同一个开关约束</strong>：生产配置下会被拒。</p>
+<p>要重建演示数据，用默认（开发）配置跑它，或者临时 <code>ALLOW_RESET=1</code>。</p>
+<p>演示账号（口令统一 <code>Demo@2026</code>，见 §4.1）：</p>
+<div class="tablewrap"><table><thead><tr><th>账号</th><th>身份</th><th>用来演示</th></tr></thead><tbody><tr><td>U-001</td><td>李静 · HRD</td><td>审批 Offer（<code>offer:decide</code> 是 HRD 独占：起草人不能批自己的单）</td></tr><tr><td>U-002</td><td>王强 · 招聘专员</td><td>日常筛选与邀约</td></tr><tr><td>U-005</td><td>陈明 · HRBP</td><td>跨部门数据范围</td></tr><tr><td>U-007 / U-008</td><td>王磊 / 孙倩 · 面试官</td><td>面试评价</td></tr><tr><td>U-003</td><td>张一鸣 · 员工</td><td><strong>权限对照</strong>：越权演示会吃到 403</td></tr><tr><td>U-006</td><td>周审 · 审计</td><td>审计留痕</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--五-验收清单-发链接之前照着打勾">五、验收清单（发链接之前照着打勾）</h2>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>命令 / 操作</th><th>期望</th></tr></thead><tbody><tr><td>1</td><td><code>npm test</code></td><td>10 套件全绿（<strong>【实测】</strong> 当前 10/10）</td></tr><tr><td>2</td><td><code>npm run preflight</code></td><td>退出码 0，或只剩已知可接受的 <code>⚠</code></td></tr><tr><td>3</td><td><code>curl -H 'Accept-Encoding: gzip' -I $URL</code></td><td><code>content-encoding: gzip</code></td></tr><tr><td>4</td><td><code>curl -I $URL/src/app.js</code></td><td><code>404</code></td></tr><tr><td>5</td><td><code>npm run backup</code></td><td>产出 <code>&lt;时间戳&gt;.db</code> + <code>.json</code> 清单</td></tr><tr><td>6</td><td>用另一个账号再登录一次</td><td>演示口令已失效 / 界面上看不到重置按钮</td></tr><tr><td>7</td><td>换一个浏览器（或无痕 window）打开</td><td>能走完「生成 JD → 筛选 → 排面试 → 发 Offer」</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--六-出了问题先看这三处">六、出了问题先看这三处</h2>
+<div class="tablewrap"><table><thead><tr><th>症状</th><th>先看</th></tr></thead><tbody><tr><td>登录成功立刻掉回登录页</td><td><code>COOKIE_SECURE</code> 与访问协议不配对（§4.4）</td></tr><tr><td>别人打开很慢</td><td>确认 gzip 生效（验收清单 #3）；未压缩时首屏要传 500 KB</td></tr><tr><td>数据没了</td><td><code>backups/</code> 里找最近的快照 → <code>node tools/backup.js --restore &lt;file&gt;</code>（<strong>必须先停服</strong>，<code>--force</code> 可跳过检查）</td></tr><tr><td>「AM-挂了」但日志没报错</td><td>用 <code>npm run dev</code> 起的服务跨会话存活依赖 WMI；直接 <code>node server/server.js</code> 起的进程会随命令结束被回收</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--七-这段管子到这里为止-下一截是什么">七、这段管子到这里为止 —— 下一截是什么</h2>
+<p>A 档做完，<strong>它是可访问的，但还不是「每天有人用」的工具</strong>。中间隔着三件具体的东西（都属 B 档，<code>docs/11</code> 有展开）：</p>
+<ol>
+<li><strong>没有真实简历入口</strong> —— 现在库里的 79 个候选人全是合成的（<code>synthesized=1</code>）。这是「演示」和「用」的分界线：真 HR 打开第一件事是导入自己的简历。</li>
+<li><strong>没有接模型</strong> —— 现在打分与润色全走确定性规则（这点本身是好的：离线可用、可回归、评测一致率 90%）。但真实简历的表达多样性会超出词库，<code>shared/req-lib.js</code> 的 30 个职能族撑不住所有写法。</li>
+<li><strong>备份还是手动的</strong> —— <code>npm run backup</code> 会用了，但没人天天记得跑。它需要一个定时任务 + 异地目录。</li>
+</ol>
+<p><strong>再往后才是别的事务：换 PG、做多租户、过合规（<code>TENANT</code> 现在还是写死的 <code>T-001</code>）。</strong></p>
+<p>在那之前先让它被人用起来 —— 顺序反了，就永远没有「用起来」的那一天。</p></article></main>
+</div>
+<footer>生成时间：2026-09-30 09:31（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<script>
+const docs = [{"key": "doc0", "name": "HR-Agent OS · A 档上线手册"}];
+
+function copyCode(btn) {
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1400);
+  });
+}
+
+function showDoc(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.doc === key));
+  document.querySelectorAll('article.doc').forEach(a => a.style.display = (a.dataset.doc === key ? '' : 'none'));
+  document.querySelectorAll('.tocgroup').forEach(g => g.style.display = (g.dataset.doc === key ? '' : 'none'));
+  resetHighlight();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showDoc(t.dataset.doc));
+
+// 滚动高亮目录
+const links = () => Array.from(document.querySelectorAll('.tocgroup:not([style*="none"]) .toclink'));
+window.addEventListener('scroll', () => {
+  const actives = links();
+  let cur = null;
+  for (const a of actives) {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el && el.getBoundingClientRect().top < 180) cur = a;
+  }
+  actives.forEach(a => a.style.color = '');
+  if (cur) { cur.style.color = 'var(--ac2)'; }
+});
+
+// 全文搜索 + 高亮
+let marks = [];
+function resetHighlight() {
+  document.querySelectorAll('mark').forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  marks = [];
+  document.getElementById('hint').textContent = '全文搜索';
+  document.getElementById('hint').style.color = 'var(--tx3)';
+}
+document.getElementById('q').addEventListener('input', e => {
+  const kw = e.target.value.trim();
+  resetHighlight();
+  if (kw.length < 2) return;
+  const activeArt = document.querySelector('article.doc:not([style*="none"])') || document.body;
+  let count = 0, first = null;
+  const walker = document.createTreeWalker(activeArt, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.trim().length > 1 && !/^(SCRIPT|STYLE|MARK)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const low = node.nodeValue.toLowerCase(), k = kw.toLowerCase();
+    if (low.indexOf(k) === -1) return;
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    while (true) {
+      const idx = rest.toLowerCase().indexOf(k); if (idx === -1) break;
+      frag.appendChild(document.createTextNode(rest.slice(0, idx)));
+      const m = document.createElement('mark'); m.textContent = rest.slice(idx, idx + kw.length);
+      frag.appendChild(m); marks.push(m); count++;
+      rest = rest.slice(idx + kw.length);
+    }
+    frag.appendChild(document.createTextNode(rest));
+    node.parentNode.replaceChild(frag, node);
+  });
+  const h = document.getElementById('hint');
+  h.textContent = count ? `命中 ${count} 处` : '无匹配';
+  h.style.color = count ? 'var(--grn)' : 'var(--red)';
+  if (count) { first = marks[0]; first.scrollIntoView({behavior:'smooth', block:'center'}); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.id !== 'q') { e.preventDefault(); document.getElementById('q').focus(); }
+  if (e.key === 'Escape') { document.getElementById('q').value = ''; resetHighlight(); }
+});
+</script>
+</body>
+</html>

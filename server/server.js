@@ -21,8 +21,9 @@
    =========================================================== */
 'use strict';
 const http = require('http');
+const path = require('path');
 
-const { config, validate } = require('./config.js');
+const { config, validate, warnings } = require('./config.js');
 const { logger } = require('./logger.js');
 const metrics = require('./metrics.js');
 const audit = require('./audit.js');
@@ -35,10 +36,23 @@ const { redact } = require('./logger.js');
 
 /* ---------- L5：配置先校验，配错就别启动 ---------- */
 validate();
+const configWarnings = warnings();
 const info = config.describe();
 
+/* `--reset` 与 /api/reset 受**同一个开关**约束。
+   两个入口两条判断是最容易漏的写法 —— 关掉接口却留着命令行，
+   等于「以为关上了，其实没有」。 */
+const wantReset = process.argv.includes('--reset');
+if (wantReset && !config.admin.allowReset) {
+  logger.error('拒绝执行 --reset：本机已关闭演示重置（ALLOW_RESET=0）', { env: config.env });
+  process.stderr.write('\n[启动中止] --reset 会清空运行期表，但当前配置禁止重置'
+    + `（NODE_ENV=${config.env}, ALLOW_RESET=0）。\n`
+    + '  确有需要：临时设置 ALLOW_RESET=1 再执行，并在用完后移除该变量。\n\n');
+  process.exit(2);
+}
+
 /* ---------- L4：数据库（迁移 + 种子） ---------- */
-const db = dbmod.open(process.argv.includes('--reset'));
+const db = dbmod.open(wantReset);
 logger.info('数据库就绪', {
   file: info.db,
   schemaVersion: dbmod.schemaVersion(db),
@@ -171,8 +185,14 @@ server.listen(config.http.port, config.http.host, () => {
   L.push('                U-003 张一鸣(员工) / U-000 管理员 / U-006 周审(数据保护)');
   L.push('   初始口令     见登录页「演示账号」提示栏（演示用统一口令）');
   L.push('                — 口令不进日志：stdout 常被重定向进文件，写口令等于发凭证');
-  L.push('   重置数据     node --experimental-sqlite server.js --reset');
+  L.push('   演示重置     ' + (info.allowReset
+    ? '已开启（右上角 ♻ 或 POST /api/reset，需 admin:policy）'
+    : '已关闭（ALLOW_RESET=0）—— 停服后用 --reset 重建'));
   L.push(line);
+  if (configWarnings.length) {
+    L.push('');
+    configWarnings.forEach(w => L.push('   ⚠️  ' + w));
+  }
   L.push('');
   logger.info('服务已启动', { url: `http://${config.http.host}:${config.http.port}`, env: config.env, authMode: info.authMode, schemaVersion: dbmod.schemaVersion(db) });
   process.stdout.write(L.join('\n') + '\n');

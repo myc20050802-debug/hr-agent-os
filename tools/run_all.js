@@ -32,7 +32,9 @@ const SUITES = [
   { id: 'eval', kind: 'backend', name: '筛选质量评测（一致率 / 漏筛率 / 误筛率）', file: 'tools/test_eval.js' },
   { id: 'screening', kind: 'self', name: '筛选运行（用量真实性 / 可重复运行）', file: 'tools/test_screening.js' },
   { id: 'devup', kind: 'self', name: '打开即在线（幂等启动 / CORS 白名单 / hook 接线）', file: 'tools/test_devup.js' },
+  { id: 'ops', kind: 'self', name: '运维面（gzip / ETag / 源码隔离 / 重置开关 / 口令治理 / 备份恢复）', file: 'tools/test_ops.js' },
   { id: 'offline', kind: 'frontend', name: '前端离线渲染与交互（无后端）', file: '平台原型/test_prototype.js' },
+  { id: 'nav', kind: 'frontend', name: '导航结构（目录 / 模块归属 / 折叠与权限裁剪）', file: 'tools/test_nav.js' },
   { id: 'live', kind: 'frontend', name: '前端在线渲染与交互（真后端）', file: '平台原型/test_live.js' },
   /* 压测单独一档：它比功能回归慢一个量级，且对机器负载敏感。
      放进默认 npm test 会让「改一行代码等两分钟」，所以只在显式指定时跑：
@@ -94,7 +96,7 @@ function runSuite(s) {
 
   const jsdom = hasJsdom();
   /* 默认（all）跑功能回归，跳过 optIn 套件；显式 --only <kind|id> 时才跑压测。
-     --only 接受「档位」（backend / self / frontend / load）或「套件 id」（auth / hiring / jd / eval / screening / offline / live / load）。 */
+     --only 接受「档位」（backend / self / frontend / load）或「套件 id」（auth / hiring / jd / eval / screening / devup / ops / offline / nav / live / load）。 */
   const picked = SUITES.filter(s => (ONLY === 'all' ? !s.optIn : (s.kind === ONLY || s.id === ONLY)));
   if (!picked.length) {
     /* 静默跑 0 套件并打出「全部通过」是假绿 —— 与项目一贯的「不许假绿」相冲突，直接失败。 */

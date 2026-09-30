@@ -144,6 +144,29 @@ JSDOM.fromFile(file, { runScripts: 'dangerously', pretendToBeVisual: true, virtu
       click('[data-act="closeModal"]');
     });
 
+    /* 未评分 ≠ 不合适。
+       离线种子候选人全部带分数，所以临时把一条置空来逼出兜底分支 —— 用 try/finally
+       保证**无论断言成败都还原**，绝不把测试数据留在共享状态里污染后续用例。 */
+    await tryAsync('候选人库：未评分不得渲染成「不合适」', async () => {
+      app.state.page = 'candidates'; app.render();
+      const probe = window.DB.candidates[0];
+      const snap = { score: probe.score, grade: probe.grade };
+      try {
+        probe.score = null; probe.grade = null;
+        app.render();
+        const rows = [...$('#pageHost').querySelectorAll('table tbody tr')];
+        const unRow = rows.find(tr => tr.textContent.indexOf('待评分') !== -1);
+        if (!unRow) throw new Error('未评分候选人没有渲染成「待评分」');
+        if (unRow.textContent.indexOf('不合适') !== -1) throw new Error('未评分被渲染成「不合适」：' + unRow.textContent.slice(0, 50));
+        if (!/tag n/.test(unRow.innerHTML)) throw new Error('「未评分」未使用中性标签（不得沿用红色）');
+        if ($('#pageHost').textContent.indexOf('尚未评分') === -1) throw new Error('存在未评分候选人，但页面未说明原因与运行入口');
+      } finally {
+        probe.score = snap.score; probe.grade = snap.grade;   /* 还原，勿留痕 */
+      }
+      app.render();
+      if (/>null</.test($('#pageHost').innerHTML)) throw new Error('候选人库把空分数渲染成了字面 null');
+    });
+
     await tryAsync('员工自助问答', async () => {
       app.state.page = 'selfservice'; app.render();
       click('.qchip');

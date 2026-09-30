@@ -225,7 +225,13 @@
    * @returns {object} 可直接渲染、也可直接存库的结构化归因
    */
   function explain(input) {
-    const score = Math.round(Number((input && input.score) || 0));
+    /* 未评分没有「为什么」可讲，直接返回 null，由调用方决定怎么呈现「尚未评分」。
+       ⚠️ 不能让它往下落到 `|| 0`：那会把「还没打分」静默变成「0 分」，
+       再经 gradeOf(0) 变成「不合适」，并**编出一份 0 分的算式** ——
+       一份看起来完整、实则凭空生成的归因，比没有归因更糟。
+       （0 分是合法分数，只有 null / 非数字才早退。） */
+    if (!input || input.score == null || !Number.isFinite(Number(input.score))) return null;
+    const score = Math.round(Number(input.score));
     const ctx = (input && input.ctx) || {};
     const dims = ((input && input.dims) || []).map(d => {
       const max = d.max == null ? 0 : d.max;

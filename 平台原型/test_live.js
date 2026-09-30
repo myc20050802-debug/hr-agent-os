@@ -302,6 +302,31 @@ const html = fs.readFileSync(file, 'utf8');
     if (b.jobs.length < 5) throw new Error('岗位库未随重置恢复');
   });
 
+  /* 6b. 显示语义：「未评分」≠「不合适」
+     重置后候选人处于「从未被筛选」状态（ai_score / ai_grade 均为 NULL）。
+     旧实现里 gradeTag(null) 落到最后一个 else 分支 → 全库渲染红标「不合适」，
+     把「还没看过这个人」说成「看过并且否了」。对招聘场景这是会误导决策的语义事故，
+     所以单独锁一条：未评分必须显示为中性「待评分」，且页面要给出原因与去处。 */
+  await tryAsync('候选人库：未评分显示为「待评分」而非「不合适」', async () => {
+    app.state.page = 'candidates'; app.render();
+    const host = $('#pageHost');
+    const rows = [...host.querySelectorAll('table tbody tr')];
+    if (!rows.length) throw new Error('候选人库表格为空');
+    if (/>null</.test(host.innerHTML)) throw new Error('候选人库把空分数渲染成了字面 null');
+    let un = 0;
+    rows.forEach(tr => {
+      const txt = tr.textContent;
+      if (txt.indexOf('待评分') !== -1) {
+        un++;
+        if (txt.indexOf('不合适') !== -1) throw new Error('未评分被渲染成「不合适」：' + txt.slice(0, 50));
+        if (!/tag n/.test(tr.innerHTML)) throw new Error('「未评分」未使用中性标签（不得沿用红色）');
+      }
+    });
+    if (un !== rows.length) throw new Error('刚重置过，全库应均为未评分；实得 ' + un + '/' + rows.length);
+    if (host.textContent.indexOf('尚未评分') === -1) throw new Error('存在未评分候选人，但页面未说明原因与运行入口');
+    log('      全库 ' + rows.length + ' 位：均显示「待评分」，0 条「不合适」');
+  });
+
   /* 7. 筛选 Agent 真实执行 → 闸门 */
   await tryAsync('筛选Agent真实执行并停在闸门', async () => {
     const rb = await (await api('/api/bootstrap')).json();

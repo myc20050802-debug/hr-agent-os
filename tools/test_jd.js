@@ -120,11 +120,60 @@ const BLOB = [
     ok('任职要求段落内没有「N. 」编号', sec.split('\n').every(l => !/^\d+\.\s/.test(l)));
     ok('五个维度小标题齐全', ['专业技能', '工作经验', '学历背景', '综合素质', '软技能'].every(n => sec.indexOf('（' ) >= 0 && sec.indexOf(n) >= 0));
     const plus = jd.split('## 三、加分项')[1].split('## 四、我们提供')[0].trim();
-    eq('加分项是一段行文，不是条目列表', plus,
-      'AI产品实习经历；懂点技术能和工程对话；有自己的Side Project；对Agent的"能力边界"有自己的判断。');
+    const plusItems = plus.replace(/。$/, '').split('；');
+    eq('加分项仍是一段行文（4 条）', plusItems.length, 4);
+    ok('加分项统一为「…者优先」句式', plusItems.every(t => /者优先$/.test(t)), plus);
+    ok('加分项保留了 HR 写的核心信息（实习经历 / Side Project / 能力边界）',
+      /AI产品实习经历/.test(plus) && /Side Project/.test(plus) && /能力边界/.test(plus), plus);
+    ok('加分项的口语化表述已被书面化（不再出现「懂点技术」「能和工程对话」）',
+      plus.indexOf('懂点技术') < 0 && plus.indexOf('能和工程对话') < 0, plus);
     ok('合规扫描：夹带的「27届」没有触发年龄歧视规则', r.scan.flagged.length === 0 && r.scan.legal.length === 0, JSON.stringify(r.scan.flagged));
     ok('执行轨迹里说明了「按小标题还原」', r.steps.some(s => s.intent.indexOf('小标题') >= 0));
     ok('关键词含 HR 自己写的职责句里的技能词', Array.isArray(r.keywords));
+  }
+
+  console.log('\n=== 6b. v12 已填内容的润色与美化 ===');
+  {
+    /* 口径：任职要求 / 加分项「已有内容 → 保留核心信息并丰富润色；为空 → 原有默认逻辑」。
+       本节锁三件事：① 口语化表述被书面化；② 核心信息一个字不丢、不新增；
+       ③ 二次展开幂等（runJD → buildJD 会展开两次，不能叠出「者优先者优先」）。 */
+    const r = E.expandRequirements({
+      title: 'AI 产品经理', industry: '互联网', years: 2, eduRank: 2,
+      must: '最好是 3 年以上 AI 产品经验\n聪明有灵气，表达清楚\n我们希望你能主动推进项目呢',
+      nice: 'AI产品实习经历\n懂点技术能和工程对话\n有自己的Side Project'
+    });
+    const dim = n => (r.dims.find(d => d.name === n) || { items: [] }).items;
+    const 软 = dim('软技能');
+    const 灵 = 软.find(t => t.indexOf('思维敏捷') >= 0) || '';
+    ok('口语「聪明有灵气 / 表达清楚」→「思维敏捷 / 表达清晰」',
+      灵.indexOf('思维敏捷') >= 0 && 灵.indexOf('表达清晰') >= 0
+      && 灵.indexOf('有灵气') < 0 && 灵.indexOf('表达清楚') < 0, 灵);
+    const 主 = 软.find(t => t.indexOf('主动推进项目') >= 0) || '';
+    ok('框架语「我们希望你能…呢」被剥掉，只留实义', 主 === '主动推进项目', 主);
+    ok('口头前缀「最好是」被剥掉，核心信息不丢',
+      dim('工作经验').some(t => t === '3 年以上 AI 产品经验'), JSON.stringify(dim('工作经验')));
+    ok('核心信息一字不丢（AI 产品经验仍在硬性条件里）', r.must.some(t => t.indexOf('AI 产品经验') >= 0));
+    ok('加分项全部统一为「…者优先」', r.nice.every(t => /者优先$/.test(t)), JSON.stringify(r.nice));
+    ok('加分项核心信息保留（AI产品实习经历 / Side Project）',
+      r.nice.some(t => t.indexOf('AI产品实习经历') >= 0) && r.nice.some(t => t.indexOf('Side Project') >= 0));
+    ok('润色不凭空添加：技术栈词没被塞进加分项',
+      r.nice.every(t => !/Java|Spring|MySQL|Redis/.test(t)), JSON.stringify(r.nice));
+    ok('已填的三条要求各自仍只占一条（润色不拆条、不并条）',
+      ['3 年以上 AI 产品经验', '思维敏捷', '主动推进项目']
+        .every(k => [...r.must, ...r.soft].filter(t => t.indexOf(k) >= 0).length === 1),
+      JSON.stringify([...r.must, ...r.soft]));
+
+    /* 幂等：runJD → buildJD 会二次展开 */
+    const again = E.expandRequirements({ title: 'AI 产品经理', industry: '互联网', years: 2, eduRank: 2, must: r.must, nice: r.nice });
+    eq('二次展开幂等（加分项文案与条数不变）', again.nice, r.nice);
+    ok('二次展开不叠成「者优先者优先」', again.nice.every(t => (t.match(/者优先/g) || []).length === 1), JSON.stringify(again.nice));
+    eq('二次展开幂等（硬性条件不变）', again.must, r.must);
+
+    /* 两栏留空 → 原有默认逻辑：条数与来源不变，只是句式统一为「…者优先」 */
+    const empty = E.expandRequirements({ title: 'AI 产品经理', industry: '互联网', years: 2, eduRank: 2, must: '', nice: '' });
+    ok('两栏留空仍按职能族给出加分项建议', empty.nice.length >= 3, 'nice=' + empty.nice.length);
+    ok('两栏留空时加分项同样统一为「…者优先」', empty.nice.every(t => /者优先$/.test(t)), JSON.stringify(empty.nice));
+    ok('两栏留空时任职要求仍补齐六维度', empty.dims.length === 5 && empty.dims[0].items.length >= 3);
   }
 
   console.log('\n=== 7. 不粘贴、正常填写的老路径不受影响 ===');

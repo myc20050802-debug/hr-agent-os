@@ -14,8 +14,13 @@ const fs = require('fs');
 
 /* 库文件路径：默认 server/hr_agent.db，可用环境变量 DB_PATH 覆盖。
    为什么需要覆盖：① 测试要跑在隔离库上，不能污染演示数据；
-   ② 部署时数据目录通常挂在卷上，不该写死在代码目录里（容器重建即丢数据）。 */
-const DB_FILE = process.env.DB_PATH ? path.resolve(process.env.DB_PATH) : path.join(__dirname, 'hr_agent.db');
+   ② 部署时数据目录通常挂在卷上，不该写死在代码目录里（容器重建即丢数据）。
+
+   v0.11.0：路径判定移交给 config.js（`config.db.file`）——
+   本文件曾经自己读 process.env，于是「启动横幅显示的库」与「实际打开的库」
+   有两个来源，配置一改就只对一半。现在**只有 config.js 读 process.env**。 */
+const { config } = require('./config.js');
+const DB_FILE = config.db.file;
 
 /* ---------- schema 由 migrations.js 统一管理 ----------
    v0.10.0 起，建表 / 补列 / 建索引 / 建触发器全部走**版本化迁移**，
@@ -395,6 +400,12 @@ function open(reset) {
       try { if (fs.existsSync(f)) fs.rmSync(f); } catch { /* Windows 文件锁：交给后续 busy_timeout */ }
     }
   }
+  /* 数据目录可能还不存在（容器首次挂卷、DB_PATH 指向新目录）。
+     不先建目录的话，报错是 `unable to open database file` ——
+     一句完全没有指向性的信息，排查时容易往「权限」「SQLite 版本」上找。 */
+  try { fs.mkdirSync(path.dirname(DB_FILE), { recursive: true }); }
+  catch (e) { throw new Error(`无法创建数据目录 ${path.dirname(DB_FILE)}：${e.message}`); }
+
   const db = new DatabaseSync(DB_FILE);
   /* WAL：读写并发更友好（读不阻塞写），且写入提交不必每次都等全库 fsync。
      对「一个进程同步写 + 多个请求读」的本场景是实打实的改善。 */

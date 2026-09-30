@@ -287,9 +287,9 @@ window.Agent = (function () {
   };
   const toReqs = v => parseReqInput(v, 'must').must;
   const cleanReq = s => String(s).replace(/[。；;，,、\s]+$/, '').trim();
-  /* 维度归位判据（与后端 engine.js 同源） */
+  /* 维度归位判据（与后端 engine.js 同源；v12 起 REQ_EXP 含「实习」） */
   const REQ_EDU = /学历|本科|大专|硕士|博士|统招|学士|毕业|专业不限|\d{2}\s*届/;
-  const REQ_EXP = /年以上|经验|从事|任职经历|工作经历/;
+  const REQ_EXP = /年以上|经验|从事|任职经历|工作经历|实习/;
   const REQ_SOFT = /热爱|热情|同理心|好奇|主动|抗压|扛得住|沟通|表达|责任心|学习能力|自驱|踏实|细心|耐心|团队协作|上进/;
   const dedupeReq = arr => { const seen = new Set(); return arr.filter(t => { const k = String(t).replace(/\s/g, ''); if (!k || seen.has(k)) return false; seen.add(k); return true; }); };
   const bigrams = s => { const t = String(s).replace(/[\s，,。；;、（）()：:／/·-]/g, ''); const o = new Set(); for (let i = 0; i < t.length - 1; i++) o.add(t.slice(i, i + 2)); return o; };
@@ -345,35 +345,47 @@ window.Agent = (function () {
     /* 归位前先剔除跨职能族的错配产物（如非技术岗里的「熟悉 Java」） */
     const uMust = stripMisfitAutoFill(userMust, fnKey);
     const uNice = stripMisfitAutoFill(userNice, fnKey);
-    /* 软素质单列一桶：把「对 AI 是真热爱」塞进「专业技能」整段就不着调了 */
+    /* 软素质单列一桶：把「对 AI 是真热爱」塞进「专业技能」整段就不着调了。
+       v12：已填内容「保留核心信息 → 书面化润色」后再落桶。
+       ⚠️ 维度判定用**润色前**的原文 —— 润色会换词（「聪明有灵气」→「思维敏捷」），
+       拿新词去判维度会把条目分错桶。与后端 engine.js 同一套规则。 */
     const s1 = [], s2 = [], s3 = [], s4 = [];
     uMust.forEach(t => {
-      if (REQ_EDU.test(t)) s3.push(t);
-      else if (REQ_EXP.test(t)) s2.push(t);
-      else if (REQ_SOFT.test(t)) s4.push(t);
-      else s1.push(t);
+      const p = (RL && RL.polishMustItem) ? RL.polishMustItem(t) : t;
+      if (REQ_EDU.test(t)) s3.push(p);
+      else if (REQ_EXP.test(t)) s2.push(p);
+      else if (REQ_SOFT.test(t)) s4.push(p);
+      else s1.push(p);
     });
     const userAll = [...uMust, ...uNice];
     const bench = fn ? dedupeReq(lib.core).filter(k => !coveredByUser(k, userAll)) : [];
     const kwWord = k => `熟悉${/^[A-Za-z]/.test(k) ? ' ' : ''}${k}，能独立应用于实际业务场景`;
     bench.slice(0, Math.max(0, 4 - s1.length)).forEach(k => s1.push(kwWord(k)));
     if (!s1.length) s1.push(`掌握${title || '本岗位'}所需的核心专业技能，能独立完成岗位交付`);
-    /* 工作经验：管培生 / 实习 / 应届岗不设年限门槛（与后端 engine.js 同口径） */
+    /* 工作经验：管培生 / 实习 / 应届岗不设年限门槛（与后端 engine.js 同口径）
+       ⚠️ 判重扫**全部已填内容**而非只看 s2 —— 二次展开时「有 1–2 段…实习经历」
+       会落进专业技能桶，只看 s2 会再补一遍，凭空多出一条要求。 */
     const junior = RL ? RL.detectJunior(title, [...userMust, ...userNice]) : false;
     if (!s2.length) {
       s2.push(junior ? '无需相关工作经验，欢迎应届毕业生投递'
         : `${y} 年以上${title || '相关岗位'}经验，有完整项目或业务周期经历`);
     }
+    const filledAll = [...s1, ...s2, ...s3, ...s4];
     if (junior) {
-      if (!s2.some(t => /实习/.test(t))) s2.push('有 1–2 段与岗位方向对口的实习经历者优先');
-    } else if (!s2.some(t => t.includes(R.expHint.slice(0, 10)))) {
+      if (!filledAll.some(t => /实习/.test(t))) s2.push('有 1–2 段与岗位方向对口的实习经历者优先');
+    } else if (!filledAll.some(t => t.includes(R.expHint.slice(0, 10)))) {
       s2.push(R.expHint);
     }
     if (!s3.length) s3.push(eduRequirement(input.eduRank, R.majors));
     else if (!/专业/.test(s3.join('')) && R.majors !== '相关专业') s3.push(`专业方向：${R.majors}`);
     const general = dedupeReq(R.general), softTpl = dedupeReq(R.soft);
     const softSelf = dedupeReq([...s4, ...softTpl]);
-    const niceList = dedupeReq(uNice);
+    /* v12：加分项最终统一美化为「…者优先」的对外句式（连模板补位项一起，
+       一段里语气才一致；老岗位自愈重算时也分不清哪条是 HR 写的）。
+       改变的只是句式收尾，模板的选取逻辑一概未动。
+       去重放在**美化之前**：若先加「者优先」再查重，「有 X 者优先」会和
+       模板里的「有 X」因表述不同而躲过 similarReq。 */
+    const niceList = dedupeReq((RL && RL.polishNiceItem) ? uNice.map(RL.polishNiceItem) : uNice);
     const niceTarget = niceList.length >= 3 ? niceList.length : 4;
     const nicePool = !fn ? [] : (R.nice.length ? R.nice : lib.plus.map(p => /^[有主]/.test(p) ? p : `有${p}相关经历`));
     nicePool.forEach(t => {
@@ -381,6 +393,8 @@ window.Agent = (function () {
       if (niceList.some(x => similarReq(x, t))) return;
       niceList.push(t);
     });
+    /* polishNiceItem 幂等，重复展开不会叠成「者优先者优先」 */
+    const niceOut = (RL && RL.polishNiceItem) ? dedupeReq(niceList.map(RL.polishNiceItem)) : niceList;
     const d1 = dedupeReq(s1), d2 = dedupeReq(s2), d3 = dedupeReq(s3), d4 = dedupeReq(s4);
     /* 岗位职责：职能族优先，识别不出才退回行业模板。
        v0.9.6 起每族职责池扩到 8 条，由 pickDuties 按子方向挑最贴近的 6 条 ——
@@ -395,7 +409,7 @@ window.Agent = (function () {
       if (ctx) dutyList = dutyPicked.concat([ctx]);
     }
     return {
-      must: [...d1, ...d2, ...d3], soft: [...general, ...softSelf], nice: niceList,
+      must: [...d1, ...d2, ...d3], soft: [...general, ...softSelf], nice: niceOut,
       fnKey: fnKey, fnName: fn ? fn.name : null, source: fn ? 'function' : 'industry', junior: junior,
       duties: dutyList,
       /* 整段 JD 粘进来时才有值：引言与职责按原文归位（同后端 engine.js） */

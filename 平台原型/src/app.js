@@ -9,15 +9,39 @@
      为什么要在前端也标一遍：后端已经按能力裁剪了数据，前端这一层是**界面减负**——
      员工登录后不该看到一个点进去全是 403 的菜单。它不承担安全职责，
      安全由服务端保证（即使手工改 URL 强行进入，数据依然是空的/403）。
-     perm 缺省 = 所有已登录角色可见。 */
+     perm 缺省 = 所有已登录角色可见。
+
+     ── 三级结构：分组(group) → 目录(catalog) → 模块(module) → Agent(页) ──
+     为什么不再平铺：招聘域已经有 5 个 Agent，且必然会继续长（背调、笔试题库、
+     薪酬测算、入职引导…）。平铺的话每加一个都要在「智能体中心」里重新挑位置，
+     几个月后就是一条谁也不敢动的长名单。收进「招聘 Agent」目录之后，
+     新增一个 Agent 只需要回答一个问题：**它落在招聘的哪个阶段**。
+     模块按**招聘业务流**划（而不是按前端文件名或技术实现划），
+     好处是业务同事和工程师能对着同一张表说话。 */
+  const RECRUITING = {
+    id: 'recruiting', ico: '🎯', name: '招聘 Agent', catalog: true,
+    /* 模块顺序 = 招聘流程的时间顺序，新 agent 按阶段归位即可 */
+    modules: [
+      { name: '岗位与需求', items: [
+        { id: 'jd', ico: '📝', name: 'JD 工作台', perm: 'job:write' }
+      ]},
+      { name: '筛选与评估', items: [
+        { id: 'screen', ico: '🎯', name: '简历筛选台', perm: 'screen:run' }
+      ]},
+      { name: '面试与协调', items: [
+        { id: 'invite', ico: '📨', name: '邀约与调度', perm: 'interview:schedule' },
+        { id: 'interview', ico: '🎤', name: '面试辅助', perm: 'interview:read' }
+      ]},
+      { name: '录用与入职', items: [
+        { id: 'offer', ico: '📄', name: 'Offer 前置', perm: 'offer:read' }
+      ]}
+    ]
+  };
+
   const NAV = [
     { group: '', items: [{ id: 'dashboard', ico: '🏠', name: '工作台' }] },
     { group: '智能体中心', items: [
-      { id: 'jd', ico: '📝', name: '招聘 Agent · JD 工作台', sub: true, perm: 'job:write' },
-      { id: 'screen', ico: '🎯', name: '招聘 Agent · 简历筛选台', sub: true, perm: 'screen:run' },
-      { id: 'invite', ico: '📨', name: '招聘 Agent · 邀约与调度', sub: true, perm: 'interview:schedule' },
-      { id: 'interview', ico: '🎤', name: '招聘 Agent · 面试辅助', sub: true, perm: 'interview:read' },
-      { id: 'offer', ico: '📄', name: '招聘 Agent · Offer 前置', sub: true, perm: 'offer:read' },
+      RECRUITING,
       { id: 'onboarding', ico: '🔄', name: '入转调离 Agent', perm: 'employee:read' },
       { id: 'selfservice', ico: '💬', name: '员工自助 Agent', perm: ['self:read', 'report:read'] },
       { id: 'reports', ico: '📊', name: '人力报表 Agent', perm: 'report:read' },
@@ -76,6 +100,9 @@
   ];
 
   const state = { page: 'dashboard', q: '', collapsed: false, jobId: null, jobForm: null,
+    /* 导航目录的展开状态（{ 目录id: bool }）。运行时真源在此，
+       跨会话的「我把它收起来了」记在 localStorage，见 catalogOpen / setCatalogOpen。 */
+    catalogs: {},
     /* 最近一次筛选运行的真实模型用量（null = 还没跑过）。
        只由服务端返回的 steps 汇总而来；规则模式下恒为 0。绝不本地估算。 */
     runTokens: null,
@@ -143,7 +170,12 @@
   /* authMode 只是从 /api/health 抄回来的**展示用**字段，不参与任何分支判断
      （后端已删除 AUTH_MODE=legacy，前端也不该留一个假身份路径）。
      默认值写 strict：与服务端唯一支持的模式一致 —— 初值写 legacy 会让人以为还有后门。 */
-  const LIVE = { on: false, mode: 'rule', authMode: 'strict' };
+  /* caps = 服务端下发的能力开关（如 { reset: true }）。
+     为什么要有这一层：前端隐藏入口是**体验**，不是安全 ——
+     真正的拦截在服务端（/api/reset 返回 403）。反过来，服务端关了
+     而前端还显示按钮，用户就会点了才发现不行，像是坏了。
+     默认 reset:true 是刻意的：离线演示态本来就没人拦，重置只是刷新内存。 */
+  const LIVE = { on: false, mode: 'rule', authMode: 'strict', caps: { reset: true } };
   const AUTH = { token: null, me: null, mustChange: false };
 
   /* ---------- 后端定位（让「在哪儿打开都是在线模式」成为默认行为） ----------
@@ -271,6 +303,7 @@
         applyIdentity();
         render();
         toast('已登录：' + j.me.name + '（' + j.me.roleLabel + '）');
+        if (AUTH.mustChange) setTimeout(() => toast('⚠️ 当前账号仍在使用初始口令 —— 实例对外可达前请点右上角 🔑 改成自己的密码。', 'warn'), 700);
       } catch (e) { err.textContent = '登录请求失败：' + e.message; }
     };
     el.querySelector('#accGo').onclick = go;
@@ -298,6 +331,14 @@
       who.style.display = '';
       who.textContent = '👤 ' + me.name + ' · ' + (me.roleLabel || me.role);
       who.title = `账号 ${me.id} · 数据范围 ${me.scope} · 能力 ${(me.abilities || []).length} 项：${(me.abilities || []).slice(0, 8).join('、')}${(me.abilities || []).length > 8 ? ' …' : ''}`;
+    }
+    /* 改密入口：离线模式没有口令概念，留着就是一个点了没反应的按钮，所以直接隐藏。
+       仍在用初始口令时给它一个提醒态 —— 不弹窗打断演示，但要看得见。 */
+    const pwBtn = $('#pwdBtn');
+    if (pwBtn) {
+      pwBtn.style.display = LIVE.on ? '' : 'none';
+      pwBtn.classList.toggle('alert', !!AUTH.mustChange);
+      pwBtn.title = AUTH.mustChange ? '修改密码（当前仍是初始口令，建议立即修改）' : '修改密码';
     }
   }
 
@@ -382,7 +423,9 @@
   async function liveRefresh() {
     if (!LIVE.on) return;
     try {
-      Object.assign(D, await apiFetch('GET', '/api/bootstrap'));
+      const snap = await apiFetch('GET', '/api/bootstrap');
+      Object.assign(D, snap);
+      if (snap.caps) LIVE.caps = snap.caps;   // 能力开关随快照同步（服务端是唯一真源）
       AUTH.me = D.me || AUTH.me;
       applyIdentity();
       /* 岗位可能被删除 / 被行级权限裁剪，兜底重选 */
@@ -458,8 +501,14 @@
   /* ============ 小工具 ============ */
   const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  /* 档位徽章。**default 分支必须是中性「未评分」，不能是「不合适」** ——
+     候选人刚导入 / 重置演示数据后 ai_grade 为 null，若兜底成「不合适」，
+     界面就会把「还没看过这个人」显示成「看过并且否了」，HR 可能据此直接筛掉人。
+     这是显示层的语义事故，不是样式问题。 */
   const gradeTag = g => g === 'strong' ? '<span class="tag g">强烈推荐</span>'
-    : g === 'ok' ? '<span class="tag y">可聊</span>' : '<span class="tag r">不合适</span>';
+    : g === 'ok' ? '<span class="tag y">可聊</span>'
+      : g === 'no' ? '<span class="tag r">不合适</span>'
+        : '<span class="tag n">未评分</span>';
   /* 人工结论 → 中文。取值域与后端 shared/override-codes.js 一致：
      confirmed 一致；approved_by_human / rejected_by_human 都是推翻（方向不同）。 */
   const humanLabel = h => h === 'confirmed' ? '人工确认 AI 结论'
@@ -474,7 +523,9 @@
     };
     return `<span class="tag ${map[s] || 'n'}">${esc(s)}</span>`;
   };
-  const scoreColor = v => v >= 78 ? 'g' : v >= 60 ? 'y' : 'r';
+  /* 分数配色。**空值必须与「低分」分开** —— 未评分不是红，它是「还不知道」。
+     和 stageTag 的 `|| 'n'` 同一个道理：兜底要给中性档，不能给最差档。 */
+  const scoreColor = v => v == null ? 'n' : v >= 78 ? 'g' : v >= 60 ? 'y' : 'r';
 
   function toast(msg, type) {
     const box = $('#toast');
@@ -769,10 +820,10 @@
             <div style="flex:1"><label class="f">学历要求</label>
               <select class="i" id="jdEdu">${EDU_OPTS.map(([v, t]) => `<option value="${v}" ${v === 2 ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
           </div>
-          <div class="field"><label class="f">任职要求（留空 = Agent 按行业生成六维度版本）</label>
-            <textarea class="i" id="jdMust" rows="3" placeholder="留空即可；也可以只写一条，例如「3 年以上采购经验」，Agent 会在这一条的基础上扩充成专业技能／工作经验／学历背景／综合素质／软技能"></textarea></div>
-          <div class="field"><label class="f">加分项（留空 = Agent 按行业建议）</label>
-            <textarea class="i" id="jdNice" rows="2" placeholder="同上"></textarea></div>
+          <div class="field"><label class="f">任职要求（留空 = Agent 生成六维度版本；已填则保留核心信息并润色后扩充）</label>
+            <textarea class="i" id="jdMust" rows="3" placeholder="留空即可；也可以只写一条，例如「3 年以上采购经验」。已填内容会被保留并做书面化润色，再扩成专业技能／工作经验／学历背景／综合素质／软技能"></textarea></div>
+          <div class="field"><label class="f">加分项（留空 = Agent 按职能族建议；已填则美化完善）</label>
+            <textarea class="i" id="jdNice" rows="2" placeholder="留空则由 Agent 按职能族/行业给建议；已填内容会保留条件本身，统一写成「…者优先」的专业句式"></textarea></div>
           <div class="field"><label class="f">复用条款（勾选后自动写入 JD）</label>
             <div class="checks">
               <label><input type="checkbox" id="jdB0" checked> 弹性工作制</label>
@@ -913,7 +964,7 @@
             <td>${c.score == null ? '<span class="muted small">待评分</span>' : `<div style="display:flex;align-items:center;gap:7px">
               <b title="${esc(whyTip(c))}" style="color:var(--${scoreColor(c.score) === 'g' ? 'grn' : scoreColor(c.score) === 'y' ? 'yel' : 'red'})">${c.score}</b>
               <div class="bar" style="width:44px"><i class="${scoreColor(c.score)}" style="width:${c.score}%"></i></div></div>`}</td>
-            <td>${c.grade ? gradeTag(c.grade) : '<span class="tag y">未评分</span>'}</td>
+            <td>${gradeTag(c.grade)}</td>
             <td class="small" style="max-width:330px">${esc((c.reasons[0] && c.reasons[0].ev) || c.ruleHit || '')}</td>
             <td>${stageTag(c.stage)}</td>
             <td>${c.parseOk ? '<span class="tag g">成功</span>' : '<span class="tag y">需人工补录</span>'}</td>
@@ -966,8 +1017,8 @@
           <div class="field"><label class="f">加分项</label>
             <textarea class="i" id="jfNice" rows="2" placeholder="有精益生产项目经验，熟悉 ERP 系统">${esc((d.niceHave || []).join('，'))}</textarea></div>
           <div class="callout" style="margin:0 0 10px">
-            ✨ <b>只写一条也能生成完整任职要求</b>：点下面「让 Agent 生成 JD 草稿」，Agent 会把你已填的内容<b>原样保留</b>，
-            再按<b>专业技能 / 工作经验 / 学历背景 / 综合素质 / 软技能</b>五个维度补齐，加分项同步扩充。
+            ✨ <b>只写一条也能生成完整任职要求</b>：点下面「让 Agent 生成 JD 草稿」，Agent 会<b>保留你已填内容的核心信息并做书面化润色</b>，
+            再按<b>专业技能 / 工作经验 / 学历背景 / 综合素质 / 软技能</b>五个维度补齐；加分项会美化完善为「…者优先」的专业句式，不会改变你写的条件本身。
           </div>
           <div class="field"><label class="f">JD 正文（留空 = 保存时按行业模板自动生成）</label>
             <textarea class="i" id="jfJd" rows="5" placeholder="留空即可；也可以粘贴你自己写好的 JD 覆盖">${esc(d.jd || '')}</textarea></div>
@@ -1603,9 +1654,18 @@
     </div>`;
 
   /* ---- 候选人库 ---- */
-  PAGES.candidates = () => `
+  PAGES.candidates = () => {
+    /* 未评分 ≠ 不合格：这两个状态必须一眼可辨。
+       候选人库默认视图是「全库」，所以「全库未评分」是常态（新导入 / 刚重置演示数据），
+       页面有义务说清楚它是什么、以及下一步去哪 —— 而不是甩一列红标让人自己猜。 */
+    const pending = D.candidates.filter(c => c.score == null).length;
+    return `
     <div class="page-head"><h2>候选人库</h2>
       <p>全部候选人统一视图。注意手机号/邮箱默认打码，点击「查看明文」会记录一次敏感数据访问日志 —— <b>合规不是靠自觉，是靠留痕</b>。</p></div>
+    ${pending ? `<div class="callout"><b>${pending} / ${D.candidates.length} 位候选人尚未评分</b> ——
+      「未评分」表示筛选 Agent 还没看过这份简历（新导入，或刚执行过「重置演示数据」），<b>不是「不合适」</b>。
+      打分输入是「岗位要求 × 简历」，所以要先在筛选台选定岗位、再运行 Agent。
+      <div style="margin-top:9px"><button class="btn sm primary" data-act="go" data-page="screen">去简历筛选台运行</button></div></div>` : ''}
     <div class="card pad0">
       <div class="card-h"><h3>共 ${D.candidates.length} 位候选人</h3><span class="spacer"></span>
         <span class="card-sub">🔒 明文查看已开启审计</span></div>
@@ -1616,12 +1676,14 @@
             <td class="small">${esc(c.job)}</td>
             <td class="mono small">${c.phone}<br><span class="pii">${esc(c.email)}</span></td>
             <td class="small">${esc((c.edu || '').split('·')[0] || '—')}<br>${c.years} 年</td>
-            <td><b title="${esc(whyTip(c))}" style="color:var(--${scoreColor(c.score) === 'g' ? 'grn' : scoreColor(c.score) === 'y' ? 'yel' : 'red'})">${c.score}</b></td>
+            <td>${c.score == null ? '<span class="muted small">待评分</span>'
+              : `<b title="${esc(whyTip(c))}" style="color:var(--${scoreColor(c.score) === 'g' ? 'grn' : scoreColor(c.score) === 'y' ? 'yel' : 'red'})">${c.score}</b>`}</td>
             <td>${gradeTag(c.grade)}</td><td>${stageTag(c.stage)}</td>
             <td><button class="btn sm" data-act="reveal" data-id="${c.id}">查看明文</button></td></tr>`))}
       </div>
     </div>
     <div class="callout">候选人库默认保留 12 个月，到期自动匿名化（可配置）。进入「人才库（储备）」需要候选人单独同意，且需要注明保留期限与用途。</div>`;
+  };
 
   /* ---- 员工档案 ---- */
   PAGES.employees = () => `
@@ -2019,7 +2081,21 @@
 
   /* ============ 行为处理 ============ */
   const ACT = {
-    go(el) { state.page = el.dataset.page; render(); $('.content').scrollTop = 0; },
+    go(el) {
+      state.page = el.dataset.page;
+      /* 跳到目录内的页面时顺手把目录展开：否则当前页在侧边栏里是「隐身」的，
+         用户会觉得导航坏了（明明点了，却在侧边栏找不到自己在哪）。 */
+      const hit = flatNav().find(x => x.id === state.page);
+      if (hit && hit.catalog && !catalogOpen(hit.catalog)) setCatalogOpen(hit.catalog, true);
+      render(); $('.content').scrollTop = 0;
+    },
+
+    /* --- 导航：目录折叠。只重绘侧边栏，不重建页面 —— 正在填的表单不能被冲掉 --- */
+    toggleCatalog(el) {
+      const id = el.dataset.catalog;
+      setCatalogOpen(id, !catalogOpen(id));
+      renderNav();
+    },
     toast(el) { toast(el.dataset.msg); },
 
     /* --- 简历筛选 --- */
@@ -2210,7 +2286,8 @@
       if (LIVE.on) { try { r = await apiFetch('POST', '/api/agent/jd/generate', payload); } catch (e) { r = null; } }
       if (!r || r.status === 'error') r = offlineGenJD(payload);
       /* 写回表单状态（不能只改 DOM —— 重渲染会把值冲掉）
-         mustHave / niceHave 始终写回：已填内容原样保留并归位，缺失维度由 Agent 补齐 */
+         mustHave / niceHave 始终写回：已填内容保留核心信息 + 书面化润色后归位，
+         缺失维度由 Agent 按职能族补齐（见 shared/req-lib.js 第八节） */
       const patch = { jd: r.jd || '', mustHave: r.mustHave || [], niceHave: r.niceHave || [] };
       state.jobForm.data = Object.assign({}, state.jobForm.data, patch);
       state.jobForm.scan = r.scan;
@@ -2293,7 +2370,7 @@ GitHub 有开源项目 800 star。期望薪资 35k。</textarea>
       const c = D.candidates.find(x => x.id === el.dataset.id);
       openDrawer(c.name + ' · 候选人详情', `${c.job} · ${c.id}`, `
         <div class="row" style="align-items:center;gap:14px;margin-bottom:12px">
-          <div style="font-size:32px;font-weight:700;color:var(--${scoreColor(c.score) === 'g' ? 'grn' : scoreColor(c.score) === 'y' ? 'yel' : 'red'})">${c.score}</div>
+          <div style="font-size:32px;font-weight:700;color:var(--${c.score == null ? 'tx3' : scoreColor(c.score) === 'g' ? 'grn' : scoreColor(c.score) === 'y' ? 'yel' : 'red'})">${c.score == null ? '—' : c.score}</div>
           <div>${gradeTag(c.grade)} ${stageTag(c.stage)}<div class="small muted">${esc(c.source)} · ${c.years} 年经验</div></div>
         </div>
         <div class="callout">
@@ -2303,10 +2380,12 @@ GitHub 有开源项目 800 star。期望薪资 35k。</textarea>
           联系方式：<span class="mono">${c.phone}</span> · <span class="pii">${esc(c.email)}</span><br>
           <span class="small muted">🔒 明文查看已记录到审计日志（S3 级敏感数据）</span>
         </div>
-        <div class="small muted" style="margin:14px 0 6px">打分明细（每条依据均可追溯到简历原句）：</div>
+        ${c.score == null
+          ? '<div class="callout" style="margin:14px 0 0">尚未评分 —— 这位候选人还没进过筛选 Agent，所以没有分数、也没有「不合适」这种结论。到「简历筛选台」跑一次，就会有四维得分与逐条可追溯的依据。</div>'
+          : `<div class="small muted" style="margin:14px 0 6px">打分明细（每条依据均可追溯到简历原句）：</div>
         ${tbl(['维度', '得分', '依据'], c.reasons.map(r => `<tr><td class="name">${esc(r.dim)}</td>
           <td><b>${r.score}</b>${r.max ? ' / ' + r.max : ''}</td><td class="small muted">${esc(r.ev)}</td></tr>`))}
-        ${whyBlock(candWhy(c))}
+        ${whyBlock(candWhy(c))}`}
         <div class="hr-note"><b>Agent 结论</b>：${esc(c.aiNote)}</div>
         ${c.parseOk ? '' : `<div class="scanwarn">⚠️ 解析状态：${esc(c.parseNote || '存在不确定字段')}</div>`}
         ${c.human ? `<div class="callout" style="margin-top:12px">已有人工结论：<b>${esc(humanLabel(c.human))}</b>${c.overrideCode ? ' · 原因码 <span class="mono">' + esc(c.overrideCode) + '</span>' : ''}${c.overrideReason ? '<br><span class="small muted">' + esc(c.overrideReason) + '</span>' : ''}</div>` : ''}
@@ -2426,7 +2505,7 @@ GitHub 有开源项目 800 star。期望薪资 35k。</textarea>
           <b style="color:var(--red)">违法表述：${esc(f.word)}${f.line ? '（第 ' + f.line + ' 行）' : ''}</b><br>
           <span class="small">风险：${esc(f.why)}</span><br>
           <span class="small" style="color:var(--grn)">建议改为：${esc(f.fix)}</span></div>`).join('')}
-        <div class="callout"><b>Agent 依据</b>：${r.fnName ? `识别职能「${esc(r.fnName)}」` : '未识别出明确职能，按行业兜底'} · 行业「${esc(r.industry || payload.industry)}」 · 任职要求按六维度扩充 · 自动抽取打分关键词 ${(r.keywords || []).length} 个<br>
+        <div class="callout"><b>Agent 依据</b>：${r.fnName ? `识别职能「${esc(r.fnName)}」` : '未识别出明确职能，按行业兜底'} · 行业「${esc(r.industry || payload.industry)}」 · 已填内容保留核心信息并书面化润色，任职要求按六维度扩充 · 自动抽取打分关键词 ${(r.keywords || []).length} 个<br>
           ${(r.keywords || []).map(k => `<span class="tag">${esc(k)}</span>`).join(' ') || '<span class="muted small">（离线模式未抽取，启动后端后可见）</span>'}
           <div class="small muted" style="margin-top:6px">这些关键词会在「简历筛选台」用来给候选人打分 —— 所以 JD 写什么，决定 Agent 怎么筛人。</div></div>
         <div class="small muted" style="margin:14px 0 6px">JD 正文：</div>
@@ -2888,6 +2967,51 @@ WHERE tenant_id = current_tenant() AND job_id = 'J-2026-118'<br>
       await switchIdentity();
     },
 
+    /* --- 修改口令 ---
+       为什么要把它做进界面：一旦实例对外可达，「所有账号共用 Demo@2026」就不再是方便，
+       而是漏洞。tools/preflight.js 会把「账号仍在用演示口令」判成阻断项，
+       但界面上没有入口的话，这条结论就没有梯子 —— 只能手撸 API。 */
+    async doChangePassword() {
+      if (!LIVE.on) { toast('离线演示模式不走真实认证，没有口令可改。', 'warn'); return; }
+      openModal(`<div class="drawer-h"><h3>🔑 修改密码</h3></div>
+        <div style="padding:18px">
+          ${AUTH.mustChange
+            ? '<div class="scanwarn" style="margin-top:0">当前账号仍在使用<b>初始口令</b>。实例一旦对外可达，任何人都可用它登录 —— 请立即改成自己的。</div>'
+            : '<div class="callout small" style="margin-top:0">改密成功后<b>该账号全部已登录会话会被吊销</b>，需要用新口令重新登录。</div>'}
+          <label class="f" style="margin-top:12px">当前密码</label>
+          <input class="i" id="pwOld" type="password" placeholder="当前正在使用的口令">
+          <div class="row" style="margin-top:12px">
+            <div class="col"><label class="f">新密码</label>
+              <input class="i" id="pwNew1" type="password" placeholder="至少 8 位"></div>
+            <div class="col"><label class="f">确认新密码</label>
+              <input class="i" id="pwNew2" type="password" placeholder="再输入一次"></div>
+          </div>
+          <div class="small muted" style="margin-top:6px">后端会校验：至少 8 位、不能与当前密码相同，且必须给出正确的当前密码。</div>
+          <div style="display:flex;gap:9px;margin-top:16px;justify-content:flex-end">
+            <button class="btn ghost" data-act="closeModal">取消</button>
+            <button class="btn primary" data-act="pwSubmit">确认修改</button>
+          </div>
+        </div>`);
+    },
+    async pwSubmit() {
+      const oldPw = (($('#pwOld') || {}).value || '').toString();
+      const p1 = (($('#pwNew1') || {}).value || '').toString();
+      const p2 = (($('#pwNew2') || {}).value || '').toString();
+      /* 这些前置校验服务端也会再做一遍；这里提前做只是为了把错误信息说得具体些，
+         不是为了替代服务端 —— 服务端那道才是唯一的真边界。 */
+      if (!oldPw) { toast('请填写当前密码。', 'warn'); return; }
+      if (p1.length < 8) { toast('新密码至少 8 位。', 'warn'); return; }
+      if (p1 !== p2) { toast('两次输入的新密码不一致。', 'warn'); return; }
+      if (p1 === oldPw) { toast('新密码不能与当前密码相同。', 'warn'); return; }
+      try {
+        const r = await apiFetch('POST', '/api/auth/change-password', { oldPassword: oldPw, newPassword: p1 });
+        closeModal();
+        toast(`✓ 密码已修改，已吊销 ${r.revokedSessions || 0} 个会话，请用新密码重新登录。`);
+        AUTH.mustChange = false;
+        await logout();
+      } catch (e) { toast('修改失败：' + e.message, 'err'); }
+    },
+
     /* --- 连接状态条上的「重试连接」---
        先清掉离线逃生开关（否则重试也会被自己拦住），再重跑一次连接探测。 */
     async reconnect() {
@@ -2924,6 +3048,10 @@ WHERE tenant_id = current_tenant() AND job_id = 'J-2026-118'<br>
     },
     async resetDemo() {
       if (!LIVE.on) { toast('离线原型模式无需重置（数据在内存里，刷新即复原）。'); return; }
+      if (LIVE.caps && LIVE.caps.reset === false) {
+        toast('本机已关闭演示重置（服务端 ALLOW_RESET=0）。要回到初始状态，请在服务器上停服后执行 npm run start:reset。', 'warn');
+        return;
+      }
       try {
         await apiFetch('POST', '/api/reset', {});
         await liveRefresh(); state.page = 'dashboard'; render();
@@ -3027,25 +3155,99 @@ WHERE tenant_id = current_tenant() AND job_id = 'J-2026-118'<br>
   }
 
   /* ============ 渲染 ============ */
+
+  /* ---- 导航工具：目录 / 模块的可见性与展开状态 ---- */
+
+  /** 节点可见性：叶子看自己的 perm；**目录由子项聚合得出**，不单独挂 perm。
+   *  为什么不给目录挂 perm：招聘专员可能只有 screen:run、没有 job:read，
+   *  若目录按自己的 perm 判可见，会连着他能用的页面整块消失 —— 丢的是功能，不是权限。 */
+  function nodeVisible(n) {
+    if (n.catalog) return n.modules.some(m => m.items.some(canSee));
+    return canSee(n);
+  }
+
+  /** 目录是否展开：默认展开（首次进来要能看见里面有哪几个 Agent）；
+   *  用户手动折叠过就记住选择 —— 只跑「简历筛选台」的人不想每次都被整列招聘菜单占地方。 */
+  function catalogOpen(id) {
+    if (Object.prototype.hasOwnProperty.call(state.catalogs, id)) return state.catalogs[id];
+    let saved = null;
+    try { saved = localStorage.getItem('hr.nav.cat.' + id); } catch (e) {}
+    return saved !== '0';
+  }
+  function setCatalogOpen(id, open) {
+    state.catalogs[id] = !!open;
+    try { localStorage.setItem('hr.nav.cat.' + id, open ? '1' : '0'); } catch (e) {}
+  }
+
+  /** 把「目录 / 模块」拍平成页面清单：供面包屑、当前页定位与外部调试使用。
+   *  crumb 保留「目录 · 页名」的旧写法 —— 侧边栏省掉前缀是为了简洁，
+   *  面包屑必须补回来，否则用户只看到「JD 工作台」，不知道自己站在哪个 Agent 里。 */
+  function flatNav() {
+    const out = [];
+    NAV.forEach(g => g.items.forEach(n => {
+      if (n.catalog) {
+        n.modules.forEach(m => m.items.forEach(p => out.push({
+          ...p, group: g.group, catalog: n.id, catalogName: n.name,
+          module: m.name, crumb: `${n.name} · ${p.name}`
+        })));
+      } else {
+        out.push({ ...n, group: g.group, crumb: n.name });
+      }
+    }));
+    return out;
+  }
+
   function renderNav() {
     const pend = D.kpis ? D.kpis.pendingApprovals : null;
-    /* 按当前身份的能力过滤菜单；整组都不可见时连组标题一起隐藏 */
-    const groups = NAV
-      .map(g => ({ group: g.group, items: g.items.filter(canSee) }))
-      .filter(g => g.items.length);
-    const html = groups.map(g => `
-      ${g.group ? `<div class="navgroup-title">${g.group}</div>` : ''}
-      ${g.items.map(i => `<div class="navitem ${state.page === i.id ? 'active' : ''}" role="button" tabindex="0"
+
+    /* 单个 Agent 页 */
+    const leaf = i => `<div class="navitem ${state.page === i.id ? 'active' : ''}" role="button" tabindex="0"
         data-act="go" data-page="${i.id}" ${state.page === i.id ? 'aria-current="page"' : ''}>
         <span class="ico" aria-hidden="true">${i.ico}</span><span class="navtext">${i.name}</span>
-        ${i.cnt ? `<span class="cnt" aria-label="待处理 ${i.id === 'approvals' && pend !== null ? pend : i.cnt} 项">${i.id === 'approvals' && pend !== null ? pend : i.cnt}</span>` : ''}</div>`).join('')}`).join('');
-    $('#nav').innerHTML = html;
+        ${i.cnt ? `<span class="cnt" aria-label="待处理 ${i.id === 'approvals' && pend !== null ? pend : i.cnt} 项">${i.id === 'approvals' && pend !== null ? pend : i.cnt}</span>` : ''}</div>`;
+
+    /* 目录：一个可折叠头 + 内部按模块分块。
+       目录头自身也是 .navitem（role=button / tabindex=0 / aria-expanded）——
+       键盘用户得能用 Enter 收起它，无障碍最小集里「导航项必须可聚焦」对它同样成立。 */
+    const catalog = c => {
+      const shown = c.modules
+        .map(m => ({ name: m.name, items: m.items.filter(canSee) }))
+        .filter(m => m.items.length);          // 整块不可见的模块连标题一起隐藏，不留空标题
+      const total = shown.reduce((n, m) => n + m.items.length, 0);
+      const open = catalogOpen(c.id);
+      const body = shown.map(m =>
+        `<div class="navmodule-title">${m.name}</div>
+         <div class="navsub">${m.items.map(leaf).join('')}</div>`).join('');
+      return `<div class="navcatalog ${open ? 'open' : ''}">
+        <div class="navitem navcat-head" role="button" tabindex="0" aria-expanded="${open}"
+             data-act="toggleCatalog" data-catalog="${c.id}" title="${c.name} · ${total} 个 Agent">
+          <span class="ico" aria-hidden="true">${c.ico}</span><span class="navtext">${c.name}</span>
+          <span class="navcaret" aria-hidden="true">▾</span></div>
+        <div class="navcatalog-body">${body}</div></div>`;
+    };
+
+    /* 按当前身份的能力过滤菜单；整组都不可见时连组标题一起隐藏 */
+    const groups = NAV
+      .map(g => ({ group: g.group, items: g.items.filter(nodeVisible) }))
+      .filter(g => g.items.length);
+    $('#nav').innerHTML = groups.map(g => `
+      ${g.group ? `<div class="navgroup-title">${g.group}</div>` : ''}
+      ${g.items.map(n => n.catalog ? catalog(n) : leaf(n)).join('')}`).join('');
+  }
+
+  /* 能力开关 → 界面。只做「隐藏入口」，不做拦截（拦截永远在服务端）。
+     默认放行：离线演示态没有服务端可问，重置只是刷新内存。 */
+  function applyCaps() {
+    const allow = !LIVE.caps || LIVE.caps.reset !== false;
+    const rb = $('#resetBtn');
+    if (rb) { rb.hidden = !allow; rb.style.display = allow ? '' : 'none'; }
   }
 
   function render() {
     renderNav();
-    const meta = NAV.flatMap(g => g.items).find(i => i.id === state.page);
-    $('#crumbPage').textContent = meta ? meta.name : '工作台';
+    applyCaps();
+    const meta = flatNav().find(i => i.id === state.page);
+    $('#crumbPage').textContent = meta ? meta.crumb : '工作台';
     $('#pageHost').innerHTML = (PAGES[state.page] || PAGES.dashboard)();
     if (D.kpis) { const tag = $('#apprTag'); if (tag) tag.textContent = '✋ 待审核 ' + D.kpis.pendingApprovals; }
     if (state.page === 'selfservice') setTimeout(() => { const el = $('#chatlog'); if (el) el.scrollTop = el.scrollHeight; }, 30);
@@ -3103,7 +3305,7 @@ WHERE tenant_id = current_tenant() AND job_id = 'J-2026-118'<br>
     }, 900);
   });
 
-  window.__app = { state, render, PAGES, NAV, canSee, AUTH, LIVE,
+  window.__app = { state, render, PAGES, NAV, flatNav, canSee, AUTH, LIVE,
     /* 供无头回归测试用：直接驱动登录与身份切换 */
     login: async (identifier, password) => {
       const r = await fetch(API_BASE + '/api/auth/login', {

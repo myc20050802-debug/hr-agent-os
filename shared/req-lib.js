@@ -1480,6 +1480,130 @@
     return out.length ? out : ['任职要求待填写。'];
   }
 
+  /* =========================================================
+     八、已填内容的润色与美化（v12）
+
+     背景：HR 手填的「任职要求 / 加分项」往往是口语化的随手记 ——
+     「懂点技术能和工程对话」「有自己的Side Project」。语义没错，
+     但原样拼进 JD 正文，读起来不像一份对外发布的招聘文案；
+     直接删掉更不行，那是 HR 的真实意图，很可能正是这个岗位的
+     差异化要求（「只写一条也能生成」的设计前提）。
+
+     所以本节做的是**忠实的书面化改写**，三条硬约束：
+       ① 只改「表述」，不改「语义」，绝不新增 HR 没提供的事实 ——
+          没有「把一条要求拆成两条」这种扩张，只有同义换词；
+       ② 全部规则是**白名单**：口语词命中才替换，不命中一律原样透传。
+          宁可少润色，不可改跑偏；
+       ③ **幂等**：同一段文字润色两次结果必须一致。
+          expandRequirements 会在 runJD → buildJD 里被调用多次，
+          不幂等会叠出「…者优先者优先」。
+
+     与第七节的分工：第七节解决「一整段 JD 粘进来被切碎」，
+     本节解决「已填内容不够专业」。两节都只作用于 HR 已填的部分，
+     模板补位产物本来就已是规范句，不需要也不应该被改写。
+
+     ⚠️ 维护提醒：往 SPOKEN_FIX 加词前先跑 tools/test_jd.js。
+     已知的「不许动」清单（被回归锁死）：真热爱（软技能归位判定）、
+     「3 年以上采购经验」「熟悉供应商开发与成本管控」「模型评测」
+     （test_live / test_prototype 的「已填内容未被保留」断言）。
+     ========================================================= */
+
+  /* 8.1 行首残留符号 / 序号 / emoji（复用第七节已有的那套正则） */
+  const RE_EMOJI = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{2B00}-\u{2BFF}]/gu;
+
+  /* 8.2 基础清洗：对任何条目都安全，只动形式不动语义。
+     注意 **不要去掉「数字与单位之间的空格」** ——「3 年以上」是项目
+     统一的排版口径，且有断言依赖它。中文之间的半角标点才做归一。 */
+  function baseCleanJd(s) {
+    let t = String(s == null ? '' : s)
+      .replace(RE_LI_MARK, '').replace(RE_LI_DASH, '')
+      .replace(RE_LI_NUM, '').replace(RE_LI_PAREN, '').replace(RE_LI_CIRCLE, '')
+      .replace(RE_MD_HEAD, '').replace(RE_CN_NUM, '')
+      .replace(RE_EMOJI, '')
+      .replace(/[ \t\u3000]+/g, ' ')
+      .trim();
+    if (/[\u4e00-\u9fa5]/.test(t)) {
+      t = t.replace(/,/g, '，').replace(/;/g, '；').replace(/:/g, '：')
+        .replace(/\?/g, '？').replace(/!/g, '！');
+    }
+    /* 条目一律不带句末标点：正文由 paragraphize 统一补「；」「。」 */
+    return t.replace(/[。；;，,、\s]+$/, '').trim();
+  }
+
+  /* 8.3 口语 → 书面白名单。左列必须是 HR 会随手写、且替换后一定
+     更专业的写法；有一点点歧义的就不要收（如裸的「要求」）。 */
+  const SPOKEN_FIX = [
+    /* 技术沟通类 */
+    [/懂点技术[，,]?\s*能和?(?:工程|研发)(?:团队)?(?:对话|沟通|聊得来)/g, '了解基础技术、能与研发、工程团队顺畅沟通'],
+    [/懂点技术/g, '了解基础技术'],
+    [/能和?(?:工程|研发)(?:团队)?(?:对话|沟通|聊得来)/g, '能与研发、工程团队顺畅沟通'],
+    /* 表达类 */
+    [/聪明有灵气/g, '思维敏捷'],
+    [/有灵气/g, '有悟性'],
+    [/表达清楚/g, '表达清晰'],
+    [/说话清楚/g, '表达清晰'],
+    /* 作风类 */
+    [/靠谱/g, '可靠'],
+    [/不懂就问/g, '主动澄清'],
+    [/上手快/g, '能快速上手'],
+    /* 加分项语气词 */
+    [/有这些更香/g, '有相关经历者优先'],
+    [/更香/g, '更具优势'],
+  ];
+  function spokenFix(t) {
+    let out = t;
+    SPOKEN_FIX.forEach(([re, to]) => { out = out.replace(re, to); });
+    return out;
+  }
+
+  /* 8.4 句首冗余引导语 / 句尾语气词。
+     只删「纯框架」的字，不删有实义的字（「要能」→「能」是替换不是删除）。 */
+  const FRAME_HEAD = /^(?:我们希望你能|我们希望你|我们希望|希望你|希望|最好能有|最好能|最好是|最好有|最好|需要有|需要你|需要|要求你|要求有|要求|必须|务必)/;
+  const FRAME_TAIL = /(?:吧|哦|啦|哈|嘛|哟|哒|呢)$/;
+  function stripFraming(t) {
+    let out = t.replace(FRAME_HEAD, '').replace(/^要能/, '能').replace(/^得能/, '能').trim();
+    /* 语气词只在「删完还剩得下一个词」时删，避免把整条削成空 */
+    if (out.length >= 5) out = out.replace(FRAME_TAIL, '').trim();
+    return out;
+  }
+
+  /* 8.5 任职要求条目：保留原句式（不强行加动词、不改判定维度），
+     只做「清洗 + 书面化 + 去框架」。 */
+  function polishMustItem(s) {
+    const raw = String(s == null ? '' : s).trim();
+    if (!raw) return '';
+    let t = stripFraming(spokenFix(baseCleanJd(raw)));
+    if (!t) t = baseCleanJd(raw);      /* 兜底：框架语删光了就退回清洗后的原文 */
+    return t || raw;
+  }
+
+  /* 8.6 加分项条目：统一为「…者优先」的对外句式。
+     判据（按顺序）：
+       · 已经带「优先 / 更佳」→ 只清洗，不重复加；
+       · 谓词开头（有 / 具备 / 持 / 了解…）→ 直接补「者优先」；
+         「有自己的 Side Project」+「者优先」＝「有自己的 Side Project 者优先」；
+       · 名词短语收尾（…经历 / 资质 / 证书 / 项目）→ 前缀「有」再补「者优先」，
+         「AI 产品实习经历」→「有 AI 产品实习经历者优先」；
+       · 其余 → 保守补「者优先」。 */
+  const RE_NICE_PRED = /^(?:有|具备|拥有|掌握|熟悉|了解|精通|擅长|持|获得|取得|通过|参与|主导|做过|会|能|可|对|在|曾)/;
+  const RE_NICE_NOUN = /(?:经历|经验|背景|证书|资质|作品|成果|项目|能力|认识|理解|判断|资源|渠道)$/;
+  const RE_NICE_DONE = /(?:优先|更佳|更好|为佳)$/;
+  function polishNiceItem(s) {
+    const raw = String(s == null ? '' : s).trim();
+    if (!raw) return '';
+    const t = stripFraming(spokenFix(baseCleanJd(raw))) || baseCleanJd(raw);
+    if (!t) return raw;
+    if (RE_NICE_DONE.test(t)) return t;                       /* 幂等：已规范化过 */
+    if (RE_NICE_PRED.test(t)) return t + '者优先';
+    if (RE_NICE_NOUN.test(t)) return '有' + t + '者优先';
+    return t + '者优先';
+  }
+
+  /* 列表级便捷包装（保留顺序、去掉空串） */
+  const polishMust = arr => (Array.isArray(arr) ? arr : [arr]).map(polishMustItem).filter(Boolean);
+  const polishNice = arr => (Array.isArray(arr) ? arr : [arr]).map(polishNiceItem).filter(Boolean);
+
   return { FUNCTIONS, INDUSTRY_CTX, detectFunction, detectJunior, pickDuties, industryDuty, extractKeywords, buildSkillUniverse, norm,
-    kwContains, latinTokens, parseReqText, paragraphize, renderReqDims };
+    kwContains, latinTokens, parseReqText, paragraphize, renderReqDims,
+    polishMustItem, polishNiceItem, polishMust, polishNice };
 });

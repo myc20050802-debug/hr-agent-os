@@ -40,8 +40,12 @@ const T = 'T-001';
    英文技术栈，所以纯英文名词在多数岗位上一向没问题；缺的是「中文裸名词」与
    「词库尚未收录的新词」。 */
 /* v11：冗余裁剪只对「含中文的词」生效 —— 拉丁词之间的子串关系是巧合
-   （ue ⊂ vue、sql ⊂ mysql、go ⊂ django），照搬会把该留的 Vue / MySQL 裁掉。 */
-const REQ_LIB_VER = 11;
+   （ue ⊂ vue、sql ⊂ mysql、go ⊂ django），照搬会把该留的 Vue / MySQL 裁掉。
+   v12：已填内容不再「原样照搬」，而是「保留核心信息 + 书面化润色 + 加分项统一
+   为『…者优先』句式」（见 shared/req-lib.js 第八节）。口经变了，老 JD 必须重算 ——
+   否则库里会同时流通「懂点技术能和工程对话」与「了解基础技术、能与研发、工程团队
+   顺畅沟通者优先」两代表述，看起来像没改。 */
+const REQ_LIB_VER = 12;
 const now = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 19).replace('T', ' ');
 
 /* ---------- 工具函数 ---------- */
@@ -968,9 +972,13 @@ function stripMisfitAutoFill(arr, keepFnKey) {
     return !misfit;
   });
 }
-/* 维度归位用的三组判据（v0.9.8 抽出为常量，便于离线原型共用同一口径） */
+/* 维度归位用的三组判据（v0.9.8 抽出为常量，便于离线原型共用同一口径）
+   v12：REQ_EXP 补上「实习」—— 「有 1–2 段对口实习经历」本来就属于「工作经验」
+   维度。更深一层的原因：runJD → buildJD 会把 expandRequirements 的产物再喂回来，
+   若这句判不进 REQ_EXP 就会落到「专业技能」桶，导致二次展开时硬性条件的
+   顺序发生变化（内容不丢，但同一份输入前后两次产出不一样）。 */
 const REQ_EDU = /学历|本科|大专|硕士|博士|统招|学士|毕业|专业不限|\d{2}\s*届/;
-const REQ_EXP = /年以上|经验|从事|任职经历|工作经历/;
+const REQ_EXP = /年以上|经验|从事|任职经历|工作经历|实习/;
 const REQ_SOFT = /热爱|热情|同理心|好奇|主动|抗压|扛得住|沟通|表达|责任心|学习能力|自驱|踏实|细心|耐心|团队协作|上进/;
 function eduRequirement(eduRank, majors) {
   const r = Number(eduRank);
@@ -1015,15 +1023,19 @@ function expandRequirements({ title = '', industry = '通用', years = 0, eduRan
   const userMust = stripMisfitAutoFill(userMust0, fnKey);
   const userNice = stripMisfitAutoFill(userNice0, fnKey);
 
-  /* ① 已填内容原样保留，仅按语义归位（不改写原句，保证「在原有基础上扩充」）
+  /* ① 已填内容：保留核心信息 → 书面化润色 → 按语义归位（v12）
      「软素质」单列一桶：把「对 AI 是真热爱 / 有同理心」这类句子塞进
-     「专业技能」，整段读起来就不着调了。 */
+     「专业技能」，整段读起来就不着调了。
+     ⚠️ 维度判定用的是**润色前**的原文：润色会换词（「聪明有灵气」→「思维敏捷」），
+     若拿润色后的文字去判「这属于软素质还是学历」，条目就会被分错桶。
+     只有最终落进 JD 正文的表述才用润色结果（见 shared/req-lib.js 第八节）。 */
   const s1 = [], s2 = [], s3 = [], s4 = [];
   userMust.forEach(t => {
-    if (REQ_EDU.test(t)) s3.push(t);
-    else if (REQ_EXP.test(t)) s2.push(t);
-    else if (REQ_SOFT.test(t)) s4.push(t);
-    else s1.push(t);
+    const p = ReqLib.polishMustItem(t);
+    if (REQ_EDU.test(t)) s3.push(p);
+    else if (REQ_EXP.test(t)) s2.push(p);
+    else if (REQ_SOFT.test(t)) s4.push(p);
+    else s1.push(p);
   });
 
   /* ② 专业技能：职能族核心技能里「用户没写过」的才补位
@@ -1037,16 +1049,22 @@ function expandRequirements({ title = '', industry = '通用', years = 0, eduRan
   if (!s1.length) s1.push(`掌握${title || '本岗位'}所需的核心专业技能，能独立完成岗位交付`);
 
   /* ③ 工作经验：管培生 / 实习 / 应届岗不设年限门槛，改成「无经验 / 对口实习」口径。
-     否则会出现「3 年以上软件实施管培生经验」这种把应届生全部拦在门外的写法。 */
+     否则会出现「3 年以上软件实施管培生经验」这种把应届生全部拦在门外的写法。
+     ⚠️ 判重必须扫**全部已填内容**，不能只看 s2：expandRequirements 会被
+     runJD → buildJD 连着调用两次，而「有 1–2 段与岗位方向对口的实习经历者优先」
+     这句在二次展开时匹配不上 REQ_EXP，会落进专业技能桶（s1）——
+     只看 s2 就会再补一遍，硬性条件里出现两条一模一样的要求（凭空多加一条，
+     违反「不新增未提供的信息」）。 */
   const junior = ReqLib.detectJunior(title, [...userMust0, ...userNice0]);
   if (!s2.length) {
     s2.push(junior
       ? '无需相关工作经验，欢迎应届毕业生投递'
       : `${y} 年以上${title || '相关岗位'}经验，有完整项目或业务周期经历`);
   }
+  const filledAll = [...s1, ...s2, ...s3, ...s4];
   if (junior) {
-    if (!s2.some(t => /实习/.test(t))) s2.push('有 1–2 段与岗位方向对口的实习经历者优先');
-  } else if (!s2.some(t => t.includes(R.expHint.slice(0, 10)))) {
+    if (!filledAll.some(t => /实习/.test(t))) s2.push('有 1–2 段与岗位方向对口的实习经历者优先');
+  } else if (!filledAll.some(t => t.includes(R.expHint.slice(0, 10)))) {
     s2.push(R.expHint);
   }
 
@@ -1059,8 +1077,17 @@ function expandRequirements({ title = '', industry = '通用', years = 0, eduRan
   const softTpl = dedupeReq(R.soft);
   const softSelf = dedupeReq([...s4, ...softTpl]);
 
-  /* ⑦ 加分项：已填优先；已填 ≥3 条则不再叠加模板（HR 内容优先，避免同义重复） */
-  const niceList = dedupeReq(userNice);
+  /* ⑦ 加分项：已填优先；已填 ≥3 条则不再叠加模板（HR 内容优先，避免同义重复）
+     v12：最终统一美化为「…者优先」的对外句式。
+     为什么连模板补位项一起美化，而不是只美化 HR 填的那几条：
+       ① 一段里语气才一致（1 条自己写的 + 3 条模板补的，不会一半带「者优先」）；
+       ② 老岗位经 REQ_LIB_VER 自愈重算时，库里的 nice_have 已分不清哪条是 HR
+          写的、哪条是模板补的 —— 只美化「用户那几条」会让同一个岗位在新老
+          数据上呈现两种排版。
+     改变的只是**句式收尾**；模板的选取逻辑（选哪几条、补到几条）一概未动。
+     去重仍放在**美化工序之前** —— 若先加上「者优先」再去重，
+     「有 X 者优先」会和模板里的「有 X」因表述不同而躲过 similarReq。 */
+  const niceList = dedupeReq(userNice.map(ReqLib.polishNiceItem));
   const niceTarget = niceList.length >= 3 ? niceList.length : 4;
   const nicePool = !fn ? [] : (R.nice.length ? R.nice : lib.plus.map(p => /^[有主]/.test(p) ? p : `有${p}相关经历`));
   nicePool.forEach(t => {
@@ -1068,6 +1095,8 @@ function expandRequirements({ title = '', industry = '通用', years = 0, eduRan
     if (niceList.some(x => similarReq(x, t))) return;
     niceList.push(t);
   });
+  /* 模板补位项在同一道工序里美化；polishNiceItem 幂等，二次展开不会叠成「者优先者优先」 */
+  const niceOut = dedupeReq(niceList.map(ReqLib.polishNiceItem));
 
   const d1 = dedupeReq(s1), d2 = dedupeReq(s2), d3 = dedupeReq(s3), d4 = dedupeReq(s4);
   const dims = [
@@ -1083,7 +1112,7 @@ function expandRequirements({ title = '', industry = '通用', years = 0, eduRan
      lead / userDuties / userBenefits：只在「整段 JD 粘进来」时有值，
        供 buildJD 把引言与职责放回正确位置（见 shared/req-lib.js 第七节）。 */
   return {
-    must: [...d1, ...d2, ...d3], soft: [...general, ...softSelf], nice: niceList, dims,
+    must: [...d1, ...d2, ...d3], soft: [...general, ...softSelf], nice: niceOut, dims,
     lead: blob.lead, userDuties: blob.duty, userBenefits: blob.benefit, headings: blob.heads,
     fnKey, fnName: fn ? fn.name : null, source: fn ? 'function' : 'industry', junior
   };
@@ -1122,9 +1151,17 @@ function buildJD(job) {
      旧版按行业套模板，导致互联网行业的 AI 产品经理被写上「保障线上服务稳定性」。 */
   const fnKey = ReqLib.detectFunction(job.title, [...must, ...nice]);
   const fn = fnKey ? ReqLib.FUNCTIONS[fnKey] : null;
-  /* 任职要求按六维度重排：已填内容原样保留，缺失维度自动补齐 */
+  /* 任职要求按六维度重排：已填内容保留核心信息 + 书面化润色，缺失维度自动补齐 */
   const calc = expandRequirements({ title: job.title, industry, years: job.must_years, eduRank: job.must_edu_rank, must, nice });
-  const dims = (Array.isArray(job.dims) && job.dims.length) ? job.dims : calc.dims;
+  /* runJD 传了 dims 进来 → 说明 must_have / nice_have 已经是「扩充 + 润色」后的成品。
+     ⚠️ 此时加分项必须直接用传进来的那份，**不能再取 calc.nice**：
+     calc 会把 nice_have 当成「HR 新填的内容」再润一遍，于是模板补位项
+     （「有 X 落地经验」）会被二次加工成「有 X 落地经验者优先」——
+     结果是「加分项栏留空 = 原有默认逻辑」这条约束失效，
+     而且 JD 正文与存库的 nice_have 会对不上。 */
+  const preExpanded = Array.isArray(job.dims) && job.dims.length > 0;
+  const dims = preExpanded ? job.dims : calc.dims;
+  const niceForJd = (preExpanded && Array.isArray(job.nice_have) && job.nice_have.length) ? job.nice_have : calc.nice;
   /* 职责：用户自己写了就以用户为准（≥3 条不再叠加模板，避免掺进模板句），
      没写才用职能族模板。runJD 会把 reqs.userDuties 透传进来。 */
   const userDuty = (Array.isArray(job.userDuties) && job.userDuties.length ? job.userDuties : (calc.userDuties || []))
@@ -1154,7 +1191,7 @@ function buildJD(job) {
     ...renderReqs(dims),
     ``,
     `## 三、加分项`,
-    calc.nice.length ? ReqLib.paragraphize(calc.nice) : '暂无特别加分项，如有相关经历欢迎在面试中说明。',
+    niceForJd.length ? ReqLib.paragraphize(niceForJd) : '暂无特别加分项，如有相关经历欢迎在面试中说明。',
     ``,
     `## 四、我们提供`,
     ...benefits.map(b => `- ${b}`),
@@ -1164,8 +1201,57 @@ function buildJD(job) {
     `我们承诺：本岗位描述不含任何歧视性用语，所有录用决定均基于岗位胜任力作出。`
   ].join('\n');
   return {
-    jd, duties, benefits, must: calc.must, soft, nice: calc.nice, dims,
+    jd, duties, benefits, must: calc.must, soft, nice: niceForJd, dims,
     fnKey: fnKey || calc.fnKey, fnName: (fn ? fn.name : calc.fnName) || '通用', reqSource: calc.source
+  };
+}
+/* ---------- LLM 润色层（可选，配了模型才走）----------
+   规则层已经能给出「保留核心信息 + 书面化」的结果，这一层只是把它做得更顺。
+   之所以叫「增强」而不是「替换」：没配模型的本地 PoC 与离线原型必须照旧可用，
+   所以规则层永远是打底的那一份，模型失败/超时/结构不对就原样退回。 */
+const JD_POLISH_PROMPT = [
+  '你是资深招聘文案编辑。任务：对给定的岗位「任职要求」与「加分项」做书面化润色。',
+  '',
+  '铁律（违反即视为失败）：',
+  '1. 忠实：只改表述，不改语义。不得新增原文没有的信息，也不得删除原文已有的要求。',
+  '2. 结构锁：输出必须与输入逐维度、逐条一一对应 —— 维度顺序、维度名称、',
+  '   每个维度的条目数量、条目顺序都不得改变。不许合并、拆分、增删任何条目。',
+  '3. 加分项统一为「…者优先」的规范句式；已含「优先」的保持不变。',
+  '4. 语言专业、简洁、通顺，符合中文招聘 JD 的书写习惯；条目不加编号，不以句末标点结尾。',
+  '5. 不得出现性别、年龄、婚育、户籍、院校、地域等任何歧视性表述。',
+  '',
+  '只输出 JSON，不要解释、不要 Markdown 代码块：',
+  '{"dims":[{"name":"专业技能","items":["…"]}],"nice":["…"]}'
+].join('\n');
+const parseJsonLoose = s => {
+  if (!s) return null;
+  const t = String(s).replace(/^\s*```(?:json)?/i, '').replace(/```\s*$/, '').trim();
+  const i = t.indexOf('{'), j = t.lastIndexOf('}');
+  if (i < 0 || j <= i) return null;
+  try { return JSON.parse(t.slice(i, j + 1)); } catch (e) { return null; }
+};
+/* 把模型返回的润色结果与规则层产物逐条对齐。
+   任何一项对不上（维度名/条目数/空串）就整体作废 —— 宁可退回规则产物，
+   也不接受一份「结构被模型改过」的 JD：润色任务是改写，不是创作。 */
+function applyLlmPolish(text, dims, nice) {
+  const j = parseJsonLoose(text);
+  if (!j || !Array.isArray(j.dims) || !Array.isArray(j.nice)) return null;
+  if (j.dims.length !== dims.length || j.nice.length !== nice.length) return null;
+  const out = [];
+  for (let i = 0; i < dims.length; i++) {
+    const it = j.dims[i] && Array.isArray(j.dims[i].items) ? j.dims[i].items : null;
+    if (!it || it.length !== dims[i].items.length) return null;
+    const items = it.map(s => String(s == null ? '' : s).trim());
+    if (items.some(s => s.length < 2)) return null;
+    out.push({ name: dims[i].name, items });
+  }
+  const niceOut = j.nice.map(s => String(s == null ? '' : s).trim());
+  if (niceOut.some(s => s.length < 2)) return null;
+  return {
+    dims: out,
+    must: out.filter(d => d.name !== '综合素质' && d.name !== '软技能').flatMap(d => d.items),
+    soft: out.filter(d => d.name === '综合素质' || d.name === '软技能').flatMap(d => d.items),
+    nice: niceOut
   };
 }
 /* JD 生成 Agent：输入岗位描述 → 输出规范 JD + 合规扫描结论 */
@@ -1176,10 +1262,30 @@ async function runJD(db, { title, industry, dept, must, nice, years, eduRank, sa
   if (!title) return { status: 'error', error: 'title_required', msg: '请先填写岗位名称', steps };
   industry = industry || '通用';
 
-  /* 六维度扩充：HR 已填的内容原样保留并归位，缺失维度按「职能族」素材补齐（识别不出职能才退回行业素材） */
+  /* 六维度扩充：HR 已填的内容**保留核心信息 + 书面化润色**后归位，
+     缺失维度按「职能族」素材补齐（识别不出职能才退回行业素材）。 */
   const reqs = expandRequirements({ title, industry, years, eduRank, must, nice });
-  const mustArr = reqs.must, niceArr = reqs.nice, softArr = reqs.soft;
+  let mustArr = reqs.must, niceArr = reqs.nice, softArr = reqs.soft;
   const sourceTxt = reqs.fnName ? `识别职能「${reqs.fnName}」` : `未识别出明确职能 → 按行业「${industry}」兜底`;
+  const filled = !!((must && String(must).trim()) || (nice && String(nice).trim()));
+
+  /* LLM 增强层：仅在「配了模型」且「HR 确实填了内容」时触发。
+     只润色已填内容所在的维度（未填的维度本来就是模板句，润了也没意义），
+     返回结果要过 applyLlmPolish 的结构校验，对不上就整体退回规则产物。 */
+  let llmPolished = false, llmTokens = 0, llmFail = '';
+  if (llmConfigured() && filled) {
+    const gen = await llm([
+      { role: 'system', content: JD_POLISH_PROMPT },
+      { role: 'user', content: JSON.stringify({ title, industry, dims: reqs.dims, nice: niceArr }) }
+    ]);
+    if (gen.usage) llmTokens = gen.usage.total_tokens || ((gen.usage.prompt_tokens || 0) + (gen.usage.completion_tokens || 0));
+    const fixed = applyLlmPolish(gen.text, reqs.dims, niceArr);
+    if (fixed) {
+      reqs.dims = fixed.dims; mustArr = fixed.must; niceArr = fixed.nice; softArr = fixed.soft;
+      llmPolished = true;
+    } else if (gen.error || !gen.text) llmFail = gen.error || 'empty';
+    else llmFail = 'structure';
+  }
   /* JD 正文一次成形：引言 / 职责 / 六维度要求 / 加分项 都交给 buildJD 组装。
      若 HR 是整段粘进来的 JD，reqs.lead / reqs.userDuties 会按原文归位。 */
   const built = buildJD({ title, industry, dept_path: dept, must_have: mustArr, nice_have: niceArr, salary, headcount, benefits, must_years: years, must_edu_rank: eduRank, dims: reqs.dims, lead: reqs.lead, userDuties: reqs.userDuties });
@@ -1193,9 +1299,16 @@ async function runJD(db, { title, industry, dept, must, nice, years, eduRank, sa
   }
   push('拆解岗位职责与任职要求维度',
     `职责 ${dutyN} 条｜任职要求 ${reqs.dims.length} 个维度（专业技能／工作经验／学历背景／综合素质／软技能）`, { tokens: 260 });
-  if ((must && String(must).trim()) || (nice && String(nice).trim())) {
-    push('在已填任职要求基础上扩充',
-      `已填内容原样保留并按维度归位，另按${reqs.fnName ? '职能族' : '行业'}素材补齐未覆盖维度 → 任职要求 ${mustArr.length} 条／加分项 ${niceArr.length} 条`, { rule: true, tool: 'rule.merge_reqs', ms: 4 });
+  if (filled) {
+    push('在已填任职要求基础上扩充与润色',
+      `已填内容保留核心信息并书面化润色后按维度归位，另按${reqs.fnName ? '职能族' : '行业'}素材补齐未覆盖维度；加分项统一为「…者优先」句式 → 任职要求 ${mustArr.length} 条／加分项 ${niceArr.length} 条`, { rule: true, tool: 'rule.merge_reqs', ms: 4 });
+    if (llmPolished) {
+      push('用大模型对已填内容做二次润色',
+        '规则层产物作为底稿交由模型做流畅度与专业度加工；已校验维度名与条目数逐条对齐，结构未被改动', { tokens: llmTokens, tool: 'llm.polish_jd', ms: 900 });
+    } else if (llmConfigured()) {
+      push('模型润色未生效，退回规则层产物',
+        llmFail === 'structure' ? '模型返回的维度或条目数与规则层产物对不上 → 整单作废，采用规则层结果' : `模型调用未成功（${llmFail || 'unknown'}）→ 采用规则层结果`, { rule: true, tool: 'rule.polish_jd', ms: 3 });
+    }
   }
   push('生成岗位职责与任职要求草案', `职责 ${dutyN} 条｜任职要求 ${mustArr.length + softArr.length} 条｜加分项 ${niceArr.length} 条`, { tokens: 420 });
   push('合规扫描：歧视性用语 + 违法表述', '扫描维度：性别／年龄／婚育／户籍／院校／地域／工时／社保／押金', { rule: true, tool: 'guard.scan_jd', ms: 5 });

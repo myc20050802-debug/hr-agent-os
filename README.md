@@ -63,6 +63,9 @@ Windows 双击 `server/start.bat` 即可（自动开浏览器）。
 | `tools/test_load.js` | **并发压测**：读 / 写 / 读写混合三阶段，输出 P50 / P90 / P95 / P99 与吞吐 |
 | `tools/test_devup.js` | **「打开即在线」链路验收**：幂等启动 / CORS 白名单 / hook 接线 / 预览面板跨源场景 |
 | `tools/run_all.js` | **一键回归**：拉起隔离实例（独立端口 + 临时库）跑全部套件，不碰演示数据 |
+| `tools/preflight.js` | **上线前自检**（`npm run preflight`，只读）：口令强度 / `COOKIE_SECURE` 与访问协议是否配对 / `ALLOW_RESET` / 库路径 / 备份新鲜度 —— 退出码 0 才可以把链接发出去 |
+| `tools/backup.js` | **在线备份与恢复**（`npm run backup`）：SQLite `VACUUM INTO` 只读快照，不停服、不阻塞写者；带 `integrity_check`、SHA-256 清单、保留策略，恢复前强制停服 |
+| `tools/test_ops.js` | **运维面回归**（48 项）：静态资源 gzip/ETag/源码隔离/目录穿越、CORS 预检头对齐、重置开关、口令治理、备份恢复与保留策略 |
 | `docs/01_产品需求草稿PRD.md` | 七部分 PRD 草稿（定位 / 架构 / 模块 / 底座 / 合规 / MVP / 菜单） |
 | `docs/02_搭建实操教程.md` | 8 阶段落地教程（含建表 SQL、工具注册中心、闸门代码） |
 | `docs/03_本地全栈版运行说明.md` | 眼前这套代码怎么启动、怎么验证、怎么接模型、已知边界 |
@@ -72,6 +75,10 @@ Windows 双击 `server/start.bat` 即可（自动开浏览器）。
 | `docs/07_项目计划书.md` | **按真实产品标准的项目计划**：目标形态 / 范围与非目标 / GitHub 对标 / M0–M5 里程碑 / 拍板结果 |
 | `docs/08_架构设计文档.md` | **目标架构分层（L0–L5）+ 10 条 ADR**：权限模型 / AI 能力层 / 迁移路径 / 选型对照 |
 | `docs/09_实现说明与验收报告.md` | **M1「可信底座」做了什么、凭什么说做完了、还差什么**：关键决策 9 条 + 异常处理清单 + 三套回归证据 + 4 条被测试抓出的真实缺陷 |
+| `docs/10_招聘Agent目录与模块组织结构.md` | 三级导航 IA（分组 → 目录 → 模块 → 页）与「新增一个 Agent」checklist |
+| `docs/11_从PoC到可用软件的落地路径.md` | **「可用」的三个档位**（演示可达 / 团队可用 / 对外可卖）与各自的真实差距 |
+| `docs/12_上线部署手册_A档.md` | **A 档上线手册**：`preflight` 每项检查在防什么 + 三条发布路径 + 上线前必做四件事 + 验收清单 |
+| `上线部署手册_A档.html` | `docs/12` 的暗色单文件阅读版（可搜索） |
 | `HR-AI-Agent平台_产品方案.html` | 三份文档合并的暗色单文件阅读版（可搜索、可复制代码） |
 | `HR-AI-Agent平台_项目计划与架构.html` | `docs/07` + `docs/08` 的暗色单文件阅读版（双文档 Tab 切换 · 可搜索） |
 
@@ -212,7 +219,7 @@ node --experimental-sqlite server.js
 一键跑全部（**推荐**）：起一个隔离实例（`127.0.0.1:8799` + 临时库），演示库 `server/hr_agent.db` 毫发无伤。
 
 ```bash
-node tools/run_all.js                 # 功能回归：8 套件
+node tools/run_all.js                 # 功能回归：10 套件
 node tools/run_all.js --only backend  # 只跑后端 5 套件（也可用套件 id：--only eval / --only auth）
 node tools/run_all.js --only load     # 并发压测（单独一档，不混进默认回归）
 ```
@@ -228,12 +235,15 @@ node --experimental-sqlite tools/test_jd.js          # JD 生成口径 · 原文
 node --experimental-sqlite tools/test_eval.js        # 筛选质量评测 · 黄金集 + 一致率接口 · 56 项
 node --experimental-sqlite tools/test_screening.js   # 用量真实性 / 可重复运行 · 29 项
 node tools/test_devup.js                             # 打开即在线 · 幂等启动 / CORS / hook 接线 / 跨源场景 · 18 项
+node --experimental-sqlite tools/test_ops.js         # 运维面 · gzip / ETag / 源码隔离 / 重置开关 / 口令治理 / 备份 · 48 项
+npm run preflight                                    # 上线前自检（只读；退出码 0 才可以把链接发出去）
+npm run backup                                       # 在线备份（VACUUM INTO 快照，不用停服）
 cd 平台原型
-node test_prototype.js                               # 离线：23 页渲染 + 22 项交互（无需 server）
-node test_live.js                                    # 真后端：23 页渲染 + 26 项真链路（需先启动 server）
+node test_prototype.js                               # 离线：23 页渲染 + 23 项交互（无需 server）
+node test_live.js                                    # 真后端：23 页渲染 + 27 项真链路（需先启动 server）
 ```
 
-当前状态：**全部 0 失败 · 8 套件全绿**（后端 5 + 自包含 1 + 前端 2）。压测另跑，0 错误。
+当前状态：**全部 0 失败 · 10 套件全绿**（后端 4 + 评测 1 + 筛选 1 + 自包含 2 + 前端 2）。压测另跑，0 错误。
 
 > 运行前端无头测试需要 `jsdom`：`NODE_PATH=<你的 workspace>/node_modules node test_live.js`（本项目自身不依赖任何 npm 包）。
 > 硬验证：删掉 `server/hr_agent.db` 后重启，空库自动跑到 `schemaVersion: 6`（19 张业务表 / 2 个触发器 / 20 个索引），无需人工干预。

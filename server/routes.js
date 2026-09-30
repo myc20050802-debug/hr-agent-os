@@ -270,6 +270,9 @@ function buildRouter(db) {
       schemaVersion: dbmod.schemaVersion(db),
       /* 推翻原因枚举由服务端下发（唯一真源），前端不再自己硬编码一份 */
       overrideCodes: { decisions: OverrideCodes.DECISIONS, codes: OverrideCodes.CODES },
+      /* 能力开关下发：前端据此**隐藏**入口，而不是让用户点了才发现 403。
+         注意这只是体验层 —— 真正的拦截在 /api/reset 里，前端改不了。 */
+      caps: { reset: config.admin.allowReset },
     },
     needFull(rc.ctx) ? scopeSnapshot(db, rc.ctx) : scopeSnapshot(db, rc.ctx)
   )));
@@ -704,8 +707,22 @@ function buildRouter(db) {
     return rc.ok({ active: !!active });
   });
 
-  /* ================= 演示维护 ================= */
+  /* ================= 演示维护 =================
+     ⚠️ 这个接口会**清空运行期表**。它现在受 ALLOW_RESET 控制：
+     生产环境（NODE_ENV=production）默认关闭，需显式 ALLOW_RESET=1 才开放。
+
+     为什么不是「靠 admin:policy 权限就够了」：
+     权限管的是「谁能做」，开关管的是「这个动作是否该存在于这台机器上」。
+     公网演示实例上，一个误点、一次脚本跑错、一个被抓包的会话，
+     都能让整套演示数据清零 —— 而它的价值只是省一次重启。
+
+     关闭时返回 403（而不是让路由消失/404）：路由消失会让前端
+     得到「接口不存在」，排查时往「版本不对」的方向找。 */
   r.post('/api/reset', { need: 'admin:policy' }, rc => {
+    if (!config.admin.allowReset) {
+      throw forbidden('演示重置已在本机关闭（ALLOW_RESET=0）。'
+        + '如需回到初始状态，请在服务器上停服后执行 npm run start:reset。');
+    }
     dbmod.reseedRuntime(db);
     auth.ensureSeedCredentials(db);
     gov.ensureDefaultPolicies(db, TENANT);
