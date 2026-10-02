@@ -1,0 +1,17 @@
+# 岗位抓取脚本的依赖 —— 只给这两个脚本用：
+#   tools/scrape_boss_jobs.py      （BOSS 直聘 · 免登录）
+#   tools/scrape_zhaopin_jobs.py   （智联招聘 · 免登录）
+#
+# 后端（server/）是 Node 零依赖，跑平台不需要装任何 Python 包，
+# 只有「重新抓岗位资料库」这一件事才需要下面这些。
+#
+# 安装（Python 3.9+）：
+#   python -m pip install -r tools/requirements-scrape.txt
+#   scrapling install          # 首次还需下载浏览器内核，约 200 MB
+#
+# 说明：
+# - 必须是 scrapling[fetchers] —— StealthyFetcher 由该 extra 提供，
+#   裸装 scrapling 会在 import 时报 ModuleNotFoundError。
+# - lxml 由 scrapling 传递引入，这里显式写出，因为脚本直接 import lxml.html。
+scrapling[fetchers]>=0.4.15
+lxml>=6.1.1

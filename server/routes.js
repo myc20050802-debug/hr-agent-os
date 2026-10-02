@@ -16,6 +16,7 @@
 const { config } = require('./config.js');
 const { createRouter } = require('./http-kernel.js');
 const engine = require('./engine.js');
+const ReferenceJobs = require('./referenceJobs.js');
 const dbmod = require('./db.js');
 const auth = require('./auth.js');
 const rbac = require('./rbac.js');
@@ -45,6 +46,7 @@ function scopeSnapshot(db, ctx) {
   const canCand = rbac.can(ctx, 'candidate:read');
   const canApproval = rbac.can(ctx, 'approval:read');
   const canAudit = rbac.can(ctx, 'audit:read');
+  const canJob = rbac.can(ctx, 'job:read');
   const canEmp = rbac.can(ctx, 'employee:read');
   const canReport = rbac.can(ctx, 'report:read');
   const canItv = rbac.can(ctx, 'interview:read');
@@ -110,6 +112,10 @@ function scopeSnapshot(db, ctx) {
     kbUnanswered: canApproval ? snap.kbUnanswered : [],
     industries: snap.industries,
     industrySkills: snap.industrySkills,
+    /* 岗位资料库（v9）：外部市场的只读参考数据，按「能不能看岗位」下发。
+       它不进打分关键词通道、也不参与招聘流程，所以不需要部门行级过滤（表里没有部门概念）。 */
+    refJobs: canJob ? snap.refJobs : [],
+    refStats: canJob ? snap.refStats : null,
     kpis: canReport
       ? Object.assign({}, snap.kpis, {
         pendingApprovals: (canApproval ? snap.approvals : []).filter(a => a.status === 'pending').length,
@@ -343,6 +349,41 @@ function buildRouter(db) {
     if (out.status === 'error') throw badRequest(out.msg || 'JD 生成失败');
     metrics.inc('agent.jd.runs');
     return rc.ok(out);
+  });
+
+  /* ================= 岗位资料库（BOSS 直聘抓取入库，JD 生成的参考依据） ================= */
+  r.get('/api/reference-jobs', { need: 'job:read' }, rc => {
+    const q = (rc.query.q || '').toString().trim();
+    const limit = Math.min(200, Math.max(1, parseInt(rc.query.limit, 10) || 50));
+    let rows = [];
+    try {
+      const cols = 'id,job_title,job_description,salary_range,location,company_name,company_industry,company_scale,source_url,skill_labels,scraped_at';
+      let sql = `SELECT ${cols} FROM reference_jobs`;
+      const params = [];
+      if (q) { sql += ` WHERE job_title LIKE ? OR company_name LIKE ? OR company_industry LIKE ?`; params.push(`%${q}%`, `%${q}%`, `%${q}%`); }
+      sql += ` ORDER BY scraped_at DESC, id DESC LIMIT ?`;
+      params.push(limit);
+      rows = db.prepare(sql).all(...params);
+    } catch (e) { rows = []; }
+    return rc.ok({ total: ReferenceJobs.countAll(db), rows });
+  });
+
+  r.get('/api/reference-jobs/stats', { need: 'job:read' }, rc => {
+    let byCity = [], byIndustry = [], byCompany = [];
+    try {
+      /* 按「市级」聚合，而不是原始地址串 —— 否则「北京」与「北京·朝阳·建外」
+         会各占一个桶，KPI 看起来像数据脏了。归一函数与 runJD 接地文案同源。 */
+      const locRows = db.prepare(`SELECT location k, COUNT(*) c FROM reference_jobs WHERE location<>'' GROUP BY location`).all();
+      const bucket = new Map();
+      for (const r of locRows) {
+        const k = ReferenceJobs.cityOf(r.k);
+        if (k) bucket.set(k, (bucket.get(k) || 0) + Number(r.c));
+      }
+      byCity = [...bucket.entries()].map(([k, c]) => ({ k, c })).sort((a, b) => b.c - a.c).slice(0, 10);
+      byIndustry = db.prepare(`SELECT company_industry k, COUNT(*) c FROM reference_jobs WHERE company_industry<>'' GROUP BY company_industry ORDER BY c DESC LIMIT 10`).all();
+      byCompany = db.prepare(`SELECT company_name k, COUNT(*) c FROM reference_jobs WHERE company_name<>'' GROUP BY company_name ORDER BY c DESC LIMIT 10`).all();
+    } catch (e) { /* 表不存在则留空 */ }
+    return rc.ok({ total: ReferenceJobs.countAll(db), byCity, byIndustry, byCompany });
   });
 
   /* ================= 员工自助问答 ================= */

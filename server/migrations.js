@@ -21,6 +21,9 @@
      v4  audit_append_only     审计表 append-only 的**数据库层**约束（触发器）
      v5  hiring_pipeline       面试与 Offer 实体（把「已邀约」之后的链路补成真的）
      v6  override_code         人工推翻原因结构化（把「进入优化数据集」从承诺变成可统计的枚举）
+     v7  score_why             打分归因落库（复核历史评分看到的是当时的理由）
+     v8  job_duties            岗位职责栏（HR 自填职责随岗位持久化，v13）
+     v9  reference_jobs        岗位资料库（BOSS 直聘在招岗位抓取入库，作为 JD 生成的参考依据）
    =========================================================== */
 'use strict';
 const { logger } = require('./logger.js');
@@ -301,6 +304,48 @@ const MIGRATIONS = [
          而不是用今天的口径重算出来的理由。 */
       const cols = db.prepare(`PRAGMA table_info(candidates)`).all().map(c => c.name);
       if (!cols.includes('ai_why')) db.exec(`ALTER TABLE candidates ADD COLUMN ai_why TEXT`);
+    },
+  },
+  {
+    version: 8, name: 'job_duties',
+    up(db) {
+      /* 「岗位职责」栏（v13）：HR 单独填写的职责条目随岗位落库。
+         为什么必须落库而不是每次从 must_have 反推：职责不进打分关键词通道，
+         must_have 里根本没有它 —— 不落库的话，编辑保存与词库自愈重算
+         都会把 HR 写的职责静默替换成职能模板，用户内容直接丢失。 */
+      const cols = db.prepare(`PRAGMA table_info(jobs)`).all().map(c => c.name);
+      if (!cols.includes('duties')) db.exec(`ALTER TABLE jobs ADD COLUMN duties TEXT`);
+    },
+  },
+  {
+    version: 9, name: 'reference_jobs',
+    up(db) {
+      /* 岗位资料库：把 BOSS 直聘在招岗位的「岗位名称 / 岗位描述 / 薪资范围 /
+         工作地点 / 抓取时间」等结构化落库，作为今后所有 JD 生成任务的参考依据。
+         为什么独立成表而不是塞进 jobs：jobs 是「本公司自己的招聘需求」，
+         reference_jobs 是「市场公开在招岗位」—— 两类语义不同、生命周期不同、
+         权限不同（资料库只读参考，不影响本公司招聘流程），必须分开。 */
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS reference_jobs (
+          id            TEXT PRIMARY KEY,
+          tenant_id     TEXT NOT NULL DEFAULT 'T-001',
+          job_title     TEXT NOT NULL,
+          job_description TEXT,
+          salary_range  TEXT,
+          location      TEXT,
+          company_name  TEXT,
+          company_industry TEXT,
+          company_scale TEXT,
+          source_url    TEXT,
+          skill_labels  TEXT,
+          scraped_at    TEXT,
+          raw_json      TEXT,
+          created_at    TEXT DEFAULT (datetime('now'))
+        );
+        CREATE INDEX IF NOT EXISTS idx_ref_title    ON reference_jobs(job_title);
+        CREATE INDEX IF NOT EXISTS idx_ref_loc      ON reference_jobs(location);
+        CREATE INDEX IF NOT EXISTS idx_ref_scraped  ON reference_jobs(scraped_at DESC);
+      `);
     },
   },
 ];

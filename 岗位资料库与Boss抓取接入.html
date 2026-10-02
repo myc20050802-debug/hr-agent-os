@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>岗位资料库与市场岗位抓取接入</title>
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+  --line:#262c39; --line2:#323a4b;
+  --tx:#e7eaf1; --tx2:#a8b1c2; --tx3:#6f7a8d;
+  --ac:#4c8dff; --ac2:#7aa9ff; --grn:#3ddc97; --yel:#f5b942; --red:#ff6b6b; --pur:#a78bfa;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:15px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+header{position:sticky;top:0;z-index:50;background:rgba(13,15,20,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:14px 26px 0}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1.brand{font-size:17px;margin:0;letter-spacing:.3px}
+.sub{color:var(--tx3);font-size:12.5px}
+.searchbox{margin-left:auto;display:flex;align-items:center;gap:8px}
+input#q{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:9px;
+  padding:8px 12px;width:240px;font-size:13px;outline:none}
+input#q:focus{border-color:var(--ac)}
+.hint{font-size:12px;color:var(--tx3)}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx2);
+  padding:9px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac2);border-bottom-color:var(--ac);font-weight:600}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1560px;margin:0 auto}
+aside{position:sticky;top:112px;align-self:start;height:calc(100vh - 112px);overflow-y:auto;
+  padding:22px 14px 60px 26px;border-right:1px solid var(--line)}
+.tocgroup{display:flex;flex-direction:column;gap:1px}
+.toclink{display:block;color:var(--tx2);text-decoration:none;font-size:13px;padding:5px 9px;
+  border-radius:7px;line-height:1.45}
+.toclink:hover{background:var(--panel2);color:var(--tx)}
+.toclink.lvl2{padding-left:20px}
+.toclink.lvl3{padding-left:32px;font-size:12.5px;color:var(--tx3)}
+main{padding:26px 34px 120px;min-width:0}
+.docmeta{font:12px var(--mono);color:var(--tx3);margin-bottom:18px;
+  border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;display:inline-block}
+article h1{font-size:27px;margin:26px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+article h2{font-size:21px;margin:38px 0 14px;padding:9px 0 9px 13px;border-left:3px solid var(--ac);
+  background:linear-gradient(90deg,rgba(76,141,255,.09),transparent);border-radius:0 8px 8px 0}
+article h3{font-size:17px;margin:28px 0 10px;color:var(--ac2)}
+article h4{font-size:15px;margin:20px 0 8px;color:var(--tx2)}
+p{margin:9px 0}
+a{color:var(--ac2)}
+strong{color:#fff;font-weight:650}
+em{color:var(--yel);font-style:normal}
+code{font:12.6px var(--mono);background:var(--panel2);border:1px solid var(--line);
+  padding:1.5px 5px;border-radius:5px;color:#ffd479}
+.codeblock{margin:14px 0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0a0c11}
+.codetop{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);font:11.5px var(--mono);color:var(--tx3)}
+.copybtn{background:var(--panel2);border:1px solid var(--line2);color:var(--tx2);font-size:11.5px;
+  padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.copybtn:hover{color:var(--tx);border-color:var(--ac)}
+pre{margin:0;padding:14px 16px;overflow-x:auto}
+pre code{background:none;border:none;padding:0;color:#cfd8e6;font-size:12.6px;line-height:1.62}
+blockquote{margin:14px 0;padding:13px 16px;background:linear-gradient(90deg,rgba(167,139,250,.10),rgba(167,139,250,.02));
+  border-left:3px solid var(--pur);border-radius:0 10px 10px 0;color:#d9def0}
+blockquote p{margin:4px 0}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+th{background:var(--panel);text-align:left;padding:10px 12px;font-weight:640;color:var(--ac2);
+  border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(76,141,255,.05);color:var(--tx)}
+ul,ol{margin:9px 0;padding-left:24px}
+li{margin:5px 0;color:var(--tx2)}
+li strong{color:var(--tx)}
+hr.sep{border:none;border-top:1px solid var(--line);margin:26px 0}
+mark{background:rgba(245,185,66,.34);color:#fff;border-radius:3px;padding:0 2px}
+.hidden{display:none !important}
+footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-size:12.5px;text-align:center}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}aside{display:none}main{padding:20px 16px 90px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 class="brand">岗位资料库与市场岗位抓取接入</h1>
+    <span class="sub">BOSS 直聘 + 智联招聘 · 免登录抓取链路</span>
+    <div class="searchbox">
+      <span class="hint" id="hint">全文搜索</span>
+      <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs"><button class="tab active" data-doc="doc0">岗位资料库与市场岗位抓取接入（BOSS + 智联 · 免登录）</button></div>
+</header>
+<div class="wrap">
+  <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--岗位资料库与市场岗位抓取接入-BOSS-智联-免登录" data-text="岗位资料库与市场岗位抓取接入（BOSS + 智联 · 免登录）">岗位资料库与市场岗位抓取接入（BOSS + 智联 · 免登录）</a><a class="toclink lvl2" href="#doc0--一-它是什么-不是什么" data-text="一、它是什么，不是什么">一、它是什么，不是什么</a><a class="toclink lvl2" href="#doc0--二-数据落在哪" data-text="二、数据落在哪">二、数据落在哪</a><a class="toclink lvl2" href="#doc0--三-怎么抓-免登录-scrapling-连接器" data-text="三、怎么抓（免登录 · scrapling 连接器）">三、怎么抓（免登录 · scrapling 连接器）</a><a class="toclink lvl3" href="#doc0--3-0-为什么不用原来那套-专用-Chrome-扫码登录" data-text="3.0 为什么不用原来那套「专用 Chrome + 扫码登录」">3.0 为什么不用原来那套「专用 Chrome + 扫码登录」</a><a class="toclink lvl3" href="#doc0--3-1-BOSS-直聘-tools-scrape_boss_jobs-py" data-text="3.1 BOSS 直聘：tools/scrape_boss_jobs.py">3.1 BOSS 直聘：tools/scrape_boss_jobs.py</a><a class="toclink lvl3" href="#doc0--3-2-智联招聘-tools-scrape_zhaopin_jobs-py" data-text="3.2 智联招聘：tools/scrape_zhaopin_jobs.py">3.2 智联招聘：tools/scrape_zhaopin_jobs.py</a><a class="toclink lvl3" href="#doc0--3-3-导入资料库" data-text="3.3 导入资料库">3.3 导入资料库</a><a class="toclink lvl2" href="#doc0--四-JD-生成如何读取它" data-text="四、JD 生成如何读取它">四、JD 生成如何读取它</a><a class="toclink lvl3" href="#doc0--4-1-匹配口径-2026-09-30-修正" data-text="4.1 匹配口径（2026-09-30 修正）">4.1 匹配口径（2026-09-30 修正）</a><a class="toclink lvl3" href="#doc0--4-2-四条设计约束-写进代码注释了" data-text="4.2 四条设计约束（写进代码注释了）">4.2 四条设计约束（写进代码注释了）</a><a class="toclink lvl2" href="#doc0--五-看数据" data-text="五、看数据">五、看数据</a><a class="toclink lvl2" href="#doc0--六-已知限制-不粉饰" data-text="六、已知限制（不粉饰）">六、已知限制（不粉饰）</a><a class="toclink lvl2" href="#doc0--七-验证记录-2026-09-30-更新" data-text="七、验证记录（2026-09-30 更新）">七、验证记录（2026-09-30 更新）</a></div></aside>
+  <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">13_岗位资料库与Boss抓取接入.md</div><h1 id="doc0--岗位资料库与市场岗位抓取接入-BOSS-智联-免登录">岗位资料库与市场岗位抓取接入（BOSS + 智联 · 免登录）</h1>
+<blockquote>本文记录「外部市场在招岗位 → 平台资料库 → JD 生成参考」这条链路的设计与操作。 <strong>当前状态（2026-09-30 更新）</strong>：资料库 <code>reference_jobs</code> 已入库 <strong>183 条</strong>真实在招岗位 （BOSS 直聘 147 条 + 智联招聘 36 条），其中 <strong>69 条带完整 JD 正文、36 条带真实薪资</strong>； 抓取已改为 <strong>scrapling 连接器免登录</strong>方案，<strong>不再需要人工扫码登录</strong>。 JD 生成侧已接入读取，命中结果注入引言做「市场接地」。</blockquote>
+<hr class="sep">
+<h2 id="doc0--一-它是什么-不是什么">一、它是什么，不是什么</h2>
+<div class="tablewrap"><table><thead><tr><th></th><th>说明</th></tr></thead><tbody><tr><td><strong>是什么</strong></td><td>外部市场（BOSS 直聘 / 智联招聘）公开在招岗位的<strong>只读参考库</strong>，供 JD 生成做「市场接地」</td></tr><tr><td><strong>不是什么</strong></td><td>❌ 不是本公司在招岗位（那是 <code>jobs</code> 表）&lt;br&gt;❌ 不参与简历打分，<strong>不进关键词通道</strong>&lt;br&gt;❌ 不参与招聘流程（面试/Offer/入职）</td></tr></tbody></table></div>
+<p><strong>为什么坚决不让它进打分通道</strong>：拿外部公司的岗位要求去筛本公司候选人，等于用别人的尺子量自己的人。资料库唯一的用途是「生成 JD 之前先看看真实市场怎么写」。</p>
+<blockquote>⚠️ 这是资料库接入时就被写死的红线，<code>buildJD()</code> 纯函数不接收资料库参数，只有 <code>runJD()</code> 层读它。</blockquote>
+<hr class="sep">
+<h2 id="doc0--二-数据落在哪">二、数据落在哪</h2>
+<p><strong>表 <code>reference_jobs</code></strong>（迁移 <strong>v9</strong>，见 <code>server/migrations.js</code>）：</p>
+<div class="tablewrap"><table><thead><tr><th>字段</th><th>含义</th><th>当前填充（183 条）</th></tr></thead><tbody><tr><td><code>job_title</code></td><td>岗位名称</td><td>183/183</td></tr><tr><td><code>company_name</code> / <code>company_industry</code> / <code>company_scale</code></td><td>公司名 / 行业 / 规模</td><td>183/183</td></tr><tr><td><code>location</code></td><td>工作地点（城市·区域）</td><td>183/183</td></tr><tr><td><code>salary_range</code></td><td>薪资区间</td><td><strong>36/183</strong>（智联批次全带；BOSS 免登录列表页拿不到薪资）</td></tr><tr><td><code>job_description</code></td><td>完整 JD 正文</td><td><strong>69/183</strong>（BOSS 40 + 智联 29）</td></tr><tr><td><code>skill_labels</code></td><td>技能标签</td><td>少量</td></tr><tr><td><code>source_url</code></td><td>来源链接</td><td>183/183</td></tr><tr><td><code>scraped_at</code></td><td>抓取时间</td><td>183/183</td></tr></tbody></table></div>
+<p>幂等键 = <code>sha1(租户 + 岗位名 + 公司 + 地点 + 来源URL)</code>，<code>INSERT OR REPLACE</code> —— <strong>重复导入同一份产物不会翻倍</strong>；同一岗位再次抓到会按同键<strong>覆盖更新</strong>（拿到更新薪资/JD 时是期望行为）。</p>
+<blockquote>与既有 <code>kb_documents</code>/<code>kb_chunks</code> 的区别：那两张表是<strong>员工手册/制度文档</strong>库（给员工自助 Agent 回答制度问题用），不是岗位库。两者互不干扰。</blockquote>
+<p><strong>当前分布（按行业）</strong>：法律 80 / 互联网 23 / 咨询 20 / 未融资 14 / 不需要融资 14 / 计算机软件 8……</p>
+<hr class="sep">
+<h2 id="doc0--三-怎么抓-免登录-scrapling-连接器">三、怎么抓（免登录 · scrapling 连接器）</h2>
+<h3 id="doc0--3-0-为什么不用原来那套-专用-Chrome-扫码登录">3.0 为什么不用原来那套「专用 Chrome + 扫码登录」</h3>
+<p>原 <code>boss-company</code> skill 走 CDP 抓登录态，<strong>必须人工扫码、默认等 600 秒</strong>，无法无人值守。2026-09-30 改用</p>
+<p>WorkBuddy 本机已装的 <strong>scrapling MCP 连接器</strong>（<code>~/.workbuddy/mcp-servers/scrapling/venv/</code>，v0.4.15）：</p>
+<ul>
+<li><strong>BOSS 免登录可行</strong>：岗位详情页（<code>/job_detail/&lt;id&gt;.html</code>）是<strong>公开 SEO 页</strong>，未登录可直接渲染，</li>
+</ul>
+<p>页面里的「相似职位 / 推荐职位」链接可做 <strong>BFS 扩展</strong>，从一个种子岗位滚到几十个同类岗位。</p>
+<ul>
+<li><strong>智联免登录更彻底</strong>：列表页<strong>公开带薪资</strong>，详情页公开带完整 JD。</li>
+<li>两个抓取脚本都在 <code>tools/</code> 下，用 scrapling venv 的 python 直接跑，<strong>不依赖 Node</strong>。</li>
+</ul>
+<h3 id="doc0--3-1-BOSS-直聘-tools-scrape_boss_jobs-py">3.1 BOSS 直聘：<code>tools/scrape_boss_jobs.py</code></h3>
+<p>策略：给若干<strong>种子岗位详情页</strong>，抓完正文后顺着「相似/推荐职位」链接 BFS 扩展。</p>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code># 用「装了 scrapling 的那个 Python」即可（venv / conda / 系统 Python 都行）
+# Windows venv 是 Scripts/python.exe，Linux / macOS 是 bin/python
+P="python"
+
+# 从种子页出发，最多 40 个岗位，默认会顺链接扩展
+"$P" tools/scrape_boss_jobs.py \
+  --seed "https://www.zhipin.com/job_detail/xxxx.html" \
+  --seed "https://www.zhipin.com/job_detail/yyyy.html" \
+  --max-jobs 40 --out tools/_boss_out.json</code></pre></div>
+<div class="tablewrap"><table><thead><tr><th>参数</th><th>说明</th></tr></thead><tbody><tr><td><code>--seed</code>（可重复）</td><td>种子岗位详情页 URL，至少一个</td></tr><tr><td><code>--max-jobs</code></td><td>硬上限（含扩展出来的）</td></tr><tr><td><code>--no-expand</code></td><td>关闭 BFS，只抓种子</td></tr><tr><td><code>--delay</code></td><td>每次请求间隔秒数（默认自带节流）</td></tr><tr><td><code>--out</code></td><td>产物 JSON 路径</td></tr></tbody></table></div>
+<p><strong>抽字段</strong>：<code>.job-banner</code>（标题/城市/经验/学历/公司）、<code>.job-sec-text</code>（JD 正文）、<code>.sider-company</code>（行业/规模/地址）。</p>
+<p><strong>两个必须做的清洗</strong>（踩过的坑）：</p>
+<ol>
+<li><strong>隐藏噪声 span</strong>：BOSS 在正文里注入随机类名的 <code>&lt;span&gt;</code>（里面塞 <code>boss</code> 之类的字），</li>
+</ol>
+<p>靠页面 <code>&lt;style&gt;</code> 里的 <code>visibility:hidden</code> / <code>font-size:0</code> / <code>display:none</code> 规则隐藏。</p>
+<p>不处理就会读出「职位描<strong>boss</strong>述」这种断句垃圾。</p>
+<p>→ 用 <code>HIDDEN_DEF_RE</code> 从 <code>&lt;style&gt;</code> 里抠出隐藏类名，再全部剔除。</p>
+<ol>
+<li><strong>lxml 删元素会吞掉 tail 文本</strong>：<code>getparent().remove(span)</code> 会把 <code>&lt;span&gt;boss&lt;/span&gt;述：</code> 里的「述：」一起删掉。</li>
+</ol>
+<p>→ 封装 <code>drop_keep_tail(el)</code>：先把 <code>el.tail</code> 前插到前一个兄弟节点（或父节点）文本尾部，再删元素。</p>
+<h3 id="doc0--3-2-智联招聘-tools-scrape_zhaopin_jobs-py">3.2 智联招聘：<code>tools/scrape_zhaopin_jobs.py</code></h3>
+<p>策略：按<strong>关键词 + 城市</strong>搜列表页 → 逐条进详情页取完整 JD。</p>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>"$P" tools/scrape_zhaopin_jobs.py --kw 律师   --jl 530 --pages 2 --max-jobs 18 --out tools/_zp_law.json
+"$P" tools/scrape_zhaopin_jobs.py --kw 产品经理 --jl 530 --pages 2 --max-jobs 18 --out tools/_zp_pm.json</code></pre></div>
+<div class="tablewrap"><table><thead><tr><th>参数</th><th>说明</th></tr></thead><tbody><tr><td><code>--kw</code></td><td>搜索关键词（岗位名）</td></tr><tr><td><code>--jl</code></td><td>城市码（<strong>530 = 北京</strong>）</td></tr><tr><td><code>--pages</code></td><td>抓列表前几页</td></tr><tr><td><code>--max-jobs</code></td><td>上限</td></tr><tr><td><code>--list-only</code></td><td>只抓列表（不要 JD，快很多）</td></tr><tr><td><code>--probe</code></td><td>探针模式：只验证选择器是否命中，不落盘</td></tr><tr><td><code>--out</code></td><td>产物 JSON 路径</td></tr></tbody></table></div>
+<p><strong>抽字段</strong>：列表卡 <code>.joblist-box__iteminfo</code> → <code>.jobinfo__name</code> / <code>.jobinfo__salary</code> / <code>.jobinfo__other-info-item</code> /</p>
+<p><code>.companyinfo__name</code> / <code>.companyinfo__tag .joblist-box__item-tag</code>（规模、行业）；详情页 JD 取</p>
+<p><code>.describtion__detail-content</code> / <code>.job-description</code>。</p>
+<h3 id="doc0--3-3-导入资料库">3.3 导入资料库</h3>
+<p>两个脚本的产物结构不同（BOSS 是扁平 <code>jobs[]</code>；智联是按公司分组的 <code>companies[].jobs[]</code>），</p>
+<p><strong>导入器都能吃</strong>：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code># 导入器只依赖标准库 sqlite3，任意 Python 3.9+ 均可
+PY="python"
+"$PY" tools/import_boss_jobs.py --file tools/_boss_out.json
+"$PY" tools/import_boss_jobs.py --file tools/_zp_law.json
+"$PY" tools/import_boss_jobs.py --file tools/_zp_pm.json</code></pre></div>
+<ul>
+<li>脚本<strong>自带 <code>CREATE TABLE IF NOT EXISTS</code></strong>，表不存在也能跑（不依赖迁移是否已应用）。</li>
+<li>后端服务在运行中导入也正常（SQLite WAL 支持一写多读），<strong>无需停服</strong>。</li>
+<li><code>--dir &lt;目录&gt;</code> 批量导、<code>--dry-run</code> 只解析不落库、<code>--db</code> 指定库。</li>
+</ul>
+<hr class="sep">
+<h2 id="doc0--四-JD-生成如何读取它">四、JD 生成如何读取它</h2>
+<p>链路：<code>engine.runJD()</code> → <code>ReferenceJobs.loadReference(db, {title, industry})</code> → <code>marketNote(refs)</code> → 拼进 JD 引言。</p>
+<p><strong>接地文案示例</strong>（实测「专职律师」岗，读到 12 个同类岗位）：</p>
+<blockquote>已参考市场在招同类岗位 12 个，真实岗位名如「执业律师」「诉讼律师」「法务专员」，主要集中在北京；岗位要求与薪资口径已对齐真实在招市场。</blockquote>
+<p>同时 <code>runJD</code> 返回体新增 <code>reference</code> 块（命中条数 + <code>withJd</code> / <code>withSalary</code> 计数 + Top 岗位名 + 薪资/地点），前端「Agent 依据」可展示。</p>
+<h3 id="doc0--4-1-匹配口径-2026-09-30-修正">4.1 匹配口径（2026-09-30 修正）</h3>
+<p><strong>旧口径的 bug</strong>：只按「行业」打分，导致「Java 后端工程师」匹配到一堆互联网行业的「漫剧师」「主播」——</p>
+<p><strong>行业相同不等于岗位同类</strong>。</p>
+<p><strong>新口径（<code>server/referenceJobs.js</code>）</strong>：</p>
+<ol>
+<li><strong>标题必须命中</strong>才算候选，三种命中方式之一：</li>
+</ol>
+<ul>
+<li>完全相同</li>
+<li>互相包含（如「产品经理」⊂「高级产品经理」）</li>
+<li><strong>2-gram 重叠</strong>（<code>titleGrams()</code>：把标题切成二元组，剔除 <code>工程师/经理/专员/设计/运营…</code> 这类通用后缀词，避免「XX工程师」之间互相误配）</li>
+</ul>
+<ol>
+<li><strong>行业只做加分</strong>，不再作为独立入选条件。</li>
+<li><strong>城市走 <code>cityOf()</code> 归一</strong>（<code>referenceJobs.js</code>）：库里两个来源存的地址粒度不同 ——</li>
+</ol>
+<p>智联是「北京·朝阳·建外」（有分隔符），BOSS 是「上海长宁区尚嘉中心」（无分隔符的完整地址）。</p>
+<p>直接取第一段会把 BOSS 那条长地址原样拼进引言。</p>
+<p><code>cityOf()</code> 先用城市名单前缀匹配，再退化到「…市」截取，<strong>认不出一律返回空串</strong>（宁缺勿糙：</p>
+<p>宁可少一句「主要集中在」，也不写错地名）。实测 <code>上海长宁区尚嘉中心 → 上海</code>、</p>
+<p><code>北京·丰台·看丹 → 北京</code>、<code>中国香港中环 → 中国香港</code>。</p>
+<p><code>/api/reference-jobs/stats</code> 的 <code>byCity</code> 也走同一函数聚合，否则「北京」与「北京·朝阳·建外」</p>
+<p>会各占一个桶，KPI 看起来像数据脏了（归一后：北京 145 / 上海 38）。</p>
+<p>有薪资时追加薪资口径说明。</p>
+<p>修正后实测：产品经理命中 12 个<strong>真同类</strong>且城市名干净；Java 后端只命中 1 个相关；专职律师命中「专职/独立/提成/合伙人律师」——不再出现跨职能误配。</p>
+<h3 id="doc0--4-2-四条设计约束-写进代码注释了">4.2 四条设计约束（写进代码注释了）</h3>
+<ol>
+<li><strong>静默降级</strong>：表不存在 / 查询异常 → 返回空数组，生成照常出 JD。增强项绝不能拖垮主流程。</li>
+<li><strong>不破坏确定性</strong>：<code>buildJD()</code> 保持纯函数（测试直连），资料库只在 <code>runJD</code> 层参与。资料库为空时行为与改动前<strong>逐字节一致</strong>。</li>
+<li><strong>匹配在内存做</strong>：全量拉取后在内存打分排序，<strong>不用 SQL <code>LIKE</code></strong> —— 避免中文分词问题。表只有几百~几千行，足够。</li>
+<li><strong>接入点单一</strong>：只有 <code>runJD</code> 一处读取，便于日后换成向量检索。</li>
+</ol>
+<hr class="sep">
+<h2 id="doc0--五-看数据">五、看数据</h2>
+<ul>
+<li><strong>页面</strong>：左侧导航「人才与员工 → 岗位资料库」🗂️（权限 <code>job:read</code>）。含 4 个 KPI、逐岗位表格、按岗位名/公司/地点即时筛选的空态与满态两套渲染。</li>
+<li><strong>接口</strong>：<code>GET /api/reference-jobs?limit=&amp;q=</code> 列表检索、<code>GET /api/reference-jobs/stats</code> 统计（按城市/行业/公司）。</li>
+<li><strong>快照</strong>：<code>/api/bootstrap</code> 下发 <code>refJobs</code>（最近 200 条）+ <code>refStats</code>，按 <code>job:read</code> 门控。</li>
+</ul>
+<blockquote>⚠️ <strong>往快照加字段要改对地方</strong>：bootstrap 实际下发的是 <code>routes.js</code> 的 <code>scopeSnapshot()</code>，<strong>不是</strong> <code>engine.bootstrap()</code> 的直接返回。只改 engine 不会到前端。</blockquote>
+<p>⚠️ 离线单文件原型（<code>平台原型/index.html</code>）<strong>不含</strong>资料库数据——它存在服务端 SQLite 里。连上本地后端后页面才有内容。</p>
+<hr class="sep">
+<h2 id="doc0--六-已知限制-不粉饰">六、已知限制（不粉饰）</h2>
+<ol>
+<li><strong>BOSS 免登录拿不到薪资</strong>：列表/详情页对未登录用户不展示薪资，<code>salary_range</code> 为空（页面显示「未抓取」而不是留白或编造）。要薪资就得走登录态或换智联这类公开薪资的源。</li>
+<li><strong>JD 覆盖率不均衡</strong>：法律岗（智联 18 条）与产品经理岗（智联 18 条）JD 基本全带；BOSS 那 147 条是<strong>旧版产物</strong>，只有岗位名/公司/行业/地点，<strong>没有 JD</strong>——本次新增的 40 条 BOSS 带 JD，但旧 107 条仍缺，需要时用 <code>scrape_boss_jobs.py</code> 按岗位名重新抓。</li>
+<li><strong>详情页偶发超时</strong>：智联个别 <code>jobdetail</code> 页 60s 超时（律师批次 18 条里 1 条 JD 为空），可重跑补齐。</li>
+<li><strong>无增量去重时间窗</strong>：幂等键不含时间，同一岗位多次抓取按「同键覆盖」更新（期望行为）。但若岗位换 URL 会算作新行。</li>
+<li><strong>合规</strong>：只抓页面<strong>公开展示</strong>的招聘信息，不抓个人简历/联系方式；抓取频率受脚本自身节流约束。商业化使用前请自行确认目标站点 ToS 与当地法规。</li>
+</ol>
+<hr class="sep">
+<h2 id="doc0--七-验证记录-2026-09-30-更新">七、验证记录（2026-09-30 更新）</h2>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>结果</th></tr></thead><tbody><tr><td>迁移 v7→v9</td><td>副本库实测通过；本机演示库已升 v9</td></tr><tr><td>导入 9 份历史产物</td><td>解析 127 条 → 去重入库 <strong>107 条</strong></td></tr><tr><td>BOSS 免登录抓取（scrapling）</td><td><strong>40 条</strong>，JD 100% 捕获，<strong>0 条 CSS/boss 噪声污染</strong></td></tr><tr><td>智联免登录抓取 · 律师</td><td>18 条，薪资 18/18，JD 17/18</td></tr><tr><td>智联免登录抓取 · 产品经理</td><td>18 条，薪资 18/18，JD 18/18</td></tr><tr><td><strong>资料库合计</strong></td><td><strong>183 条</strong>（BOSS 147 + 智联 36）｜带 JD 69｜带薪资 36</td></tr><tr><td>地点字段无「城市重复前缀」</td><td>校验 0 条异常</td></tr><tr><td>城市归一 <code>cityOf()</code></td><td>单测 11 例通过；stats <code>byCity</code> 由散列桶收敛为 <strong>北京 145 / 上海 38</strong></td></tr><tr><td>匹配口径修正（标题优先）</td><td>跨职能误配清零；产品经理 12 命中全同类</td></tr><tr><td><code>runJD</code> 读取并接地</td><td>引言注入市场口径，返回体含 <code>reference</code> 块</td></tr><tr><td><code>/api/reference-jobs</code>、<code>/stats</code>、bootstrap 下发</td><td>全部通过</td></tr><tr><td>全量回归 <code>run_all</code></td><td><strong>11 套件全绿</strong></td></tr></tbody></table></div>
+<p>改动文件：<code>server/migrations.js</code>（v9）、<code>server/referenceJobs.js</code>（新）、<code>server/engine.js</code>、<code>server/routes.js</code>、</p>
+<p><code>tools/import_boss_jobs.py</code>、<code>tools/scrape_boss_jobs.py</code>（新）、<code>tools/scrape_zhaopin_jobs.py</code>（新）、</p>
+<p><code>平台原型/src/app.js</code>（导航+页面）、<code>平台原型/test_prototype.js</code>（页面注册）。</p></article></main>
+</div>
+<footer>生成时间：2026-09-30 16:52（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<script>
+const docs = [{"key": "doc0", "name": "岗位资料库与市场岗位抓取接入（BOSS + 智联 · 免登录）"}];
+
+function copyCode(btn) {
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1400);
+  });
+}
+
+function showDoc(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.doc === key));
+  document.querySelectorAll('article.doc').forEach(a => a.style.display = (a.dataset.doc === key ? '' : 'none'));
+  document.querySelectorAll('.tocgroup').forEach(g => g.style.display = (g.dataset.doc === key ? '' : 'none'));
+  resetHighlight();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showDoc(t.dataset.doc));
+
+// 滚动高亮目录
+const links = () => Array.from(document.querySelectorAll('.tocgroup:not([style*="none"]) .toclink'));
+window.addEventListener('scroll', () => {
+  const actives = links();
+  let cur = null;
+  for (const a of actives) {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el && el.getBoundingClientRect().top < 180) cur = a;
+  }
+  actives.forEach(a => a.style.color = '');
+  if (cur) { cur.style.color = 'var(--ac2)'; }
+});
+
+// 全文搜索 + 高亮
+let marks = [];
+function resetHighlight() {
+  document.querySelectorAll('mark').forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  marks = [];
+  document.getElementById('hint').textContent = '全文搜索';
+  document.getElementById('hint').style.color = 'var(--tx3)';
+}
+document.getElementById('q').addEventListener('input', e => {
+  const kw = e.target.value.trim();
+  resetHighlight();
+  if (kw.length < 2) return;
+  const activeArt = document.querySelector('article.doc:not([style*="none"])') || document.body;
+  let count = 0, first = null;
+  const walker = document.createTreeWalker(activeArt, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.trim().length > 1 && !/^(SCRIPT|STYLE|MARK)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const low = node.nodeValue.toLowerCase(), k = kw.toLowerCase();
+    if (low.indexOf(k) === -1) return;
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    while (true) {
+      const idx = rest.toLowerCase().indexOf(k); if (idx === -1) break;
+      frag.appendChild(document.createTextNode(rest.slice(0, idx)));
+      const m = document.createElement('mark'); m.textContent = rest.slice(idx, idx + kw.length);
+      frag.appendChild(m); marks.push(m); count++;
+      rest = rest.slice(idx + kw.length);
+    }
+    frag.appendChild(document.createTextNode(rest));
+    node.parentNode.replaceChild(frag, node);
+  });
+  const h = document.getElementById('hint');
+  h.textContent = count ? `命中 ${count} 处` : '无匹配';
+  h.style.color = count ? 'var(--grn)' : 'var(--red)';
+  if (count) { first = marks[0]; first.scrollIntoView({behavior:'smooth', block:'center'}); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.id !== 'q') { e.preventDefault(); document.getElementById('q').focus(); }
+  if (e.key === 'Escape') { document.getElementById('q').value = ''; resetHighlight(); }
+});
+</script>
+</body>
+</html>

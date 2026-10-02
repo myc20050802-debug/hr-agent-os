@@ -353,6 +353,54 @@ function seed(db) {
     `INSERT INTO audit_logs (tenant_id,actor_type,actor_id,task_id,action,object_type,object_id,detail,result,created_at)
      VALUES (?,?,?,?,?,?,?,?,?, datetime('now','localtime','-${(i + 1) * 40} minutes'))`,
     T, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7]));
+
+  /* 岗位资料库快照（外部在招岗位，只读参考）。
+     放在 seed 最后一步：它是「锦上添花」的素材，任何失败都不该影响演示数据本体的完整性。 */
+  seedReferenceJobs(db);
+}
+
+/* ===========================================================
+   岗位资料库种子（server/seed/reference_jobs.json）
+   -----------------------------------------------------------
+   为什么这份文件必须随仓库走：
+     reference_jobs 是「JD 生成如何接地真实市场」这条能力的唯一素材来源。
+     它过去只存在于**本机演示库**里 —— 别人 clone 下来跑起来，这一页是空的，
+     于是整条能力在访客眼里等于不存在。发一份只读快照，空库首建时自动导入。
+
+   三条约束（与 referenceJobs.js 的「只读参考库」定位严格一致）：
+     ① 静默降级 —— 文件缺失/损坏一律不抛错，只是没有参考数据，不影响任何主流程；
+     ② 幂等 —— INSERT OR IGNORE；重置（reseedRuntime 刻意不删这张表）后再种不报冲突；
+     ③ 不覆盖 —— 同 id 已存在就跳过，用户自己抓来的新数据不会被旧快照盖掉。
+
+   注意：这不是「演示假数据」，是**公开在招岗位的抓取快照**，
+   来源与免责声明见 README「许可」一节。
+   =========================================================== */
+const REF_SEED_FILE = path.join(__dirname, 'seed', 'reference_jobs.json');
+
+function seedReferenceJobs(db) {
+  let rows;
+  try {
+    if (!fs.existsSync(REF_SEED_FILE)) return 0;
+    rows = JSON.parse(fs.readFileSync(REF_SEED_FILE, 'utf8'));
+  } catch { return 0; }   // 读不动就当没有：素材文件不该让服务起不来
+  if (!Array.isArray(rows) || !rows.length) return 0;
+
+  /* 显式列名（同 seed() 顶部那条教训）：位置式插入在表结构变化时会静默错位。 */
+  const st = db.prepare(`INSERT OR IGNORE INTO reference_jobs
+    (id,tenant_id,job_title,job_description,salary_range,location,company_name,
+     company_industry,company_scale,source_url,skill_labels,scraped_at)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`);
+  const s = v => (v == null ? '' : String(v));
+  let n = 0;
+  for (const r of rows) {
+    try {
+      const res = st.run(s(r.id), 'T-001', s(r.job_title), s(r.job_description), s(r.salary_range),
+        s(r.location), s(r.company_name), s(r.company_industry), s(r.company_scale),
+        s(r.source_url), s(r.skill_labels), s(r.scraped_at));
+      n += Number(res.changes || 0);
+    } catch { /* 单条坏数据不该拖垮整批 */ }
+  }
+  return n;
 }
 
 /* ---------- 批量写入包一层事务 ----------
@@ -471,6 +519,6 @@ function walInfo(db) {
   };
 }
 
-module.exports = { open, DB_FILE, reseedRuntime, migrate: (db) => migrations.run(db), schemaVersion,
+module.exports = { open, DB_FILE, reseedRuntime, seedReferenceJobs, migrate: (db) => migrations.run(db), schemaVersion,
   checkpoint, walInfo,
   synthCandidates, extractKeywords, INDUSTRY_SKILLS, INDUSTRIES, migrations };
