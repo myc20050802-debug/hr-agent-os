@@ -49,6 +49,7 @@
     ]},
     { group: '人才与员工', items: [
       { id: 'jobs', ico: '📋', name: '岗位管理（可自建）', perm: 'job:read' },
+      { id: 'reference', ico: '🗂️', name: '岗位资料库', perm: 'job:read' },
       { id: 'candidates', ico: '👥', name: '候选人库', perm: 'candidate:read' },
       { id: 'employees', ico: '🪪', name: '员工档案', perm: 'employee:read' }
     ]},
@@ -130,8 +131,9 @@
   /* 离线兜底：无后端时由内置 Agent 生成（与后端 engine.js 同源规则：六维度扩充 + 真合规扫描） */
   function offlineGenJD(p) {
     const r = A.generateJD({ title: p.title, dept: p.dept, industry: p.industry, years: p.years, eduRank: p.eduRank,
-      must: p.must, nice: p.nice, salary: p.salary, headcount: p.headcount, benefits: p.benefits });
+      must: p.must, nice: p.nice, duty: p.duty, salary: p.salary, headcount: p.headcount, benefits: p.benefits });
     return { jd: r.jd, mustHave: r.must, niceHave: r.nice, softHave: r.soft, dims: r.dims,
+      duties: r.duties || [], userDuties: r.userDuties || [],
       fnKey: r.fnKey, fnName: r.fnName, reqSource: r.reqSource,
       keywords: r.keywords || [], scan: { flagged: r.flagged || [], legal: r.legal || [] },
       blockPublish: ((r.flagged || []).length + (r.legal || []).length) > 0 };
@@ -192,6 +194,14 @@
   const isTopWindow = () => { try { return window.self === window.top; } catch (e) { return false; } };
   /* jsdom（无头测试）里没有 fetch，且 navigation 未实现 —— 必须识别出来，否则离线用例会被误跳转污染 */
   const isHeadless = () => typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent || '');
+  /* 宿主是否「本机」：file:// 双击、127.0.0.1、localhost。
+     为什么要区分：探测不到后端时，本机用户该被引导去启动后端；
+     而 GitHub Pages 这类**静态托管**的访客本机根本没有 server/start.bat，
+     给他是纯噪音 —— 他需要的是「这是什么 + 完整版怎么跑」。 */
+  const isLocalHost = () => {
+    if (location.protocol === 'file:') return true;
+    return /^(127\.0\.0\.1|localhost|\[::1\]|0\.0\.0\.0)$/.test(location.hostname);
+  };
   /* 逃生开关：?offline=1 / #offline 强制离线演示（断网演示、离线用例都靠它） */
   const wantOffline = () => /(^|[?&#])offline(=1)?($|[&#])/.test(location.search + location.hash);
   try { AUTH.token = localStorage.getItem('hr_token') || null; } catch (e) { /* 隐私模式禁 localStorage */ }
@@ -388,31 +398,41 @@
   }
 
   async function liveBootstrap() {
-    /* ① 当前源就是后端（后端托管原型）→ 与从前完全一致，什么都不用做 */
+    /* ① 显式要求离线（?offline=1 / #offline）→ 保持内置演示数据，连探测都不做。
+          **必须排在最前**。它原来排在「探测当前源」之后，于是后端托管原型时
+          （本机最常见的打开方式：直接开 8788）第 ② 步就 return 了 ——
+          README 承诺的「不想登录？加 ?offline=1」实际失效，照样弹登录闸门。
+          显式意图优先于自动升级；否则一个逃生开关会被「贴心」地关掉。 */
+    if (wantOffline()) { connBar(''); return; }
+
+    /* ② 当前源就是后端（后端托管原型）→ 与从前完全一致，什么都不用做 */
     const here = await probeHealth('');
     if (here) { API_BASE = ''; connBar(''); return afterHealth(here); }
 
-    /* 显式要求离线（?offline=1 / #offline）→ 保持内置演示数据，连探测都不做 */
-    if (wantOffline()) { connBar(''); return; }
-
-    /* ② 探测本机后端（跨源 GET /api/health；后端只对 127.0.0.1/localhost 与 file:// 放行） */
+    /* ③ 探测本机后端（跨源 GET /api/health；后端只对 127.0.0.1/localhost 与 file:// 放行） */
     const local = await probeHealth(BACKEND_ORIGIN);
     if (!local) {
-      connBar('📴 <b>离线演示态</b> —— 没找到本地后端，当前用内置演示数据（刷新即复原）。'
-        + ' 要真实持久化（SQLite + Agent 引擎）：双击 <code>server/start.bat</code>，'
-        + ' 或直接说一句「启动服务」。'
-        + ' <a href="#" data-act="reconnect">重试连接</a>', 'off');
+      /* 分语境给提示，别让静态托管的访客去找一个他本机不存在的文件 */
+      connBar(isLocalHost()
+        ? ('📴 <b>离线演示态</b> —— 没找到本地后端，当前用内置演示数据（刷新即复原）。'
+           + ' 要真实持久化（SQLite + Agent 引擎）：双击 <code>server/start.bat</code>，'
+           + ' 或直接说一句「启动服务」。'
+           + ' <a href="#" data-act="reconnect">重试连接</a>')
+        : ('📴 <b>在线预览 · 离线模式</b> —— 这是静态托管的原型演示，用内置演示数据，'
+           + '刷新即复原、不上传任何操作。这里没有后端，所以「真实 SQLite 持久化 / Agent 引擎 / '
+           + '权限拦截」这些能力跑不起来（页面会明确标注），要看完整版请按仓库 README 本地启动后端。'),
+        'off');
       return;
     }
 
-    /* ③ 顶层窗口 → 切到后端自己的源：之后 Cookie / 令牌 / 相对路径全部与同源一致。
+    /* ④ 顶层窗口 → 切到后端自己的源：之后 Cookie / 令牌 / 相对路径全部与同源一致。
           无头环境（jsdom）不实现 navigation，跳过去只会产生一条 jsdomError 噪音 → 跳过。 */
     if (isTopWindow() && !isHeadless() && location.origin !== BACKEND_ORIGIN) {
       location.replace(BACKEND_ORIGIN + '/' + (location.hash || ''));
       return;
     }
 
-    /* ④ 被嵌在预览面板里（或跑在无头环境里）→ 不能导航：后端带
+    /* ⑤ 被嵌在预览面板里（或跑在无头环境里）→ 不能导航：后端带
           X-Frame-Options: SAMEORIGIN，跳过去会白屏。改为跨源直连 ——
           后端已放行 127.0.0.1 任意来源，且预览源与后端同 site，Cookie 会话依然有效。 */
     API_BASE = BACKEND_ORIGIN;
@@ -793,8 +813,7 @@
       : ['互联网', '制造业', '零售连锁', '医疗健康', '教育培训', '金融', '销售', '人力资源', '通用'];
     return `
     <div class="page-head"><h2>招聘 Agent · JD 工作台</h2>
-      <p>写清楚你要招什么人，Agent 生成规范 JD，并自动扫描歧视性用语与违法表述。<br>
-      <b>岗位名称、行业都随你填</b>——必须项留空也行，Agent 会按所选行业给你一版建议，你改完再生成。生成结果必须经你确认才能发布。</p></div>
+      <p>写清楚你要招什么人，Agent 生成规范 JD 并自动做合规扫描。<b>必须项留空也行</b>，Agent 会按行业给一版建议，你改完再生成；结果必须经你确认才能发布。</p></div>
     <div class="row">
       <div class="col" style="flex:1;min-width:340px">
         <div class="card">
@@ -820,11 +839,14 @@
             <div style="flex:1"><label class="f">学历要求</label>
               <select class="i" id="jdEdu">${EDU_OPTS.map(([v, t]) => `<option value="${v}" ${v === 2 ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
           </div>
-          <div class="field"><label class="f">任职要求（留空 = Agent 生成六维度版本；已填则保留核心信息并润色后扩充）</label>
-            <textarea class="i" id="jdMust" rows="3" placeholder="留空即可；也可以只写一条，例如「3 年以上采购经验」。已填内容会被保留并做书面化润色，再扩成专业技能／工作经验／学历背景／综合素质／软技能"></textarea></div>
-          <div class="field"><label class="f">加分项（留空 = Agent 按职能族建议；已填则美化完善）</label>
-            <textarea class="i" id="jdNice" rows="2" placeholder="留空则由 Agent 按职能族/行业给建议；已填内容会保留条件本身，统一写成「…者优先」的专业句式"></textarea></div>
-          <div class="field"><label class="f">复用条款（勾选后自动写入 JD）</label>
+          <div class="fld-div"></div>
+          <div class="field"><label class="f">岗位职责<span class="hint">留空 = Agent 按职能族生成 · 已填则以你的为准</span></label>
+            <textarea class="i" id="jdDuty" rows="3" placeholder=""></textarea></div>
+          <div class="field"><label class="f">任职要求<span class="hint">留空生成六维度版本 · 已填保留并润色扩充</span></label>
+            <textarea class="i" id="jdMust" rows="3" placeholder=""></textarea></div>
+          <div class="field"><label class="f">加分项<span class="hint">留空按职能族建议 · 已填统一成「…者优先」</span></label>
+            <textarea class="i" id="jdNice" rows="2" placeholder=""></textarea></div>
+          <div class="field"><label class="f">复用条款<span class="hint">勾选后自动写入 JD</span></label>
             <div class="checks">
               <label><input type="checkbox" id="jdB0" checked> 弹性工作制</label>
               <label><input type="checkbox" id="jdB1" checked> 五险一金足额</label>
@@ -833,7 +855,7 @@
               <label><input type="checkbox" id="jdB4"> 培训预算</label>
             </div></div>
           <button class="btn primary" data-act="runJD" style="width:100%">🚀 生成 JD 并做合规扫描</button>
-          <div class="callout">Agent 会在生成后自动执行两道检查：<b>歧视性用语扫描</b>（性别/年龄/婚育/户籍/院校/地域/外貌）与 <b>违法表述检查</b>（社保/合同/押金/工时/工伤）。命中即拦截，不允许直接发布。</div>
+          <div class="callout slim">生成后自动执行 <b>歧视性用语扫描</b> 与 <b>违法表述检查</b>，命中即拦截，不允许直接发布。</div>
         </div>
       </div>
       <div class="col" style="flex:1.3;min-width:380px">
@@ -1950,6 +1972,57 @@
   };
 
   /* ---- 知识库 ---- */
+  /* ---- 岗位资料库 ----
+     表里装的是**外部市场公开在招岗位**（BOSS 直聘抓取），不是本公司的岗位。
+     它唯一的用途是给 JD 生成做参考接地 —— 生成前先读这里，生成后引言里会标明参考了多少个真实在招岗。
+     所以它不该也不能进打分关键词通道：拿外部岗位要求去筛本公司候选人，等于用别人的尺子量自己的人。 */
+  PAGES.reference = () => {
+    const rows = Array.isArray(D.refJobs) ? D.refJobs : [];
+    const st = D.refStats || {};
+    const total = st.total != null ? st.total : rows.length;
+    const withJd = st.withJd != null ? st.withJd : rows.filter(r => r.job_description).length;
+    const withSal = st.withSalary != null ? st.withSalary : rows.filter(r => r.salary_range).length;
+    const last = st.lastScraped || (rows[0] && rows[0].scraped_at) || '';
+    const cell = (v, dim) => v ? esc(v) : `<span class="small muted">${dim || '—'}</span>`;
+    const rowsHtml = rows.slice(0, 200).map(r => `<tr data-ref-row="${esc((r.job_title || '') + (r.company_name || '') + (r.location || '')).toLowerCase()}">
+        <td class="name">${esc(r.job_title || '—')}</td>
+        <td>${cell(r.company_name)}</td>
+        <td>${cell(r.company_industry)}${r.company_scale ? `<span class="small muted"> · ${esc(r.company_scale)}</span>` : ''}</td>
+        <td class="mono">${cell(r.salary_range)}</td>
+        <td>${cell(r.location)}</td>
+        <td>${cell(r.skill_labels)}</td>
+        <td class="mono small">${cell((r.scraped_at || '').slice(0, 10))}</td>
+        <td class="small">${r.job_description ? esc(String(r.job_description).slice(0, 60)) + (String(r.job_description).length > 60 ? '…' : '') : '<span class="small muted">未抓取</span>'}</td></tr>`).join('');
+    return `
+    <div class="page-head"><h2>岗位资料库</h2>
+      <p>外部市场的<b>真实在招岗位</b>（BOSS 直聘 + 智联招聘抓取入库）。生成岗位 JD 时，Agent 会<b>先读这里</b>再下笔 ——
+      岗位要求与薪资口径对齐真实市场，而不是闭门造车。资料库<b>只读</b>：不参与本公司招聘流程，也不进简历打分。</p></div>
+    <div class="kpis">
+      <div class="kpi"><div class="k-label">在库岗位</div><div class="k-val">${total}<small>条</small></div><div class="k-foot">去重后（岗位名+公司+地点）</div></div>
+      <div class="kpi"><div class="k-label">含完整 JD</div><div class="k-val">${withJd}<small>条</small></div><div class="k-foot">${total ? Math.round(withJd / total * 100) : 0}% · 需 --with-job-detail 抓取</div></div>
+      <div class="kpi"><div class="k-label">含薪资区间</div><div class="k-val">${withSal}<small>条</small></div><div class="k-foot">${total ? Math.round(withSal / total * 100) : 0}%</div></div>
+      <div class="kpi"><div class="k-label">最近抓取</div><div class="k-val small">${last ? esc(last.slice(0, 10)) : '—'}</div><div class="k-foot">${last ? '北京时间' : '尚无抓取记录'}</div></div>
+    </div>
+    ${rows.length ? `
+    <div class="card" style="margin-top:14px">
+      <div class="card-hd"><h3>在库岗位（${rows.length}）</h3>
+        <input class="i" id="refQ" style="max-width:240px" placeholder="按岗位名 / 公司 / 地点筛选"
+          oninput="var q=this.value.trim().toLowerCase();var n=0;document.querySelectorAll('[data-ref-row]').forEach(function(tr){var hit=!q||tr.getAttribute('data-ref-row').indexOf(q)>=0;tr.style.display=hit?'':'none';if(hit)n++;});var e=document.getElementById('refCount');if(e)e.textContent=n;">
+      </div>
+      <div class="card-bd">
+        <div class="hint" style="margin-bottom:8px">当前显示 <b id="refCount">${rows.length}</b> 条 · 薪资与 JD 分两条通道抓：BOSS 出 JD 正文，智联出薪资区间，所以单行往往只填了一侧；两栏都空的是早期只抓了岗位名的老产物。</div>
+        ${tbl(['岗位名称', '公司', '行业 · 规模', '薪资', '地点', '技能标签', '抓取时间', 'JD 摘要'], [rowsHtml], '资料库为空 —— 见下方「如何写入」')}
+      </div></div>` : `
+    <div class="card" style="margin-top:14px"><div class="card-hd"><h3>资料库还是空的</h3></div>
+      <div class="card-bd"><p class="small muted">当前没有在库岗位。两种写入方式：</p>
+        <ol class="small muted" style="line-height:1.9;margin:8px 0 0 18px">
+          <li><b>抓 BOSS（JD 正文，免登录）</b>：<code>python tools/scrape_boss_jobs.py --seed &lt;岗位详情页URL&gt; --max-jobs 40</code></li>
+          <li><b>抓智联（薪资区间，免登录）</b>：<code>python tools/scrape_zhaopin_jobs.py --kw 律师 --jl 530 --pages 2</code></li>
+          <li><b>入库（幂等）</b>：<code>python tools/import_boss_jobs.py --file &lt;上面产出的 json&gt;</code>，重复导入不会翻倍。</li>
+        </ol></div></div>`}
+    <div class="callout slim" style="margin-top:14px">离线演示态不含资料库数据（它存在服务端 SQLite 里）。连上本地后端后本页才有内容。</div>`;
+  }
+
   PAGES.kb = () => `
     <div class="page-head"><h2>知识库管理</h2>
       <p>员工自助 Agent 的「手册」。制度文档必须带<b>版本与生效日期</b>，过期自动降权 —— 用过期制度回答员工，比不回答更糟。</p></div>
@@ -2219,6 +2292,7 @@
         salary: val('#jfSalary'),
         mustHave: val('#jfMust'),
         niceHave: val('#jfNice'),
+        duties: (state.jobForm && state.jobForm.data && state.jobForm.data.duties) || [],
         jd: val('#jfJd')
       };
       const mode = state.jobForm && state.jobForm.mode;
@@ -2311,6 +2385,7 @@
       /* 一行一条：条目边界 = 换行。用「，」拼回去会被当成一句话，重新解析就黏成一条。 */
       set('#jdMust', (((j.mustHaveText && j.mustHaveText.length ? j.mustHaveText : j.mustHave) || []).join('\n')));
       set('#jdNice', ((j.niceHave || []).join('\n')));
+      set('#jdDuty', ((j.duties || []).join('\n')));
       const edu = $('#jdEdu'); if (edu) edu.value = String(j.mustEduRank == null ? 2 : j.mustEduRank);
       const ind = $('#jdIndustry'); if (ind && j.industry) ind.value = j.industry;
       toast('已载入岗位「' + j.title + '」（' + (j.industry || '') + '），可直接生成或修改。');
@@ -2320,7 +2395,7 @@
       state.jobForm = { mode: 'new', data: {
         title: last.title, industry: last.industry, dept: last.dept,
         mustYears: last.years, headcount: last.headcount, salary: last.salary,
-        mustHave: last.mustHave, niceHave: last.niceHave, jd: last.jd
+        mustHave: last.mustHave, niceHave: last.niceHave, duties: last.duties || [], jd: last.jd
       } };
       state.page = 'jobs'; render();
       toast('JD 已带入岗位表单，确认后点「保存岗位」。');
@@ -2472,7 +2547,7 @@ GitHub 有开源项目 800 star。期望薪资 35k。</textarea>
         ['#jdB2', '带薪年假、法定节假日按国家规定执行'], ['#jdB3', '补充商业医疗保险'], ['#jdB4', '培训预算与内部晋升通道']];
       const payload = {
         title, industry: val('#jdIndustry') || '通用', dept: val('#jdDept'),
-        must: val('#jdMust'), nice: val('#jdNice'),
+        must: val('#jdMust'), nice: val('#jdNice'), duty: val('#jdDuty'),
         years: Number(val('#jdYears') || 0), eduRank: Number(val('#jdEdu') || 0),
         headcount: Number(val('#jdHead') || 1), salary: val('#jdSalary'),
         benefits: BENEFIT_MAP.filter(([sel]) => { const e = $(sel); return e && e.checked; }).map(([, t]) => t)
@@ -2490,8 +2565,8 @@ GitHub 有开源项目 800 star。期望薪资 35k。</textarea>
       const flagged = (r.scan && r.scan.flagged) || [], legal = (r.scan && r.scan.legal) || [];
       const blocked = flagged.length + legal.length;
       state.lastJd = { title, industry: payload.industry, dept: payload.dept, years: payload.years,
-        headcount: payload.headcount, salary: payload.salary,
-        mustHave: r.mustHave || [], niceHave: r.niceHave || [], jd: r.jd };
+        headcount: payload.headcount, salary: payload.salary, duty: payload.duty,
+        mustHave: r.mustHave || [], niceHave: r.niceHave || [], duties: r.userDuties || r.duties || [], jd: r.jd };
       $('#jdMeta').textContent = `生成完成 · 命中 ${flagged.length} 处歧视性表述 · ${legal.length} 处违法表述`;
       $('#jdBody').innerHTML = `
         ${blocked
@@ -2505,7 +2580,7 @@ GitHub 有开源项目 800 star。期望薪资 35k。</textarea>
           <b style="color:var(--red)">违法表述：${esc(f.word)}${f.line ? '（第 ' + f.line + ' 行）' : ''}</b><br>
           <span class="small">风险：${esc(f.why)}</span><br>
           <span class="small" style="color:var(--grn)">建议改为：${esc(f.fix)}</span></div>`).join('')}
-        <div class="callout"><b>Agent 依据</b>：${r.fnName ? `识别职能「${esc(r.fnName)}」` : '未识别出明确职能，按行业兜底'} · 行业「${esc(r.industry || payload.industry)}」 · 已填内容保留核心信息并书面化润色，任职要求按六维度扩充 · 自动抽取打分关键词 ${(r.keywords || []).length} 个<br>
+        <div class="callout"><b>Agent 依据</b>：${r.fnName ? `识别职能「${esc(r.fnName)}」` : '未识别出明确职能，按行业兜底'} · 行业「${esc(r.industry || payload.industry)}」 · ${payload.duty ? `岗位职责以你填写的为准（已书面化）` : '岗位职责按职能族生成'} · 任职要求按六维度扩充 · 自动抽取打分关键词 ${(r.keywords || []).length} 个<br>
           ${(r.keywords || []).map(k => `<span class="tag">${esc(k)}</span>`).join(' ') || '<span class="muted small">（离线模式未抽取，启动后端后可见）</span>'}
           <div class="small muted" style="margin-top:6px">这些关键词会在「简历筛选台」用来给候选人打分 —— 所以 JD 写什么，决定 Agent 怎么筛人。</div></div>
         <div class="small muted" style="margin:14px 0 6px">JD 正文：</div>
@@ -3267,6 +3342,42 @@ WHERE tenant_id = current_tenant() AND job_id = 'J-2026-118'<br>
     if (!el) return;
     const fn = ACT[el.dataset.act];
     if (fn) fn(el);
+  });
+
+  /* 整段 JD 分栏回填（v14）：
+     用户把「职位职责 + 职位要求」整段粘进任一 JD 输入框时，按结构拆开并把
+     任职要求 / 加分项分派到各自输入框 —— 老行为是「岗位职责」栏只取职责、
+     把要求静默丢弃（用户以为平台吞了内容）。这里统一三栏都监听，粘哪栏都对。
+     合并策略一律「追加 + 去重」，绝不覆盖已填内容：宁可多一条，不可丢一条。 */
+  document.addEventListener('paste', e => {
+    const t = e.target;
+    if (!t || !t.id || !/^jd(Duty|Must|Nice)$/.test(t.id)) return;
+    const A2 = window.Agent;
+    if (!A2 || !A2.splitJdFields) return;
+    const cb = e.clipboardData || window.clipboardData;
+    const text = (cb && cb.getData) ? cb.getData('text') : '';
+    if (!text || !text.trim()) return;
+    let f; try { f = A2.splitJdFields(text); } catch (_) { return; }
+    /* heads < 2 = 不是一份完整 JD（只是零散条目）→ 交回浏览器默认粘贴，
+       不做任何干预，保持「一行一条」的手工填法完全不受影响。 */
+    if (!f || f.heads < 2) return;
+    if (!f.duty.length && !f.must.length && !f.nice.length) return;
+    e.preventDefault();
+    const merge = (sel, items) => {
+      const el = $(sel); if (!el || !items.length) return 0;
+      const lines = el.value.split('\n').map(s => s.trim()).filter(Boolean);
+      const seen = new Set(lines); let n = 0;
+      items.forEach(x => { if (!seen.has(x)) { seen.add(x); lines.push(x); n++; } });
+      el.value = lines.join('\n');
+      return n;
+    };
+    const dutyItems = f.lead.concat(f.duty);
+    const nD = merge('#jdDuty', dutyItems), nM = merge('#jdMust', f.must), nN = merge('#jdNice', f.nice);
+    const parts = [];
+    if (nD) parts.push(`岗位职责 +${nD} 条`);
+    if (nM) parts.push(`任职要求 +${nM} 条`);
+    if (nN) parts.push(`加分项 +${nN} 条`);
+    toast(`✅ 已识别为整段 JD 并自动分栏：${parts.join(' · ')}（追加去重，未覆盖你已填的内容）。`);
   });
   document.addEventListener('click', e => {
     const chip = e.target.closest('.qchip');

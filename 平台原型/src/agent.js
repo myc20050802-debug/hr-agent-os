@@ -285,6 +285,19 @@ window.Agent = (function () {
     return { lead: a.lead.concat(b.lead), duty: a.duty.concat(b.duty), must: a.must.concat(b.must),
       nice: a.nice.concat(b.nice), benefit: a.benefit.concat(b.benefit), heads: a.heads + b.heads };
   };
+  /* v14：整段 JD「分栏回填」—— 用户在任一 JD 输入框粘入完整 JD 时，
+     把职责 / 任职要求 / 加分项分派到各自输入框，而不是只取一栏、静默丢弃其余。
+     与后端 engine.js 的 splitReqInput 同源；lead（引言）仅在 ≥2 个小标题时独立存在。
+     返回：已清理（去序号、去尾标点）并去重的多行字段数组。 */
+  function splitJdFields(text) {
+    const p = splitReqInput(text, '');
+    const cl = arr => dedupeReq((arr || []).map(cleanReq).filter(Boolean));
+    return {
+      lead: cl(p.lead), duty: cl(p.duty), must: cl(p.must),
+      nice: cl([].concat(p.nice || [], p.benefit || [])),
+      heads: p.heads
+    };
+  }
   const toReqs = v => parseReqInput(v, 'must').must;
   const cleanReq = s => String(s).replace(/[。；;，,、\s]+$/, '').trim();
   /* 维度归位判据（与后端 engine.js 同源；v12 起 REQ_EXP 含「实习」） */
@@ -302,7 +315,10 @@ window.Agent = (function () {
   const coveredByUser = (k, userTexts) => userTexts.some(u => similarReq(u, k, 0.28) || similarReq(k, u, 0.28));
   /* 自动补位产物的固定句式；清除「跨职能族的历史错配产物」——见后端 engine.js 同名函数注释。
      离线侧同样需要：JD 草稿生成后会把扩充结果写回表单，反复编辑会累积错配条目。 */
-  const AUTO_FILL_RE = /^熟悉\s?.{1,40}，能独立应用于实际业务场景$/;
+  /* 尾缀轮换与句式族：与后端 engine.js 同源同款（新增尾缀两处必须同步） */
+  const SKILL_TAILS = ['能独立应用于实际业务场景', '并在真实业务中完整落地过', '能独立完成该方向的日常工作', '并了解常见的实践方法与工具'];
+  const JUNIOR_NICE = ['有相关岗位的实习经历者优先', '有学生干部或社团组织经历者优先', '在校期间有相关项目或竞赛经历者优先'];
+  const AUTO_FILL_RE = /^熟悉\s?.{1,40}，(?:能独立应用于实际业务场景|并在真实业务中完整落地过|能独立完成该方向的日常工作|并了解常见的实践方法与工具)$/;
   function stripMisfitAutoFill(arr, keepFnKey) {
     const RL = window.ReqLib;
     if (!RL || !Array.isArray(arr)) return Array.isArray(arr) ? arr : [];
@@ -359,8 +375,8 @@ window.Agent = (function () {
     });
     const userAll = [...uMust, ...uNice];
     const bench = fn ? dedupeReq(lib.core).filter(k => !coveredByUser(k, userAll)) : [];
-    const kwWord = k => `熟悉${/^[A-Za-z]/.test(k) ? ' ' : ''}${k}，能独立应用于实际业务场景`;
-    bench.slice(0, Math.max(0, 4 - s1.length)).forEach(k => s1.push(kwWord(k)));
+    const kwWord = (k, i) => `熟悉${/^[A-Za-z]/.test(k) ? ' ' : ''}${k}，${SKILL_TAILS[i % SKILL_TAILS.length]}`;
+    bench.slice(0, Math.max(0, 4 - s1.length)).forEach((k, i) => s1.push(kwWord(k, i)));
     if (!s1.length) s1.push(`掌握${title || '本岗位'}所需的核心专业技能，能独立完成岗位交付`);
     /* 工作经验：管培生 / 实习 / 应届岗不设年限门槛（与后端 engine.js 同口径）
        ⚠️ 判重扫**全部已填内容**而非只看 s2 —— 二次展开时「有 1–2 段…实习经历」
@@ -387,7 +403,13 @@ window.Agent = (function () {
        模板里的「有 X」因表述不同而躲过 similarReq。 */
     const niceList = dedupeReq((RL && RL.polishNiceItem) ? uNice.map(RL.polishNiceItem) : uNice);
     const niceTarget = niceList.length >= 3 ? niceList.length : 4;
-    const nicePool = !fn ? [] : (R.nice.length ? R.nice : lib.plus.map(p => /^[有主]/.test(p) ? p : `有${p}相关经历`));
+    /* 管培生／实习岗不得补资深口径的加分项（与后端 engine.js 同一条规则） */
+    const SENIOR_NICE_RE = /从\s*0\s*到\s*1|主导|独立负责|独立完成|带店|扭亏|多年|资深|搭建.{0,6}(体系|团队)/;
+    let nicePool = !fn ? [] : (R.nice.length ? R.nice : lib.plus.map(p => /^[有主]/.test(p) ? p : `有${p}相关经历`));
+    if (junior && fn) {
+      nicePool = nicePool.filter(t => !SENIOR_NICE_RE.test(t));
+      JUNIOR_NICE.forEach(t => { if (!nicePool.some(x => similarReq(x, t))) nicePool.push(t); });
+    }
     nicePool.forEach(t => {
       if (niceList.length >= niceTarget) return;
       if (niceList.some(x => similarReq(x, t))) return;
@@ -405,7 +427,7 @@ window.Agent = (function () {
        说什么行话」；与已选职责去重后追加。与后端 engine.js 同源规则 + 同一份
        词库，保证离线 / 在线产出一致。 */
     if (dutyPicked.length && RL && RL.industryDuty) {
-      const ctx = RL.industryDuty(industry, dutyPicked);
+      const ctx = RL.industryDuty(industry, dutyPicked, fnKey);
       if (ctx) dutyList = dutyPicked.concat([ctx]);
     }
     return {
@@ -471,9 +493,17 @@ window.Agent = (function () {
     const dept = input.dept || '待填写部门';
     /* 任职要求：在已填内容基础上，按六维度扩充（同后端 engine.js 规则） */
     const reqs = expandReqs({ title, industry, dept, years: input.years, eduRank: input.eduRank, must: input.must, nice: input.nice });
+    /* 「岗位职责」栏（v13）：HR 单独填写、优先级最高的职责来源（与后端 runJD 同口径） */
+    let userDutyItems = [];
+    if (input.duty && String(input.duty).trim() && window.ReqLib && window.ReqLib.parseReqText) {
+      const dp = window.ReqLib.parseReqText(String(input.duty));
+      const raw = (dp.heads ? dp.duty : dp.must).map(s => String(s).trim()).filter(Boolean);
+      userDutyItems = raw.map(t => (window.ReqLib.polishMustItem ? window.ReqLib.polishMustItem(t) : t)).filter(Boolean);
+    }
     /* 岗位职责同样「职能优先」：职责模板由 expandReqs 按职能族给出，识别不出才退回行业模板。
        若 HR 整段粘进来一份 JD 且写了「你会做什么」，以 HR 自己写的为准（≥3 条不再叠加模板）。 */
-    const uDuty = (reqs.userDuties || []).map(d => String(d).replace('{title}', title));
+    const uDutySource = userDutyItems.length ? userDutyItems : (reqs.userDuties || []);
+    const uDuty = uDutySource.map(d => String(d).replace('{title}', title));
     const tplDuty = (reqs.duties || (JD_DUTY_TPL[industry] || JD_DUTY_TPL['通用']))
       .map(d => d.replace('{title}', title).replace('{dept}', dept));
     const duties = !uDuty.length ? tplDuty
@@ -507,6 +537,7 @@ window.Agent = (function () {
       ? window.ReqLib.extractKeywords([...reqs.must, ...reqs.nice], INDUSTRY_CORE)
       : [];
     return { jd, flagged: scan.flagged, legal: scan.legal, must: reqs.must, soft: reqs.soft, nice: reqs.nice, dims: reqs.dims,
+      duties, userDuties: uDutySource,
       fnKey: reqs.fnKey, fnName: reqs.fnName, reqSource: reqs.source, junior: !!reqs.junior,
       keywords, industry, title };
   }
@@ -695,5 +726,5 @@ window.Agent = (function () {
       cites: [], badge: '⚠️ 知识库无匹配（相似度低于阈值 0.55）' };
   }
 
-  return { PLANS, run, generateJD, expandReqs, renderReqs, INDUSTRY_CORE, INDUSTRY_REQ, scoreResume, answer, classify, sleep };
+  return { PLANS, run, generateJD, expandReqs, renderReqs, INDUSTRY_CORE, INDUSTRY_REQ, scoreResume, answer, classify, sleep, splitJdFields };
 })();

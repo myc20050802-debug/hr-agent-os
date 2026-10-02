@@ -16,6 +16,7 @@ const OverrideCodes = require('../shared/override-codes.js');
    系数阶梯也只在这里一份 —— 原本 scoreOne 与前端 scoreResume 各抄了一套，
    任何一侧改了阶梯，另一侧的「为什么是这个分」就会开始说谎。 */
 const ScoreWhy = require('../shared/score-why.js');
+const ReferenceJobs = require('./referenceJobs.js');
 
 const T = 'T-001';
 /* JD 素材库版本。
@@ -45,7 +46,7 @@ const T = 'T-001';
    为『…者优先』句式」（见 shared/req-lib.js 第八节）。口经变了，老 JD 必须重算 ——
    否则库里会同时流通「懂点技术能和工程对话」与「了解基础技术、能与研发、工程团队
    顺畅沟通者优先」两代表述，看起来像没改。 */
-const REQ_LIB_VER = 12;
+const REQ_LIB_VER = 14;
 const now = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 19).replace('T', ' ');
 
 /* ---------- 工具函数 ---------- */
@@ -955,8 +956,15 @@ const similarReq = (a, b, th) => {
    例：用户写了「院感控制」，词库里有一条「院感防控措施执行」——
    按 0.34 判定不算重复（0.33），但业务上就是同一件事，补上去只会显得啰嗦。 */
 const coveredByUser = (k, userTexts) => userTexts.some(u => similarReq(u, k, 0.28) || similarReq(k, u, 0.28));
-/* 自动补位产物的固定句式（由本文件的 kwWord 生成） */
-const AUTO_FILL_RE = /^熟悉\s?.{1,40}，能独立应用于实际业务场景$/;
+/* 自动补位产物的句式族（由下方 SKILL_TAILS 轮换生成）。
+   ⚠️ 往 SKILL_TAILS 加尾缀必须同步扩这里，否则 stripMisfitAutoFill
+   认不出自动产物 —— 跨职能族的历史错配（非技术岗里的「熟悉 Java」）会洗不掉。 */
+const AUTO_FILL_RE = /^熟悉\s?.{1,40}，(?:能独立应用于实际业务场景|并在真实业务中完整落地过|能独立完成该方向的日常工作|并了解常见的实践方法与工具)$/;
+/* 技能补位句的尾缀按序号轮换（v13）：四条技能同一句尾（「…能独立应用于实际
+   业务场景」×4）读起来像机器批量生成。按序号取模，同一岗位产出确定、可回归。 */
+const SKILL_TAILS = ['能独立应用于实际业务场景', '并在真实业务中完整落地过', '能独立完成该方向的日常工作', '并了解常见的实践方法与工具'];
+/* 管培生／实习岗的加分项专属池：对应届生说得通的资历，而非社招资深门槛 */
+const JUNIOR_NICE = ['有相关岗位的实习经历者优先', '有学生干部或社团组织经历者优先', '在校期间有相关项目或竞赛经历者优先'];
 /* 清除「跨职能族的历史错配产物」。
    背景：v0.9.1 按「行业」补位，把技术栈技能写进了非技术岗的 must_have，
    并且扩充结果被直接落库 —— 于是「熟悉 Java」变成了看起来像是 HR 手填的内容。
@@ -1044,8 +1052,8 @@ function expandRequirements({ title = '', industry = '通用', years = 0, eduRan
   const userAll = [...userMust, ...userNice];
   const bench = fn ? dedupeReq(lib.core).filter(k => !coveredByUser(k, userAll)) : [];
   /* 中文技能词不加空格，拉丁字母技能词前留一个空格（符合中英混排习惯） */
-  const kwWord = k => `熟悉${/^[A-Za-z]/.test(k) ? ' ' : ''}${k}，能独立应用于实际业务场景`;
-  bench.slice(0, Math.max(0, 4 - s1.length)).forEach(k => s1.push(kwWord(k)));
+  const kwWord = (k, i) => `熟悉${/^[A-Za-z]/.test(k) ? ' ' : ''}${k}，${SKILL_TAILS[i % SKILL_TAILS.length]}`;
+  bench.slice(0, Math.max(0, 4 - s1.length)).forEach((k, i) => s1.push(kwWord(k, i)));
   if (!s1.length) s1.push(`掌握${title || '本岗位'}所需的核心专业技能，能独立完成岗位交付`);
 
   /* ③ 工作经验：管培生 / 实习 / 应届岗不设年限门槛，改成「无经验 / 对口实习」口径。
@@ -1089,7 +1097,20 @@ function expandRequirements({ title = '', industry = '通用', years = 0, eduRan
      「有 X 者优先」会和模板里的「有 X」因表述不同而躲过 similarReq。 */
   const niceList = dedupeReq(userNice.map(ReqLib.polishNiceItem));
   const niceTarget = niceList.length >= 3 ? niceList.length : 4;
-  const nicePool = !fn ? [] : (R.nice.length ? R.nice : lib.plus.map(p => /^[有主]/.test(p) ? p : `有${p}相关经历`));
+  /* 管培生／实习岗不得补资深口径的加分项（v13）：
+     「有从 0 到 1 开新店或带店扭亏的经验者优先」对储备干部是自相矛盾 ——
+     招的是应届生，给的却是社招资深门槛。命中资深句式的模板条直接跳过，
+     不足再用 JUNIOR_NICE 补齐（仍是模板建议，不冒充 HR 已填内容）。 */
+  const SENIOR_NICE_RE = /从\s*0\s*到\s*1|主导|独立负责|独立完成|带店|扭亏|多年|资深|搭建.{0,6}(体系|团队)/;
+  let nicePool = !fn ? [] : (R.nice.length ? R.nice : lib.plus.map(p => /^[有主]/.test(p) ? p : `有${p}相关经历`));
+  /* 只在认出职能族时启用：认不出职能的岗位坚持「加分项一律不补」的既有铁律 */
+  if (junior && fn) {
+    nicePool = nicePool.filter(t => !SENIOR_NICE_RE.test(t));
+    JUNIOR_NICE.forEach(t => {
+      if (nicePool.some(x => similarReq(x, t))) return;
+      nicePool.push(t);
+    });
+  }
   nicePool.forEach(t => {
     if (niceList.length >= niceTarget) return;
     if (niceList.some(x => similarReq(x, t))) return;
@@ -1140,7 +1161,7 @@ function dutiesFor(fnKey, title, texts, industry) {
   /* 行业语境句（v0.9.7）：职能给「职责骨架」，行业补一句「盯什么指标、
      说什么行话」。仅在与已选职责去重后追加 —— 于是同一职能族落在不同
      行业，JD 也不会长得一样；同时避免与职能句重复。 */
-  const ctx = ReqLib.industryDuty ? ReqLib.industryDuty(industry, picked) : '';
+  const ctx = ReqLib.industryDuty ? ReqLib.industryDuty(industry, picked, fnKey) : '';
   return ctx ? picked.concat([ctx]) : picked;
 }
 function buildJD(job) {
@@ -1164,8 +1185,14 @@ function buildJD(job) {
   const niceForJd = (preExpanded && Array.isArray(job.nice_have) && job.nice_have.length) ? job.nice_have : calc.nice;
   /* 职责：用户自己写了就以用户为准（≥3 条不再叠加模板，避免掺进模板句），
      没写才用职能族模板。runJD 会把 reqs.userDuties 透传进来。 */
-  const userDuty = (Array.isArray(job.userDuties) && job.userDuties.length ? job.userDuties : (calc.userDuties || []))
-    .map(d => String(d).replace('{title}', job.title));
+  /* 职责来源优先级（v13）：显式传入（本次表单「岗位职责」栏 / 粘 JD 解析）
+     > 库里持久化的 duties 列（用户填过的职责随岗位落库，编辑与自愈重算都不丢）
+     > 从粘入原文解析出的职责。统一过 polishMustItem 书面化（白名单，不命中透传）。 */
+  const savedDuties = (Array.isArray(job.duties) ? job.duties : J(job.duties)) || [];
+  const userDuty = ((Array.isArray(job.userDuties) && job.userDuties.length) ? job.userDuties
+    : (savedDuties.length ? savedDuties : (calc.userDuties || [])))
+    .map(d => ReqLib.polishMustItem(String(d))).filter(Boolean)
+    .map(d => d.replace('{title}', job.title));
   const tplDuty = dutiesFor(fnKey, job.title, [...must, ...nice], industry)
     .map(d => d.replace('{title}', job.title).replace('{dept}', job.dept_path || '所属部门'));
   let duties;
@@ -1184,6 +1211,7 @@ function buildJD(job) {
     `**薪资范围**：${job.salary || '面议'}　|　**岗位类型**：全职　|　**行业**：${industry}`,
     ``,
     ...(leadParas.length ? leadParas.concat(['']) : []),
+    ...(job.marketNote ? [job.marketNote, ''] : []),
     `## 一、岗位职责`,
     ...duties.map((d, i) => `${i + 1}. ${d}`),
     ``,
@@ -1255,7 +1283,7 @@ function applyLlmPolish(text, dims, nice) {
   };
 }
 /* JD 生成 Agent：输入岗位描述 → 输出规范 JD + 合规扫描结论 */
-async function runJD(db, { title, industry, dept, must, nice, years, eduRank, salary, headcount, benefits, jobId, initiatorId = 'U-001' } = {}) {
+async function runJD(db, { title, industry, dept, must, nice, duty, years, eduRank, salary, headcount, benefits, jobId, initiatorId = 'U-001' } = {}) {
   const steps = [];
   const push = (intent, out, opt) => steps.push(Object.assign({ intent, tool: opt && opt.tool || 'llm.draft_jd', rule: !(opt && opt.tokens), risk: 0, ms: opt && opt.ms || 30, tokens: opt && opt.tokens || 0, out, status: 'done' }));
   title = (title || '').trim();
@@ -1265,6 +1293,22 @@ async function runJD(db, { title, industry, dept, must, nice, years, eduRank, sa
   /* 六维度扩充：HR 已填的内容**保留核心信息 + 书面化润色**后归位，
      缺失维度按「职能族」素材补齐（识别不出职能才退回行业素材）。 */
   const reqs = expandRequirements({ title, industry, years, eduRank, must, nice });
+  /* 岗位资料库（v9）：生成前先读市场公开在招岗位作参考依据。
+     铁律：参考只读、绝不污染本公司招聘流程；表不存在/无数据/异常时静默降级为空，
+     主流程照常出 JD。接地文案只在确有参考岗位时才拼进引言。 */
+  let reference = [];
+  let marketNote = '';
+  if (db && ReferenceJobs.countAll(db) > 0) {
+    try {
+      reference = ReferenceJobs.loadReference(db, { title, industry, limit: 12 });
+      marketNote = ReferenceJobs.marketNote(reference);
+    } catch (e) { reference = []; marketNote = ''; }
+  }
+  /* 「岗位职责」栏（v13）：HR 单独填写的职责，优先级高于一切模板与粘文解析。
+     条目边界与任职要求同一套规则（换行 / 行首列表符），逐条书面化；
+     ≥3 条不再叠加模板，1–2 条时模板补足且 HR 的条目全部排在前面。 */
+  const userDutyItems = parseDutyInput(duty);
+  const dutiesToSave = userDutyItems.length ? userDutyItems : (reqs.userDuties || []);
   let mustArr = reqs.must, niceArr = reqs.nice, softArr = reqs.soft;
   const sourceTxt = reqs.fnName ? `识别职能「${reqs.fnName}」` : `未识别出明确职能 → 按行业「${industry}」兜底`;
   const filled = !!((must && String(must).trim()) || (nice && String(nice).trim()));
@@ -1288,7 +1332,7 @@ async function runJD(db, { title, industry, dept, must, nice, years, eduRank, sa
   }
   /* JD 正文一次成形：引言 / 职责 / 六维度要求 / 加分项 都交给 buildJD 组装。
      若 HR 是整段粘进来的 JD，reqs.lead / reqs.userDuties 会按原文归位。 */
-  const built = buildJD({ title, industry, dept_path: dept, must_have: mustArr, nice_have: niceArr, salary, headcount, benefits, must_years: years, must_edu_rank: eduRank, dims: reqs.dims, lead: reqs.lead, userDuties: reqs.userDuties });
+  const built = buildJD({ title, industry, dept_path: dept, must_have: mustArr, nice_have: niceArr, salary, headcount, benefits, must_years: years, must_edu_rank: eduRank, dims: reqs.dims, lead: reqs.lead, userDuties: (userDutyItems.length ? userDutyItems : reqs.userDuties), marketNote });
   const dutyN = built.duties.length;
 
   push('识别岗位职能与所属行业，载入对应素材库',
@@ -1299,6 +1343,11 @@ async function runJD(db, { title, industry, dept, must, nice, years, eduRank, sa
   }
   push('拆解岗位职责与任职要求维度',
     `职责 ${dutyN} 条｜任职要求 ${reqs.dims.length} 个维度（专业技能／工作经验／学历背景／综合素质／软技能）`, { tokens: 260 });
+  if (userDutyItems.length) {
+    push('采纳 HR 自填的岗位职责',
+      `岗位职责以 HR 填写的 ${userDutyItems.length} 条为准（已书面化润色），不足部分按职能族模板补足且排在后面`,
+      { rule: true, tool: 'rule.merge_duties', ms: 3 });
+  }
   if (filled) {
     push('在已填任职要求基础上扩充与润色',
       `已填内容保留核心信息并书面化润色后按维度归位，另按${reqs.fnName ? '职能族' : '行业'}素材补齐未覆盖维度；加分项统一为「…者优先」句式 → 任职要求 ${mustArr.length} 条／加分项 ${niceArr.length} 条`, { rule: true, tool: 'rule.merge_reqs', ms: 4 });
@@ -1321,15 +1370,24 @@ async function runJD(db, { title, industry, dept, must, nice, years, eduRank, sa
     /* 关键词还要含「已粘贴 JD 里 HR 自己写的职责句」——
        它们是对岗位最直接的描述，漏掉会让打分偏向模板词。 */
     const kws = extractKeywords([...mustArr, ...niceArr, ...(reqs.userDuties || [])]);
-    db.prepare(`UPDATE jobs SET jd_text=?, jd_ver=?, keywords=?, must_have=?, nice_have=?, industry=? WHERE id=?`)
-      .run(built.jd, REQ_LIB_VER, JSON.stringify(kws), JSON.stringify(mustArr), JSON.stringify(niceArr), industry, jobId);
+    db.prepare(`UPDATE jobs SET jd_text=?, jd_ver=?, keywords=?, must_have=?, nice_have=?, industry=?, duties=? WHERE id=?`)
+      .run(built.jd, REQ_LIB_VER, JSON.stringify(kws), JSON.stringify(mustArr), JSON.stringify(niceArr), industry, JSON.stringify(dutiesToSave), jobId);
     audit(db, { actorType: 'agent', actorId: initiatorId, action: '生成岗位 JD 并完成合规扫描', objType: 'job', objId: jobId,
       detail: `任职要求 ${reqs.dims.length} 维度 / ${mustArr.length + softArr.length} 条；命中歧视性 ${scan.flagged.length} 处 / 违法 ${scan.legal.length} 处`,
       result: scan.flagged.length + scan.legal.length ? 'blocked' : 'pending' });
   }
   return { status: 'done', title, industry, jd: built.jd, mustHave: mustArr, niceHave: niceArr, softHave: softArr, dims: reqs.dims,
+    duties: built.duties, userDuties: dutiesToSave,
     fnKey: reqs.fnKey, fnName: reqs.fnName, reqSource: reqs.source, junior: !!reqs.junior,
     keywords: extractKeywords([...mustArr, ...niceArr]), rubric: { 技能匹配: 40, 业务匹配: 30, 稳定性: 15, 加分项: 15 },
+    reference: {
+      count: reference.length,
+      /* 有多少条带完整 JD 正文 / 薪资区间 —— 前端据此说明这次接地「有多少是真材实料」。
+         薪资来自智联通道（BOSS 未登录不暴露薪资），所以两个数会不一样。 */
+      withJd: reference.filter(r => r.job_description).length,
+      withSalary: reference.filter(r => r.salary_range).length,
+      samples: reference.slice(0, 6).map(r => ({ title: r.job_title, company: r.company_name, salary: r.salary_range, location: r.location, scraped_at: r.scraped_at })),
+    },
     scan: { flagged: scan.flagged, legal: scan.legal }, blockPublish: (scan.flagged.length + scan.legal.length) > 0, steps };
 }
 
@@ -1340,10 +1398,19 @@ function nextJobId(db) {
   const ids = db.prepare(`SELECT id FROM jobs`).all().map(r => parseInt(String(r.id).replace(/\D/g, ''), 10)).filter(n => !isNaN(n));
   return 'J-' + ((ids.length ? Math.max(...ids) : 100) + 1);
 }
+/* 「岗位职责」栏的统一解析（v13）：数组（库里回显）或整段文本（表单）→ 条目数组。
+   与任职要求共用条目边界规则（换行 / 行首列表符），逐条书面化后返回。 */
+function parseDutyInput(v) {
+  if (!v) return [];
+  const items = Array.isArray(v) ? v.filter(Boolean)
+    : (() => { const p = parseReqInput(v, 'must'); return p.heads ? p.duty : p.must; })();
+  return dedupeReq(items.map(cleanReq).filter(Boolean).map(t => ReqLib.polishMustItem(t)).filter(Boolean));
+}
 function makeJobPayload(db, p, initiatorId) {
   /* 字符串输入走同一套「原文还原」规则：整段 JD 会被拆回职责/要求/加分项，
      而不是把每个逗号和每半句话都变成一条要求。数组输入原样使用。 */
   const pre = splitReqInput(p.mustHave, p.niceHave);
+  const dutyItems = parseDutyInput(p.duties);
   const must = Array.isArray(p.mustHave) ? p.mustHave.filter(Boolean) : pre.must;
   const nice = Array.isArray(p.niceHave) ? p.niceHave.filter(Boolean) : pre.nice;
   const industry = p.industry || '通用';
@@ -1355,6 +1422,7 @@ function makeJobPayload(db, p, initiatorId) {
     mustEduRank: p.mustEduRank === '' || p.mustEduRank == null ? 0 : Number(p.mustEduRank),
     salary: p.salary || '', headcount: p.headcount ? Number(p.headcount) : 1,
     jdText: p.jd || null, createdBy: initiatorId,
+    duties: dutyItems,
     struct: pre
   };
 }
@@ -1364,14 +1432,15 @@ function createJob(db, p = {}, initiatorId = 'U-001') {
   if (db.prepare(`SELECT id FROM jobs WHERE title=? AND status='open'`).get(d.title)) return { error: 'duplicate', msg: '已存在同名在招岗位：' + d.title };
   const id = nextJobId(db);
   const today = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
-  const jd = d.jdText || buildJD({ title: d.title, industry: d.industry, dept_path: d.dept, must_have: d.must, nice_have: d.nice, salary: d.salary, headcount: d.headcount, must_years: d.mustYears, must_edu_rank: d.mustEduRank, lead: d.struct.lead, userDuties: d.struct.duty }).jd;
+  const jobDuties = (d.duties && d.duties.length) ? d.duties : (d.struct.duty || []);
+  const jd = d.jdText || buildJD({ title: d.title, industry: d.industry, dept_path: d.dept, must_have: d.must, nice_have: d.nice, salary: d.salary, headcount: d.headcount, must_years: d.mustYears, must_edu_rank: d.mustEduRank, lead: d.struct.lead, userDuties: jobDuties }).jd;
   db.prepare(`INSERT INTO jobs (id,tenant_id,title,dept_path,must_have,nice_have,rubric,must_years,must_edu_rank,status,
-      industry,jd_text,jd_ver,keywords,headcount,salary,opened_at,created_by,created_at)
-    VALUES (?,?,?,?,?,?,?,?,?,'open',?,?,?,?,?,?,?,?,?)`)
+      industry,jd_text,jd_ver,keywords,headcount,salary,opened_at,created_by,created_at,duties)
+    VALUES (?,?,?,?,?,?,?,?,?,'open',?,?,?,?,?,?,?,?,?,?)`)
     .run(id, T, d.title, d.dept, JSON.stringify(d.must), JSON.stringify(d.nice),
       JSON.stringify({ 技能匹配: 40, 业务匹配: 30, 稳定性: 15, 加分项: 15 }),
       d.mustYears, d.mustEduRank, d.industry, jd, REQ_LIB_VER, JSON.stringify(d.keywords),
-      d.headcount, d.salary, today, d.createdBy, now());
+      d.headcount, d.salary, today, d.createdBy, now(), JSON.stringify(jobDuties));
   audit(db, { actorType: 'user', actorId: initiatorId, action: '新建招聘岗位', objType: 'job', objId: id,
     detail: `${d.title}（${d.industry}）｜任职要求 ${d.must.length} 条（六维度扩充）｜关键词 ${d.keywords.length} 个`, result: 'ok' });
 
@@ -1387,18 +1456,21 @@ function updateJob(db, id, p = {}, initiatorId = 'U-001') {
     title: job.title, dept: job.dept_path, industry: job.industry,
     mustHave: J(job.must_have), niceHave: J(job.nice_have), keywords: J(job.keywords),
     mustYears: job.must_years, mustEduRank: job.must_edu_rank,
-    salary: job.salary, headcount: job.headcount, jd: job.jd_text
+    salary: job.salary, headcount: job.headcount, jd: job.jd_text, duties: J(job.duties)
   };
+  /* 「岗位职责」传了个空（'' / []）视为「本次没填」而不是「清空」——
+     与 mustHave 等字段的合并语义保持一致，避免前端漏传把用户职责洗掉 */
+  if (p.duties !== undefined && !String(Array.isArray(p.duties) ? p.duties.join('\n') : (p.duties || '')).trim()) delete p.duties;
   const given = Object.fromEntries(Object.entries(p).filter(([, v]) => v !== undefined && v !== null && v !== ''));
   const d = makeJobPayload(db, Object.assign({}, cur, given), initiatorId);
   if (!d.title) return { error: 'title_required', msg: '岗位名称不能为空' };
   /* 只有调用方显式传了新 JD 才沿用；否则按最新任职要求重新生成（含六维度扩充） */
   const jd = (p.jd && String(p.jd).trim()) ? p.jd
-    : buildJD({ title: d.title, industry: d.industry, dept_path: d.dept, must_have: d.must, nice_have: d.nice, salary: d.salary, headcount: d.headcount, must_years: d.mustYears, must_edu_rank: d.mustEduRank }).jd;
+    : buildJD({ title: d.title, industry: d.industry, dept_path: d.dept, must_have: d.must, nice_have: d.nice, salary: d.salary, headcount: d.headcount, must_years: d.mustYears, must_edu_rank: d.mustEduRank, userDuties: d.duties }).jd;
   db.prepare(`UPDATE jobs SET title=?,dept_path=?,must_have=?,nice_have=?,industry=?,jd_text=?,jd_ver=?,keywords=?,
-      must_years=?,must_edu_rank=?,headcount=?,salary=? WHERE id=?`)
+      must_years=?,must_edu_rank=?,headcount=?,salary=?,duties=? WHERE id=?`)
     .run(d.title, d.dept, JSON.stringify(d.must), JSON.stringify(d.nice), d.industry, jd, REQ_LIB_VER,
-      JSON.stringify(d.keywords), d.mustYears, d.mustEduRank, d.headcount, d.salary, id);
+      JSON.stringify(d.keywords), d.mustYears, d.mustEduRank, d.headcount, d.salary, JSON.stringify(d.duties), id);
   audit(db, { actorType: 'user', actorId: initiatorId, action: '修改招聘岗位', objType: 'job', objId: id,
     detail: `更新为「${d.title}」（${d.industry}）｜任职要求 ${d.must.length} 条（已按六维度重排）`, result: 'ok' });
   return { ok: true, id, msg: '岗位「' + d.title + '」已更新' };
@@ -1486,7 +1558,7 @@ function bootstrap(db) {
     }
     return {
       id: j.id, title: j.title, dept: j.dept_path, industry: j.industry || '互联网',
-      mustHaveText: J(j.must_have), niceHave: J(j.nice_have), keywords: J(j.keywords),
+      mustHaveText: J(j.must_have), niceHave: J(j.nice_have), duties: J(j.duties), keywords: J(j.keywords),
       mustYears: j.must_years, mustEduRank: j.must_edu_rank,
       headcount: j.headcount || 1, salary: j.salary || '', openedAt: j.opened_at || '',
       status: j.status === 'open' ? '招聘中' : j.status === 'closed' ? '已关闭' : j.status,
@@ -1554,7 +1626,26 @@ function bootstrap(db) {
     aiTasks: done + waiting + 512, humanRate: 14, savedHours: 67, modelCost: 57.3,
     pendingApprovals: approvals.filter(a => a.status === 'pending').length
   };
+  /* 岗位资料库（v9）：随快照下发统计与最近样本，供「岗位资料库」页展示。
+     它是只读的 market reference，不进任何打分 / 流程；表不存在（旧库未迁移）时静默降级为空，
+     绝不让「多了个资料库」这件事把主快照拖挂。 */
+  let refStats = { total: 0, withJd: 0, withSalary: 0, lastScraped: '' };
+  let refJobs = [];
+  try {
+    refStats.total = ReferenceJobs.countAll(db);
+    const agg = db.prepare(`SELECT
+      SUM(CASE IFNULL(job_description,'') WHEN '' THEN 0 ELSE 1 END) jd,
+      SUM(CASE IFNULL(salary_range,'')    WHEN '' THEN 0 ELSE 1 END) sal,
+      MAX(scraped_at) last FROM reference_jobs`).get() || {};
+    refStats.withJd = Number(agg.jd || 0);
+    refStats.withSalary = Number(agg.sal || 0);
+    refStats.lastScraped = agg.last || '';
+    refJobs = db.prepare(`SELECT id, job_title, job_description, salary_range, location,
+      company_name, company_industry, company_scale, skill_labels, scraped_at
+      FROM reference_jobs ORDER BY scraped_at DESC LIMIT 200`).all();
+  } catch (e) { /* 表不存在 → 保持空，主流程照常 */ }
   return { jobs, candidates, approvals, employees, auditLogs, kbDocs, kbUnanswered, activity, kpis,
+    refJobs, refStats,
     industries: INDUSTRIES, industrySkills: Object.fromEntries(Object.entries(INDUSTRY_SKILLS).map(([k, v]) => [k, v.core])) };
 }
 function userName(db, id) {

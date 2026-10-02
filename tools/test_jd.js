@@ -289,6 +289,139 @@ const BLOB = [
     }
   }
 
+  console.log('\n=== 10. v13 岗位职责栏 + 语义与分段修正 ===');
+  {
+    /* 10.1 行业语境句适配：行业句只拼给「对口职能」，不再错位 */
+    const buy = E.buildJD({ title: '采购工程师', industry: '制造业', dept_path: '采购部', must_years: 3, must_edu_rank: 2, headcount: 1, must_have: [], nice_have: [] });
+    ok('采购岗（制造业）职责不含「良率 / OEE」（生产指标错配已修）',
+      buy.duties.length === 6 && buy.duties.every(d => /良率|OEE|瓶颈工序/.test(d) === false), JSON.stringify(buy.duties));
+    const prod = E.buildJD({ title: '生产主管', industry: '制造业', dept_path: '制造部', must_years: 4, must_edu_rank: 2, headcount: 1, must_have: [], nice_have: [] });
+    ok('生产岗（制造业）职责仍保留行业语境句（防一刀切误伤）',
+      prod.duties.some(d => /良率|OEE/.test(d)), JSON.stringify(prod.duties));
+
+    /* 10.2 管培生／实习岗的加分项不得是资深口径 */
+    const jr = E.buildJD({ title: '门店储备干部', industry: '零售连锁', dept_path: '运营部', must_years: 0, must_edu_rank: 1, headcount: 5, must_have: [], nice_have: [] });
+    const jrNice = jr.jd.split('## 三、加分项')[1].split('## 四、我们提供')[0];
+    ok('储备干部加分项不含资深门槛（从 0 到 1 / 带店 / 扭亏）',
+      !/从 0 到 1|带店|扭亏/.test(jrNice), jrNice.trim());
+    ok('储备干部加分项含管培生口径（实习 / 学生干部）',
+      /实习|学生干部/.test(jrNice), jrNice.trim());
+
+    /* 10.3 技能补位句尾缀轮换：不再四连同款 */
+    const ai = E.buildJD({ title: 'AI 产品经理', industry: '互联网', dept_path: '产品部', must_years: 3, must_edu_rank: 2, headcount: 1, must_have: ['3 年以上 AI 产品经验，了解 LLM RAG'], nice_have: [] });
+    const s1Sec = ai.jd.split('**（一）专业技能**')[1].split('**（二）')[0];
+    const clauses = (s1Sec.match(/，[^；。]+/g) || []).map(x => x.trim());
+    ok('专业技能补位句尾缀至少 2 种（不再像机器批量生成）', new Set(clauses).size >= 2, JSON.stringify(clauses));
+
+    /* 10.4 整段粘 JD：末行条目不再被小标题启发式吞掉，且不产双后缀 */
+    const TAIL_BLOB = '你会做什么\n负责公司新媒体账号的内容策划与日常运营\n任职要求\n本科及以上学历，2 年以上新媒体运营经验\n加分项\n有短视频策划经验更香';
+    const dReq = E.expandRequirements({ title: '新媒体运营', industry: '传媒文化', years: 2, eduRank: 2, must: TAIL_BLOB, nice: '' });
+    ok('末行「有短视频策划经验更香」保留为加分项（不再被判成标题吞掉）',
+      dReq.nice.some(t => t.indexOf('短视频策划') >= 0), JSON.stringify(dReq.nice));
+    ok('「更香」书面化后不叠加「者优先」（无「更具优势者优先」）',
+      dReq.nice.every(t => /(?:者优先|更具优势)$/.test(t) && (t.match(/者优先/g) || []).length <= 1), JSON.stringify(dReq.nice));
+
+    /* 10.5 「岗位职责」栏：已填以用户为准，为空走模板 */
+    const filled = await E.runJD(null, { title: '供应链采购专员', industry: '制造业', dept: '供应链中心', years: 3, eduRank: 2, headcount: 2,
+      must: '3 年以上采购经验', nice: '', duty: '负责供应商开发与成本管控\n执行采购订单跟催与交期管理\n月度降本复盘' });
+    const dutySec = filled.jd.split('## 一、岗位职责')[1].split('## 二、任职要求')[0];
+    ok('用户填写的 3 条职责全部出现在职责区', ['负责供应商开发与成本管控', '执行采购订单跟催与交期管理', '月度降本复盘']
+      .every(t => dutySec.indexOf(t) >= 0), dutySec.trim());
+    ok('用户职责排在最前（第 1–3 条）', dutySec.indexOf('1. 负责供应商开发与成本管控') >= 0);
+    eq('userDuties 返回用户原文（供落库与回显）', filled.userDuties,
+      ['负责供应商开发与成本管控', '执行采购订单跟催与交期管理', '月度降本复盘']);
+    ok('执行轨迹说明职责来源', filled.steps.some(s => s.intent.indexOf('岗位职责') >= 0));
+
+    const empty = await E.runJD(null, { title: '供应链采购专员', industry: '制造业', dept: '供应链中心', years: 3, eduRank: 2, headcount: 2, must: '', nice: '', duty: '' });
+    eq('不填职责：仍按职能族模板生成 6 条', empty.duties.length, 6);
+    eq('不填职责：userDuties 为空数组（不冒充用户内容）', empty.userDuties, []);
+
+    /* 10.6 幂等：同输入二次生成结果一致（含尾缀轮换与行业句判定） */
+    const again = await E.runJD(null, { title: '供应链采购专员', industry: '制造业', dept: '供应链中心', years: 3, eduRank: 2, headcount: 2,
+      must: '3 年以上采购经验', nice: '', duty: '负责供应商开发与成本管控\n执行采购订单跟催与交期管理\n月度降本复盘' });
+    eq('同输入两次生成，职责区完全一致', again.jd.split('## 一、岗位职责')[1].split('## 二、任职要求')[0], dutySec);
+  }
+
+  /* ---------- 11. v14：整段 JD「分栏回填」（前端 agent.js，与后端 splitReqInput 同源） ---------- */
+  console.log('\n=== 11. v14 整段 JD 分栏回填（前端 splitJdFields）===');
+  {
+    /* 用户把「职位职责 + 职位要求」整段粘进「岗位职责」栏时，前端必须把它分派到
+       职责 / 任职要求 / 加分项 三栏，而不是只取职责、把要求静默丢弃。
+       这里直接加载前端 agent.js（与后端共用同一份 ReqLib）做同源校验。 */
+    global.window = { ReqLib };
+    require(path.join(ROOT, '平台原型/src/agent.js'));
+    const sJF = (global.window.Agent || {}).splitJdFields;
+    ok('前端 agent.js 已导出 splitJdFields', typeof sJF === 'function');
+    if (typeof sJF === 'function') {
+      const FULL = ['职位职责',
+        '1、对接售前/商务，承接ToB客户需求(主要是交通领域，如航司、高速)，完成需求澄清、拆解、结构化梳理，输出PRD、功能清单、业务流程；',
+        '2、独立完成产品原型设计、交互设计，产出可直接交付研发开发的原型与需求文档；',
+        '职位要求',
+        '1、有ToB产品经理经验，有AI、政企项目交付经验者优先；',
+        '2、擅长模糊需求拆解、需求落地，能把简单方案转化为完整产品设计；',
+        '3、逻辑清晰、沟通顺畅，能独立推进跨团队落地项目。'].join('\n');
+      const f = sJF(FULL);
+      eq('整段 JD → 职责 2 条', f.duty.length, 2);
+      eq('整段 JD → 任职要求 3 条', f.must.length, 3);
+      ok('整段 JD → heads ≥ 2（触发回填）', f.heads >= 2, f.heads);
+      ok('分派出的条目无序号残留', f.duty.concat(f.must).every(t => !/^\d+\s*[、.）)]/.test(t)), JSON.stringify(f.duty.concat(f.must)));
+      ok('分派出的条目无尾标点', f.duty.concat(f.must).every(t => !/[；;，,。、]$/.test(t)));
+      ok('「转化为完整产品设计」完整保留', f.must.some(t => t.indexOf('转化为完整产品设计') >= 0));
+
+      const onlyDuty = sJF('1、负责需求分析\n2、负责原型设计');
+      ok('只有职责（无小标题）→ heads < 2，交回默认粘贴、不触发回填', onlyDuty.heads < 2, onlyDuty.heads);
+    }
+  }
+
+  /* ---------- 12. 岗位资料库种子：新克隆开箱即有市场数据 ----------
+     背景：reference_jobs 是「JD 生成接地真实市场」的唯一素材来源，过去只存在于本机演示库。
+     现在 server/seed/reference_jobs.json 随仓库走、空库首建自动导入 —— 这一节锁住它。 */
+  console.log('\n=== 12. reference_jobs 种子（新克隆开箱可用）===');
+  {
+    const fs = require('fs');
+    const os = require('os');
+    const { execFileSync } = require('child_process');
+    const SEED = path.join(ROOT, 'server/seed/reference_jobs.json');
+
+    /* 走子进程：本进程的 config.js 已缓存 DB_FILE，改 env 换不了库（见本节注释）。 */
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hr-jd-refseed-'));
+    const inner = `
+      const db = require(${JSON.stringify(path.join(ROOT, 'server/db.js'))});
+      const R  = require(${JSON.stringify(path.join(ROOT, 'server/referenceJobs.js'))});
+      const d  = db.open(false);                       // 空库首建
+      const count = R.countAll(d);
+      const again = db.seedReferenceJobs(d);           // 幂等复种
+      const refs  = R.loadReference(d, { title: '高级 Java 工程师', industry: '互联网', limit: 12 });
+      const out = { count, again, afterAgain: R.countAll(d), refs: refs.length, note: R.marketNote(refs) };
+      d.close();
+      process.stdout.write('__RESULT__' + JSON.stringify(out));
+    `;
+    let r = null;
+    try {
+      const stdout = execFileSync(process.execPath, ['--experimental-sqlite', '-e', inner], {
+        env: Object.assign({}, process.env, { DB_PATH: path.join(tmpDir, 'fresh.db'), LOG_LEVEL: 'error' }),
+        encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], timeout: 60000,
+      });
+      const m = stdout.match(/__RESULT__(\{[\s\S]*\})/);
+      if (m) r = JSON.parse(m[1]);
+    } catch (e) {
+      ok('空库首建可正常开库并导入种子', false, (e.stderr || e.message || '').toString().slice(0, 300));
+    }
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+
+    if (r) {
+      ok('空库首建自动导入 reference_jobs 快照', r.count > 0, 'count=' + r.count);
+      const seedLen = (() => { try { return JSON.parse(fs.readFileSync(SEED, 'utf8')).length; } catch { return -1; } })();
+      ok('种子文件存在且可解析', seedLen > 0, 'seedLen=' + seedLen);
+      eq('导入条数与种子文件逐条对齐（不多不少）', r.count, seedLen);
+      eq('幂等：对已导入的库再种一次，新增 0 条', r.again, 0);
+      eq('幂等：复种后总数不变（不重复膨胀）', r.afterAgain, r.count);
+      ok('市场接地能匹配到同类在招岗位（JD 不再脱离市场）', r.refs > 0, 'refs=' + r.refs);
+      ok('marketNote 写明参考数量，可被 JD 正文引用',
+        /已参考市场在招同类岗位/.test(r.note || ''), (r.note || '').slice(0, 80));
+    }
+  }
+
   console.log('\n================ 结果 ================');
   console.log('通过 ' + pass + ' 项，失败 ' + fails.length + ' 项');
   if (fails.length) { fails.forEach(f => console.log('  ✗ ' + f)); process.exit(1); }

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JD 生成口径 v13 · 岗位职责栏与语义分段修复</title>
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+  --line:#262c39; --line2:#323a4b;
+  --tx:#e7eaf1; --tx2:#a8b1c2; --tx3:#6f7a8d;
+  --ac:#4c8dff; --ac2:#7aa9ff; --grn:#3ddc97; --yel:#f5b942; --red:#ff6b6b; --pur:#a78bfa;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:15px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+header{position:sticky;top:0;z-index:50;background:rgba(13,15,20,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:14px 26px 0}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1.brand{font-size:17px;margin:0;letter-spacing:.3px}
+.sub{color:var(--tx3);font-size:12.5px}
+.searchbox{margin-left:auto;display:flex;align-items:center;gap:8px}
+input#q{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:9px;
+  padding:8px 12px;width:240px;font-size:13px;outline:none}
+input#q:focus{border-color:var(--ac)}
+.hint{font-size:12px;color:var(--tx3)}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx2);
+  padding:9px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac2);border-bottom-color:var(--ac);font-weight:600}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1560px;margin:0 auto}
+aside{position:sticky;top:112px;align-self:start;height:calc(100vh - 112px);overflow-y:auto;
+  padding:22px 14px 60px 26px;border-right:1px solid var(--line)}
+.tocgroup{display:flex;flex-direction:column;gap:1px}
+.toclink{display:block;color:var(--tx2);text-decoration:none;font-size:13px;padding:5px 9px;
+  border-radius:7px;line-height:1.45}
+.toclink:hover{background:var(--panel2);color:var(--tx)}
+.toclink.lvl2{padding-left:20px}
+.toclink.lvl3{padding-left:32px;font-size:12.5px;color:var(--tx3)}
+main{padding:26px 34px 120px;min-width:0}
+.docmeta{font:12px var(--mono);color:var(--tx3);margin-bottom:18px;
+  border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;display:inline-block}
+article h1{font-size:27px;margin:26px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+article h2{font-size:21px;margin:38px 0 14px;padding:9px 0 9px 13px;border-left:3px solid var(--ac);
+  background:linear-gradient(90deg,rgba(76,141,255,.09),transparent);border-radius:0 8px 8px 0}
+article h3{font-size:17px;margin:28px 0 10px;color:var(--ac2)}
+article h4{font-size:15px;margin:20px 0 8px;color:var(--tx2)}
+p{margin:9px 0}
+a{color:var(--ac2)}
+strong{color:#fff;font-weight:650}
+em{color:var(--yel);font-style:normal}
+code{font:12.6px var(--mono);background:var(--panel2);border:1px solid var(--line);
+  padding:1.5px 5px;border-radius:5px;color:#ffd479}
+.codeblock{margin:14px 0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0a0c11}
+.codetop{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);font:11.5px var(--mono);color:var(--tx3)}
+.copybtn{background:var(--panel2);border:1px solid var(--line2);color:var(--tx2);font-size:11.5px;
+  padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.copybtn:hover{color:var(--tx);border-color:var(--ac)}
+pre{margin:0;padding:14px 16px;overflow-x:auto}
+pre code{background:none;border:none;padding:0;color:#cfd8e6;font-size:12.6px;line-height:1.62}
+blockquote{margin:14px 0;padding:13px 16px;background:linear-gradient(90deg,rgba(167,139,250,.10),rgba(167,139,250,.02));
+  border-left:3px solid var(--pur);border-radius:0 10px 10px 0;color:#d9def0}
+blockquote p{margin:4px 0}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+th{background:var(--panel);text-align:left;padding:10px 12px;font-weight:640;color:var(--ac2);
+  border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(76,141,255,.05);color:var(--tx)}
+ul,ol{margin:9px 0;padding-left:24px}
+li{margin:5px 0;color:var(--tx2)}
+li strong{color:var(--tx)}
+hr.sep{border:none;border-top:1px solid var(--line);margin:26px 0}
+mark{background:rgba(245,185,66,.34);color:#fff;border-radius:3px;padding:0 2px}
+.hidden{display:none !important}
+footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-size:12.5px;text-align:center}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}aside{display:none}main{padding:20px 16px 90px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 class="brand">JD 生成口径 v13 · 岗位职责栏与语义分段修复</h1>
+    <span class="sub"></span>
+    <div class="searchbox">
+      <span class="hint" id="hint">全文搜索</span>
+      <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs"><button class="tab active" data-doc="doc0">JD 生成口径 v13 修复说明 · 岗位职责栏 + 语义与分段修正</button></div>
+</header>
+<div class="wrap">
+  <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--JD-生成口径-v13-修复说明-岗位职责栏-语义与分段修正" data-text="JD 生成口径 v13 修复说明 · 岗位职责栏 + 语义与分段修正">JD 生成口径 v13 修复说明 · 岗位职责栏 + 语义与分段修正</a><a class="toclink lvl2" href="#doc0--一-这次修了什么-每条都有真实复现样本" data-text="一、这次修了什么（每条都有真实复现样本）">一、这次修了什么（每条都有真实复现样本）</a><a class="toclink lvl3" href="#doc0--1-行业语境句错配-语义错位-最严重" data-text="1. 行业语境句错配（语义错位 · 最严重）">1. 行业语境句错配（语义错位 · 最严重）</a><a class="toclink lvl3" href="#doc0--2-管培生岗位被补资深加分项-自相矛盾" data-text="2. 管培生岗位被补资深加分项（自相矛盾）">2. 管培生岗位被补资深加分项（自相矛盾）</a><a class="toclink lvl3" href="#doc0--3-专业技能补位句-四连同款尾缀-重复感" data-text="3. 专业技能补位句「四连同款尾缀」（重复感）">3. 专业技能补位句「四连同款尾缀」（重复感）</a><a class="toclink lvl3" href="#doc0--4-整段粘-JD-时末行条目被吞-内容丢失" data-text="4. 整段粘 JD 时末行条目被吞（内容丢失）">4. 整段粘 JD 时末行条目被吞（内容丢失）</a><a class="toclink lvl3" href="#doc0--5-生成-JD-全文的其他语义检查结论" data-text="5. 生成 JD 全文的其他语义检查结论">5. 生成 JD 全文的其他语义检查结论</a><a class="toclink lvl2" href="#doc0--二-新功能-岗位职责栏" data-text="二、新功能：岗位职责栏">二、新功能：岗位职责栏</a><a class="toclink lvl3" href="#doc0--用法" data-text="用法">用法</a><a class="toclink lvl3" href="#doc0--持久化-这次的关键设计决策" data-text="持久化（这次的关键设计决策）">持久化（这次的关键设计决策）</a><a class="toclink lvl2" href="#doc0--三-回归与验证" data-text="三、回归与验证">三、回归与验证</a><a class="toclink lvl2" href="#doc0--四-改动文件" data-text="四、改动文件">四、改动文件</a></div></aside>
+  <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">JD生成口径v13修复说明_岗位职责栏与语义分段.md</div><h1 id="doc0--JD-生成口径-v13-修复说明-岗位职责栏-语义与分段修正">JD 生成口径 v13 修复说明 · 岗位职责栏 + 语义与分段修正</h1>
+<blockquote>修复日期：2026-09-30（北京时间）· 词库版本 <code>REQ_LIB_VER = 13</code>（改动即递增，登录拉快照时懒自愈重算全库 JD） 验证：<code>tools/test_jd.js</code> <strong>93/93</strong>（新增第 10 节 12 项断言）· <code>run_all</code> <strong>10 套件全绿</strong> · 存量演示库 v7→v8 迁移实测通过</blockquote>
+<hr class="sep">
+<h2 id="doc0--一-这次修了什么-每条都有真实复现样本">一、这次修了什么（每条都有真实复现样本）</h2>
+<h3 id="doc0--1-行业语境句错配-语义错位-最严重">1. 行业语境句错配（语义错位 · 最严重）</h3>
+<p><strong>复现</strong>：生成「采购工程师 × 制造业」的 JD，职责第 7 条是——</p>
+<blockquote>围绕<strong>良率、OEE</strong> 与交付准时率等现场指标开展复盘，推动<strong>瓶颈工序</strong>改善</blockquote>
+<p>采购岗不背良率。根因：<code>industryDuty()</code> 只做「是否重复」判定，从不判定「是否适配」——</p>
+<p>行业语境句是按「该行业<strong>主力职能</strong>」写的，同行业的非主力职能拿到手就是错位的话</p>
+<p>（同理：医疗行业的语境句是护理口径，拼给医疗行业的财务岗同样错）。</p>
+<p><strong>修法</strong>：<code>INDUSTRY_CTX</code> 每个行业新增 <code>fit</code> 白名单（该语境句适配的职能族），</p>
+<p><code>industryDuty(industry, duties, fnKey)</code> 增加适配闸——职能不在白名单或认不出职能 → 整句不拼。</p>
+<p><strong>修复后</strong>：采购工程师（制造业）职责恢复 6 条纯职能口径；生产主管（制造业）仍保留行业句（防一刀切误伤）。</p>
+<h3 id="doc0--2-管培生岗位被补资深加分项-自相矛盾">2. 管培生岗位被补资深加分项（自相矛盾）</h3>
+<p><strong>复现</strong>：「门店储备干部」（管培生口径，不设年限门槛）的加分项：</p>
+<blockquote>有<strong>从 0 到 1 开新店或带店扭亏</strong>的经验者优先；有单店业绩持续增长的量化成果者优先</blockquote>
+<p>招的是应届生，给的却是社招资深门槛——和「工作经验：无需相关经验」直接打架。</p>
+<p><strong>修法</strong>：<code>junior</code>（管培生/实习/应届）时过滤模板池中的资深句式</p>
+<p>（<code>从 0 到 1 / 主导 / 独立负责 / 带店 / 扭亏 / 多年 / 资深…</code>），不足再用管培生专属池补齐</p>
+<p>（实习经历 / 学生干部 / 校园项目竞赛）。<strong>只在认出职能族时启用</strong>——守住「认不出职能一律不补加分项」的既有铁律（test_jd 第 8 节继续锁死）。</p>
+<h3 id="doc0--3-专业技能补位句-四连同款尾缀-重复感">3. 专业技能补位句「四连同款尾缀」（重复感）</h3>
+<p><strong>复现</strong>：任何岗位的「专业技能」段都是——</p>
+<blockquote>熟悉需求分析，<strong>能独立应用于实际业务场景</strong>；熟悉 PRD 撰写，<strong>能独立应用于实际业务场景</strong>；熟悉用户研究，<strong>能独立应用于实际业务场景</strong>……</blockquote>
+<p>像机器批量生成。</p>
+<p><strong>修法</strong>：尾缀按序号轮换 4 种（<code>能独立应用于实际业务场景 / 并在真实业务中完整落地过 / 能独立完成该方向的日常工作 / 并了解常见的实践方法与工具</code>），确定性取模、同岗位产出可回归。</p>
+<p>⚠️ <strong><code>AUTO_FILL_RE</code> 已同步扩族</strong>——往 <code>SKILL_TAILS</code> 加尾缀必须同步它，否则 <code>stripMisfitAutoFill</code> 认不出自动产物，跨职能族历史错配（非技术岗里的「熟悉 Java」）会洗不掉。前后端两处同源实现已一起改。</p>
+<h3 id="doc0--4-整段粘-JD-时末行条目被吞-内容丢失">4. 整段粘 JD 时末行条目被吞（内容丢失）</h3>
+<p><strong>复现</strong>：粘入的 JD 以「加分项 → 有短视频策划经验更香」结尾，这条加分项<strong>直接消失</strong>。</p>
+<p>根因：末行含「更香」，命中小标题词表且 ≤12 字 → 被小标题启发式判成标题，整条吞掉。</p>
+<p><strong>修法</strong>：裸行判标题必须「后面还有内容」；两个例外不受影响——</p>
+<p>①「标签：内容」整行（自包含，照常拆分）；② 文末纯标签行（「加分项」这类 ≤6 字孤立标题）静默丢弃。</p>
+<p>连带修复：<code>RE_NICE_DONE</code> 补「更具优势」（「更香」的书面化产物），否则会产出「…更具优势<strong>者优先</strong>」双后缀。</p>
+<h3 id="doc0--5-生成-JD-全文的其他语义检查结论">5. 生成 JD 全文的其他语义检查结论</h3>
+<p>对 AI 产品经理 / 供应链采购专员 / 储备干部 / 新媒体运营四类岗位全文核查，其余模块（引言、六维度要求、加分项、福利、EEO 声明）分段与语义无残句、无乱序；职责与要求的「一条一事、动宾开头、25–50 字」口径在 v12 已锁，本次未发现新违例。</p>
+<hr class="sep">
+<h2 id="doc0--二-新功能-岗位职责栏">二、新功能：岗位职责栏</h2>
+<h3 id="doc0--用法">用法</h3>
+<p>JD 工作台「任职要求」上方新增<strong>「岗位职责」</strong>多行输入框：</p>
+<ul>
+<li><strong>留空</strong> → Agent 按职能族生成（<code>pickDuties</code> 按岗位名/已填要求挑最贴近的 6 条 + 行业语境句），与原默认逻辑一致；</li>
+<li><strong>已填</strong> → <strong>以你的内容为准</strong>：条目全部保留、排在最前，经书面化润色（白名单，不命中原样透传）；</li>
+</ul>
+<p>只有 1–2 条时从职能模板<strong>尾部补足</strong>到 6 条（丰富细节，不替换、不掺前进位）；</p>
+<ul>
+<li>支持整段粘贴（含「你会做什么」小标题），条目边界与任职要求同一套规则（换行 + 行首列表符，逗号分号顿号永不分条）。</li>
+</ul>
+<h3 id="doc0--持久化-这次的关键设计决策">持久化（这次的关键设计决策）</h3>
+<p>职责<strong>不进打分关键词通道</strong>（<code>must_have</code> 里没有它），所以必须单独落库，否则「编辑保存」和「词库自愈重算」都会把它静默替换成职能模板：</p>
+<div class="tablewrap"><table><thead><tr><th>层</th><th>改动</th></tr></thead><tbody><tr><td>schema</td><td>迁移 <strong>v8 <code>job_duties</code></strong>：<code>jobs</code> 表加 <code>duties</code> 列（JSON 数组，只存用户内容，模板补足的不存）</td></tr><tr><td>生成</td><td><code>runJD</code> 接收 <code>duty</code> → <code>parseDutyInput()</code> 统一解析 → 传 <code>buildJD</code> 的 <code>userDuties</code>（显式传入 &gt; 库里持久化 &gt; 粘文解析）</td></tr><tr><td>落库</td><td><code>runJD</code> / <code>createJob</code> / <code>updateJob</code> 全部读写 <code>duties</code> 列；<code>updateJob</code> 把「传了空」视为「本次没填」而非「清空」（与 mustHave 合并语义一致）</td></tr><tr><td>自愈</td><td><code>bootstrap</code> 重算 JD 时带着 <code>duties</code> 列——词库升级不再丢用户职责；<code>bootstrap</code> 同时把 <code>duties</code> 下发前端供「载入岗位」回显</td></tr><tr><td>离线</td><td><code>src/agent.js</code> 的 <code>generateJD</code> 同口径支持 <code>input.duty</code>，离线/在线产出一致</td></tr><tr><td>前端</td><td>工作台表单新栏 + <code>loadJob</code> 回显 + <code>saveJdAsJob</code> 随 JD 带入岗位表单 + 结果区「Agent 依据」行说明职责来源</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--三-回归与验证">三、回归与验证</h2>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>结果</th></tr></thead><tbody><tr><td><code>tools/test_jd.js</code></td><td><strong>93/93</strong>（新增第 10 节：行业句适配正反例 / junior 加分项 / 尾缀轮换 / 末行不吞 + 无双后缀 / 职责栏已填与留空 / 二次生成幂等）</td></tr><tr><td><code>run_all</code> 全量</td><td><strong>10 套件全绿</strong>（含迁移 v8 的隔离实例从零建库）</td></tr><tr><td>存量库升级</td><td>演示库副本 v7→v8 实测通过；<code>J-126</code> 自愈后职责无错配行业句、尾缀已轮换</td></tr><tr><td>幂等</td><td>同输入两次生成，职责区逐字节一致</td></tr></tbody></table></div>
+<h2 id="doc0--四-改动文件">四、改动文件</h2>
+<p><code>shared/req-lib.js</code>（INDUSTRY_CTX.fit / industryDuty 适配闸 / parseReqText 文末孤行 / RE_NICE_DONE）</p>
+<p>· <code>server/engine.js</code>（REQ_LIB_VER=13 / parseDutyInput / runJD / createJob / updateJob / bootstrap / buildJD / SKILL_TAILS / JUNIOR_NICE）</p>
+<p>· <code>server/migrations.js</code>（v8）· <code>平台原型/src/agent.js</code>（离线镜像）· <code>平台原型/src/app.js</code>（表单与回显）</p>
+<p>· <code>tools/test_jd.js</code>（第 10 节）</p></article></main>
+</div>
+<footer>生成时间：2026-09-30 10:25（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<script>
+const docs = [{"key": "doc0", "name": "JD 生成口径 v13 修复说明 · 岗位职责栏 + 语义与分段修正"}];
+
+function copyCode(btn) {
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1400);
+  });
+}
+
+function showDoc(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.doc === key));
+  document.querySelectorAll('article.doc').forEach(a => a.style.display = (a.dataset.doc === key ? '' : 'none'));
+  document.querySelectorAll('.tocgroup').forEach(g => g.style.display = (g.dataset.doc === key ? '' : 'none'));
+  resetHighlight();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showDoc(t.dataset.doc));
+
+// 滚动高亮目录
+const links = () => Array.from(document.querySelectorAll('.tocgroup:not([style*="none"]) .toclink'));
+window.addEventListener('scroll', () => {
+  const actives = links();
+  let cur = null;
+  for (const a of actives) {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el && el.getBoundingClientRect().top < 180) cur = a;
+  }
+  actives.forEach(a => a.style.color = '');
+  if (cur) { cur.style.color = 'var(--ac2)'; }
+});
+
+// 全文搜索 + 高亮
+let marks = [];
+function resetHighlight() {
+  document.querySelectorAll('mark').forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  marks = [];
+  document.getElementById('hint').textContent = '全文搜索';
+  document.getElementById('hint').style.color = 'var(--tx3)';
+}
+document.getElementById('q').addEventListener('input', e => {
+  const kw = e.target.value.trim();
+  resetHighlight();
+  if (kw.length < 2) return;
+  const activeArt = document.querySelector('article.doc:not([style*="none"])') || document.body;
+  let count = 0, first = null;
+  const walker = document.createTreeWalker(activeArt, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.trim().length > 1 && !/^(SCRIPT|STYLE|MARK)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const low = node.nodeValue.toLowerCase(), k = kw.toLowerCase();
+    if (low.indexOf(k) === -1) return;
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    while (true) {
+      const idx = rest.toLowerCase().indexOf(k); if (idx === -1) break;
+      frag.appendChild(document.createTextNode(rest.slice(0, idx)));
+      const m = document.createElement('mark'); m.textContent = rest.slice(idx, idx + kw.length);
+      frag.appendChild(m); marks.push(m); count++;
+      rest = rest.slice(idx + kw.length);
+    }
+    frag.appendChild(document.createTextNode(rest));
+    node.parentNode.replaceChild(frag, node);
+  });
+  const h = document.getElementById('hint');
+  h.textContent = count ? `命中 ${count} 处` : '无匹配';
+  h.style.color = count ? 'var(--grn)' : 'var(--red)';
+  if (count) { first = marks[0]; first.scrollIntoView({behavior:'smooth', block:'center'}); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.id !== 'q') { e.preventDefault(); document.getElementById('q').focus(); }
+  if (e.key === 'Escape') { document.getElementById('q').value = ''; resetHighlight(); }
+});
+</script>
+</body>
+</html>

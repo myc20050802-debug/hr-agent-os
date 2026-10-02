@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JD 粘贴解析口径 v14 修复说明</title>
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+  --line:#262c39; --line2:#323a4b;
+  --tx:#e7eaf1; --tx2:#a8b1c2; --tx3:#6f7a8d;
+  --ac:#4c8dff; --ac2:#7aa9ff; --grn:#3ddc97; --yel:#f5b942; --red:#ff6b6b; --pur:#a78bfa;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:15px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+header{position:sticky;top:0;z-index:50;background:rgba(13,15,20,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:14px 26px 0}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1.brand{font-size:17px;margin:0;letter-spacing:.3px}
+.sub{color:var(--tx3);font-size:12.5px}
+.searchbox{margin-left:auto;display:flex;align-items:center;gap:8px}
+input#q{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:9px;
+  padding:8px 12px;width:240px;font-size:13px;outline:none}
+input#q:focus{border-color:var(--ac)}
+.hint{font-size:12px;color:var(--tx3)}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx2);
+  padding:9px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac2);border-bottom-color:var(--ac);font-weight:600}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1560px;margin:0 auto}
+aside{position:sticky;top:112px;align-self:start;height:calc(100vh - 112px);overflow-y:auto;
+  padding:22px 14px 60px 26px;border-right:1px solid var(--line)}
+.tocgroup{display:flex;flex-direction:column;gap:1px}
+.toclink{display:block;color:var(--tx2);text-decoration:none;font-size:13px;padding:5px 9px;
+  border-radius:7px;line-height:1.45}
+.toclink:hover{background:var(--panel2);color:var(--tx)}
+.toclink.lvl2{padding-left:20px}
+.toclink.lvl3{padding-left:32px;font-size:12.5px;color:var(--tx3)}
+main{padding:26px 34px 120px;min-width:0}
+.docmeta{font:12px var(--mono);color:var(--tx3);margin-bottom:18px;
+  border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;display:inline-block}
+article h1{font-size:27px;margin:26px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+article h2{font-size:21px;margin:38px 0 14px;padding:9px 0 9px 13px;border-left:3px solid var(--ac);
+  background:linear-gradient(90deg,rgba(76,141,255,.09),transparent);border-radius:0 8px 8px 0}
+article h3{font-size:17px;margin:28px 0 10px;color:var(--ac2)}
+article h4{font-size:15px;margin:20px 0 8px;color:var(--tx2)}
+p{margin:9px 0}
+a{color:var(--ac2)}
+strong{color:#fff;font-weight:650}
+em{color:var(--yel);font-style:normal}
+code{font:12.6px var(--mono);background:var(--panel2);border:1px solid var(--line);
+  padding:1.5px 5px;border-radius:5px;color:#ffd479}
+.codeblock{margin:14px 0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0a0c11}
+.codetop{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);font:11.5px var(--mono);color:var(--tx3)}
+.copybtn{background:var(--panel2);border:1px solid var(--line2);color:var(--tx2);font-size:11.5px;
+  padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.copybtn:hover{color:var(--tx);border-color:var(--ac)}
+pre{margin:0;padding:14px 16px;overflow-x:auto}
+pre code{background:none;border:none;padding:0;color:#cfd8e6;font-size:12.6px;line-height:1.62}
+blockquote{margin:14px 0;padding:13px 16px;background:linear-gradient(90deg,rgba(167,139,250,.10),rgba(167,139,250,.02));
+  border-left:3px solid var(--pur);border-radius:0 10px 10px 0;color:#d9def0}
+blockquote p{margin:4px 0}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+th{background:var(--panel);text-align:left;padding:10px 12px;font-weight:640;color:var(--ac2);
+  border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(76,141,255,.05);color:var(--tx)}
+ul,ol{margin:9px 0;padding-left:24px}
+li{margin:5px 0;color:var(--tx2)}
+li strong{color:var(--tx)}
+hr.sep{border:none;border-top:1px solid var(--line);margin:26px 0}
+mark{background:rgba(245,185,66,.34);color:#fff;border-radius:3px;padding:0 2px}
+.hidden{display:none !important}
+footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-size:12.5px;text-align:center}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}aside{display:none}main{padding:20px 16px 90px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 class="brand">JD 粘贴解析口径 v14 修复说明</h1>
+    <span class="sub"></span>
+    <div class="searchbox">
+      <span class="hint" id="hint">全文搜索</span>
+      <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs"><button class="tab active" data-doc="doc0">JD 粘贴解析口径 v14 修复说明</button></div>
+</header>
+<div class="wrap">
+  <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--JD-粘贴解析口径-v14-修复说明" data-text="JD 粘贴解析口径 v14 修复说明">JD 粘贴解析口径 v14 修复说明</a><a class="toclink lvl2" href="#doc0--1-问题现象" data-text="1 · 问题现象">1 · 问题现象</a><a class="toclink lvl2" href="#doc0--2-根因-全部在-shared-req-lib-js-parseReqText" data-text="2 · 根因（全部在 shared/req-lib.js::parseReqText）">2 · 根因（全部在 shared/req-lib.js::parseReqText）</a><a class="toclink lvl2" href="#doc0--3-修法-共-6-处-shared-req-lib-js" data-text="3 · 修法（共 6 处，shared/req-lib.js）">3 · 修法（共 6 处，shared/req-lib.js）</a><a class="toclink lvl2" href="#doc0--4-验证" data-text="4 · 验证">4 · 验证</a><a class="toclink lvl2" href="#doc0--5-未修的部分-源文本损坏-不猜" data-text="5 · 未修的部分（源文本损坏，不猜）">5 · 未修的部分（源文本损坏，不猜）</a><a class="toclink lvl2" href="#doc0--6-维护提醒" data-text="6 · 维护提醒">6 · 维护提醒</a><a class="toclink lvl2" href="#doc0--7-补充-同日-整段-JD-分栏回填-让-岗位职责-栏不再静默丢内容" data-text="7 · 补充（同日）：整段 JD「分栏回填」—— 让「岗位职责」栏不再静默丢内容">7 · 补充（同日）：整段 JD「分栏回填」—— 让「岗位职责」栏不再静默丢内容</a><a class="toclink lvl3" href="#doc0--起因" data-text="起因">起因</a><a class="toclink lvl3" href="#doc0--修法-方案-A-补齐不对称-而非删栏" data-text="修法（方案 A：补齐不对称，而非删栏）">修法（方案 A：补齐不对称，而非删栏）</a><a class="toclink lvl3" href="#doc0--行为对照" data-text="行为对照">行为对照</a><a class="toclink lvl3" href="#doc0--回归" data-text="回归">回归</a></div></aside>
+  <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">17_JD粘贴解析口径_v14修复说明.md</div><h1 id="doc0--JD-粘贴解析口径-v14-修复说明">JD 粘贴解析口径 v14 修复说明</h1>
+<blockquote><strong>版本</strong>：<code>REQ_LIB_VER</code> 13 → <strong>14</strong>　|　<strong>修复时间</strong>：2026-10-02（北京时间） <strong>影响面</strong>：前后端共用 <code>shared/req-lib.js</code>，改一处两端同时生效；离线原型需 <code>npm run build</code> 重内联。 <strong>触发</strong>：用户把整段 JD 粘进表单生成后，发现三处排版/语法问题。</blockquote>
+<hr class="sep">
+<h2 id="doc0--1-问题现象">1 · 问题现象</h2>
+<p>三条，都出现在「整段 JD 粘进表单 → 生成 JD」这条路径上。</p>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>现象（用户所见）</th><th>问题</th></tr></thead><tbody><tr><td>1</td><td><code>1. 职位职责1、对接售前/商务，承接ToB客…</code></td><td>编号叠加：模板的 <code>1.</code> 和内容自带的「职位职责1、」重复</td></tr><tr><td>2</td><td><code>（一）专业技能</code> 段开头只剩一个「目」字</td><td>断行把一句话切成两半，尾部落成了独立条目，上文丢失</td></tr><tr><td>3</td><td><code>（五）软技能</code> 下直接跟 <code>5、逻辑清晰、沟通顺畅、</code></td><td>板块内序号没有剥掉，也没从 1 重新开始</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--2-根因-全部在-shared-req-lib-js-parseReqText">2 · 根因（全部在 <code>shared/req-lib.js::parseReqText</code>）</h2>
+<p><strong>根因 A — 小标题词表不全 + 判标题条件过严</strong></p>
+<p><code>RE_HEAD_ANY</code> 里没有「职位职责」「职位要求」这类变体；且判标签要求「整行 ≤ 12 字」。</p>
+<p>用户写的是 <code>职位职责1、对接售前/商务…</code>——<strong>标签与内容挤在同一行</strong>，两个条件都不满足，整行被当成一条职责落进正文，再被模板套上序号 → 现象 1。</p>
+<p><strong>根因 B — 行首序号剥离要求「标点后必须跟空格」</strong></p>
+<p><code>RE_LI_NUM = /^\d{1,2}\s*[.、)）:：]\s+/</code> 末尾是 <code>\s+</code>。</p>
+<p>中文写法 <code>5、逻辑清晰</code> <strong>不带空格</strong>，正则不匹配 → 序号残留 → 现象 3。</p>
+<p><strong>根因 C — 序号未剥导致断行碎片独立成条</strong></p>
+<p><code>5、逻辑清晰、沟通顺畅，能独立推进跨团队落地项</code> 因序号没剥而 <code>marked=false</code>，</p>
+<p>下一行 <code>目。</code> 不满足合并条件，<strong>断开成独立条目「目」</strong> → 现象 2。</p>
+<blockquote>三个根因互为因果：<strong>B 不修，C 就修不掉</strong>。</blockquote>
+<hr class="sep">
+<h2 id="doc0--3-修法-共-6-处-shared-req-lib-js">3 · 修法（共 6 处，<code>shared/req-lib.js</code>）</h2>
+<ol>
+<li><strong><code>RE_HEAD_ANY</code> 补词</strong>：加入 <code>职位职责 / 职位描述 / 工作职责 / 职务职责 / 职位要求 / 岗位描述 / 工作要求 / 职务要求 / 任职资格 / 应聘要求 / 招聘条件 / 我们希望你</code> 等变体。</li>
+</ol>
+<ol>
+<li><strong>新增 <code>RE_HEAD_LEAD</code></strong>：行首标签剥离，专治「标签与内容同行、无冒号」。</li>
+</ol>
+<p>只在<strong>标签后紧跟 行尾 / 冒号 / 列表编号 / 列表符号</strong>时才认标题，</p>
+<p>所以「负责岗位职责梳理」这类以标签词开头的正文句不受影响。</p>
+<p>该步骤必须在「编号剥离循环」<strong>之前</strong>执行，剥出来的 <code>1、对接…</code> 才能被去掉序号。</p>
+<ol>
+<li><strong><code>RE_LI_NUM</code> 放宽</strong>：中文编号符（<code>、)）:：</code>）后空格改为<strong>可选</strong>；</li>
+</ol>
+<p>西文句点仍强制要求空格 —— 避免「1.5 年经验」被误剥成「5 年经验」。</p>
+<ol>
+<li><strong>收紧 <code>numHead</code></strong>：带编号的行<strong>不再无条件当标题</strong>。</li>
+</ol>
+<p>原逻辑 <code>isHead = mdHead || numHead || …</code> 会把 <code>1、对接售前…</code> 整行 <code>return</code> 掉，</p>
+<p>用户粘的内容<strong>静默消失</strong>（JD 里只剩模板补位句）。</p>
+<p>现在要「剥掉编号后仍命中标签词且 ≤12 字」（如 <code>1. 岗位职责</code>）才认标题。</p>
+<ol>
+<li><strong>断行还原区分「短尾」</strong>：下一行去掉标点后 ≤2 字时<strong>直接拼接、不插分隔符</strong></li>
+</ol>
+<p>（<code>…交付经验优</code> + <code>先；</code> 实为「优先」，补逗号会插进词中间）；</p>
+<p>其余情况沿用原规则补逗号（<code>• 把模糊的用户场景</code> + <code>拆成能落地的产品方案</code>）。</p>
+<ol>
+<li><strong>新增行内条目切分</strong>：仅在「<code>；</code> + 1~2 位数字 + 编号符」处切开。</li>
+</ol>
+<p>复制来的 JD 常把多条挤在同一行（<code>…业务流程；2、独立完成…；3、跟进…</code>），</p>
+<p>只按换行切会整段粘成一条。<strong>普通分号一律不切</strong>，保持「表单一行一条 → 往返无损」。</p>
+<p>另：<code>server/engine.js</code> 的 <code>REQ_LIB_VER</code> 由 <strong>13 递增到 14</strong> —— 解析口径变了，已存岗位的 JD 需按新口径重算（懒触发，登录拉一次快照时执行）。</p>
+<hr class="sep">
+<h2 id="doc0--4-验证">4 · 验证</h2>
+<p><strong>修复前后对照</strong>（同一个输入，走「任职要求」栏整段粘贴）：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>修复前
+（一）专业技能
+目；熟悉用户研究，能独立应用于实际业务场景；熟悉竞品分析，…
+
+修复后
+（一）专业技能
+擅长模糊需求拆解、需求落地，能把简单方案转化为完整产品设计；熟练使用AI工具独立出原型，PRD输出规范、逻辑清晰；…
+
+修复前
+1. 职位职责1、对接售前/商务，承接ToB客户需求(…)，…；4、沉淀交通行业产品能力，推进产品标准化，减少重复定制开发
+2. 职位要求
+3. 1、有ToB产品经理经验，…；5、逻辑清晰、沟通顺畅，能独立推进跨团队落地项目
+
+修复后
+1. 对接售前/商务，承接ToB客户需求(主要是交通领域，如航司、高速)，完成需求澄清、拆解、结构化梳理，输出PRD、功能清单、业务流程
+2. 独立完成产品原型设计、交互设计，产出可直接交付研发开发的原型与需求文档
+3. 跟进AI产品/项目研发、测试、交付全流程，跟进落地问题、把控交付质量
+4. 沉淀交通行业产品能力，推进产品标准化，减少重复定制开发</code></pre></div>
+<p><strong>回归</strong>：<code>npm test</code> 三道闸全绿 ——</p>
+<p><code>run_all</code> <strong>11 套件</strong>全绿 / <code>check_docs</code> <strong>19 锚点 + 6 不变量</strong> / <code>eval:dual</code> 一致率 <strong>90.0%</strong>。</p>
+<p>原型字节数锚点 528,191 → <strong>532,594 bytes</strong> 已同步；<code>npm run share</code> 已重打。</p>
+<p>（同日追加「分栏回填」补丁后为 <strong>535,391 bytes</strong>，见第 7 节。）</p>
+<hr class="sep">
+<h2 id="doc0--5-未修的部分-源文本损坏-不猜">5 · 未修的部分（源文本损坏，不猜）</h2>
+<p>用户原文是从某处复制来的，<strong>本身顺序错乱</strong>，例如孤立行 <code>化为完整产品设计;</code></p>
+<p>实际属于下一条要求，却被粘到了上一条的末尾。</p>
+<p>这类问题<strong>解析层无法可靠还原</strong>（任何猜测都可能把 A 条的内容搬到 B 条）。</p>
+<p>处理原则：<strong>宁可保留原始错位，也不臆造归属</strong> —— 这类内容需要人工校正后再粘贴。</p>
+<hr class="sep">
+<h2 id="doc0--6-维护提醒">6 · 维护提醒</h2>
+<ul>
+<li>加小标题变体时，<code>RE_HEAD_ANY</code> 与 <code>RE_HEAD_LEAD</code> <strong>两张表都要加</strong>，只加一处会漏。</li>
+<li>动 <code>parseReqText</code> 前先跑 <code>node tools/test_jd.js</code>；改完必须跑全量 <code>npm test</code>。</li>
+<li>改了 <code>shared/req-lib.js</code> 必须 <code>npm run build</code>（离线原型内联同一份词库），随后跑 <code>npm run check:docs</code>。</li>
+</ul>
+<hr class="sep">
+<h2 id="doc0--7-补充-同日-整段-JD-分栏回填-让-岗位职责-栏不再静默丢内容">7 · 补充（同日）：整段 JD「分栏回填」—— 让「岗位职责」栏不再静默丢内容</h2>
+<h3 id="doc0--起因">起因</h3>
+<p>上面第 4 节给出的使用建议是「整段 JD 请粘到<strong>任职要求</strong>栏」。用户据此反问：</p>
+<blockquote>那岗位职责的栏还有必要存在吗？</blockquote>
+<p>实测证实这不是「多了一栏」，而是<strong>两栏能力不对称</strong>：</p>
+<div class="tablewrap"><table><thead><tr><th>粘进去的东西</th><th>粘「岗位职责」栏（<code>parseDutyInput</code>）</th><th>粘「任职要求」栏（<code>splitReqInput</code>）</th></tr></thead><tbody><tr><td>整段 JD（职责+要求）</td><td>只取 <code>p.duty</code>，<strong>must/nice 静默丢弃</strong></td><td>职责 + 要求 <strong>全归位</strong></td></tr><tr><td>只有职责</td><td><code>heads=0</code> → 整段归 duties ✅</td><td>✅</td></tr><tr><td>只有要求（误用）</td><td>⚠️ 要求被当成职责落库，污染 <code>duties</code></td><td>✅</td></tr></tbody></table></div>
+<p>根因就是 <code>engine.js</code> 里这一行：<code>parseDutyInput</code> = <code>p.heads ? p.duty : p.must</code> ——</p>
+<p>一识别出小标题，就<strong>只挑职责</strong>，其余当没看见。于是「别粘这栏」的建议本质是<strong>绕开缺陷</strong>，</p>
+<p>而不是修它 —— 用户以为平台吞了内容，这个怀疑完全合理。</p>
+<p><strong>「岗位职责」栏不能删</strong>：它是 <code>jobs.duties</code> 的显式入口（职责不进打分关键词，但必须落库，</p>
+<p>否则编辑 / 版本自愈会静默换成模板），也是「只改职责」的唯一通道。</p>
+<h3 id="doc0--修法-方案-A-补齐不对称-而非删栏">修法（方案 A：补齐不对称，而非删栏）</h3>
+<p>在<strong>前端</strong>加一层「分栏回填」—— 用户在<strong>任一</strong> JD 输入框粘入整段 JD 时，</p>
+<p>按结构拆开并把任职要求 / 加分项分派到各自输入框：</p>
+<ul>
+<li><code>平台原型/src/agent.js</code>：新增 <code>splitJdFields(text)</code>（与后端 <code>splitReqInput</code> 同源），</li>
+</ul>
+<p>返回已清理（去序号、去尾标点）并去重的 <code>lead / duty / must / nice / heads</code>，并导出。</p>
+<ul>
+<li><code>平台原型/src/app.js</code>：新增 <code>paste</code> 事件委托，监听 <code>#jdDuty / #jdMust / #jdNice</code> 三栏。</li>
+</ul>
+<p>仅当 <code>heads ≥ 2</code>（确实是一份完整 JD）才介入，否则<strong>交回浏览器默认粘贴</strong> ——</p>
+<p>「一行一条」的手工填法完全不受影响。</p>
+<ul>
+<li>合并策略一律「<strong>追加 + 去重</strong>」，绝不覆盖已填内容：宁可多一条，不可丢一条。</li>
+</ul>
+<p><strong>未改 <code>REQ_LIB_VER</code></strong>：本次只动前端输入辅助，不改解析口径、不影响打分，已存岗位无需重算。</p>
+<h3 id="doc0--行为对照">行为对照</h3>
+<div class="tablewrap"><table><thead><tr><th>用户操作</th><th>修复前</th><th>修复后</th></tr></thead><tbody><tr><td>整段 JD 粘「岗位职责」栏</td><td>只留职责，要求<strong>静默消失</strong></td><td>职责留本栏，要求 / 加分项<strong>自动填入对应栏</strong> + 提示</td></tr><tr><td>整段 JD 粘「任职要求」栏</td><td>生成时后端能拆，但<strong>表单里看不到</strong></td><td>三栏同步回填，所见即所得</td></tr><tr><td>只填职责 / 只填要求</td><td>正常</td><td><strong>完全不变</strong>（<code>heads &lt; 2</code> 直接放行）</td></tr></tbody></table></div>
+<h3 id="doc0--回归">回归</h3>
+<p><code>npm test</code> 三道闸全绿；<code>tools/test_jd.js</code> 新增第 11 节（7 项断言）锁住前端 <code>splitJdFields</code></p>
+<p>与后端同源的行为；原型字节数锚点 532,594 → <strong>535,391 bytes</strong> 已同步。</p></article></main>
+</div>
+<footer>生成时间：2026-10-02 09:41（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<script>
+const docs = [{"key": "doc0", "name": "JD 粘贴解析口径 v14 修复说明"}];
+
+function copyCode(btn) {
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1400);
+  });
+}
+
+function showDoc(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.doc === key));
+  document.querySelectorAll('article.doc').forEach(a => a.style.display = (a.dataset.doc === key ? '' : 'none'));
+  document.querySelectorAll('.tocgroup').forEach(g => g.style.display = (g.dataset.doc === key ? '' : 'none'));
+  resetHighlight();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showDoc(t.dataset.doc));
+
+// 滚动高亮目录
+const links = () => Array.from(document.querySelectorAll('.tocgroup:not([style*="none"]) .toclink'));
+window.addEventListener('scroll', () => {
+  const actives = links();
+  let cur = null;
+  for (const a of actives) {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el && el.getBoundingClientRect().top < 180) cur = a;
+  }
+  actives.forEach(a => a.style.color = '');
+  if (cur) { cur.style.color = 'var(--ac2)'; }
+});
+
+// 全文搜索 + 高亮
+let marks = [];
+function resetHighlight() {
+  document.querySelectorAll('mark').forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  marks = [];
+  document.getElementById('hint').textContent = '全文搜索';
+  document.getElementById('hint').style.color = 'var(--tx3)';
+}
+document.getElementById('q').addEventListener('input', e => {
+  const kw = e.target.value.trim();
+  resetHighlight();
+  if (kw.length < 2) return;
+  const activeArt = document.querySelector('article.doc:not([style*="none"])') || document.body;
+  let count = 0, first = null;
+  const walker = document.createTreeWalker(activeArt, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.trim().length > 1 && !/^(SCRIPT|STYLE|MARK)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const low = node.nodeValue.toLowerCase(), k = kw.toLowerCase();
+    if (low.indexOf(k) === -1) return;
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    while (true) {
+      const idx = rest.toLowerCase().indexOf(k); if (idx === -1) break;
+      frag.appendChild(document.createTextNode(rest.slice(0, idx)));
+      const m = document.createElement('mark'); m.textContent = rest.slice(idx, idx + kw.length);
+      frag.appendChild(m); marks.push(m); count++;
+      rest = rest.slice(idx + kw.length);
+    }
+    frag.appendChild(document.createTextNode(rest));
+    node.parentNode.replaceChild(frag, node);
+  });
+  const h = document.getElementById('hint');
+  h.textContent = count ? `命中 ${count} 处` : '无匹配';
+  h.style.color = count ? 'var(--grn)' : 'var(--red)';
+  if (count) { first = marks[0]; first.scrollIntoView({behavior:'smooth', block:'center'}); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.id !== 'q') { e.preventDefault(); document.getElementById('q').focus(); }
+  if (e.key === 'Escape') { document.getElementById('q').value = ''; resetHighlight(); }
+});
+</script>
+</body>
+</html>
