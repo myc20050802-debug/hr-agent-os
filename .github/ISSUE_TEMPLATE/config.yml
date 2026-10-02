@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 安全漏洞上报
+    url: https://github.com/myc20050802-debug/hr-agent-os/security/advisories/new
+    about: 疑似安全漏洞请不要开公开 Issue，走私有上报通道（见 SECURITY.md）
+  - name: 先读一眼贡献指南
+    url: https://github.com/myc20050802-debug/hr-agent-os/blob/main/CONTRIBUTING.md
+    about: 本仓库对改动纪律有硬要求（单一份源 / 词库版本 / 构建与文档守卫），提 PR 前请先过一遍

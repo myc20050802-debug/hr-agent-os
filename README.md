@@ -1,6 +1,66 @@
-# HR-Agent OS · B 端 HR AI Agent SaaS 平台
+# HR-Agent OS
 
-产品方案 + 搭建教程 + **能真跑起来的本地全栈版**（零 npm 依赖）。
+**一个能真跑起来的 B 端 HR AI Agent 平台 PoC。运行时零依赖**（Node 22 原生 `http` + 内置 `node:sqlite`，`dependencies` 为空）—— clone 下来一条命令就能起，不需要装任何 npm 包。
+
+[![test](https://github.com/myc20050802-debug/hr-agent-os/actions/workflows/test.yml/badge.svg)](https://github.com/myc20050802-debug/hr-agent-os/actions/workflows/test.yml)
+[![pages](https://github.com/myc20050802-debug/hr-agent-os/actions/workflows/pages.yml/badge.svg)](https://github.com/myc20050802-debug/hr-agent-os/actions/workflows/pages.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-3DA639.svg)](LICENSE)
+[![node](https://img.shields.io/badge/node-%3E%3D22.5-339933.svg?logo=nodedotjs&logoColor=white)](package.json)
+[![runtime deps](https://img.shields.io/badge/runtime%20deps-0-blue.svg)](#技术选型为什么是零依赖)
+
+这不是「界面长得像 HR 系统」的静态原型。界面上的**每一个分数都能回答「为什么是这个分」**，
+每一次越权都在**服务端**被 403 拦下，每一份 JD 都会先对着真实在招市场做一次校准、再做一遍用工合规扫描。
+更关键的是：**这些结论全部可复现 —— 不接大模型也能跑通全流程。**
+
+| | |
+|---|---|
+| 🔍 **在线 demo**（零安装，点开就玩） | **https://myc20050802-debug.github.io/hr-agent-os/** |
+| ⚡ **本地跑起来**（真 SQLite + Agent 引擎 + 权限拦截） | `npm run dev` → http://127.0.0.1:8788 |
+
+<p align="center">
+  <img src="docs/assets/hero_dashboard.png" width="49%" alt="工作台：待我处理、Agent 运行概览、今日活动" />
+  <img src="docs/assets/screening.png" width="49%" alt="简历筛选台：真实评分 + 关键依据 + 待人工复核" />
+</p>
+<p align="center">
+  <img src="docs/assets/screening_agent.png" width="49%" alt="Agent 执行轨迹：8 步计划、规则前置 0 token、止于人工闸门" />
+  <img src="docs/assets/jd_workbench.png" width="49%" alt="JD 工作台：生成 + 合规扫描，命中歧视性表述直接阻止发布" />
+</p>
+<p align="center">
+  <img src="docs/assets/reference_jobs.png" width="41%" alt="岗位资料库：市场在招岗位快照，供 JD 生成做市场接地" />
+  <img src="docs/assets/login.png" width="56%" alt="登录闸门：8 个演示角色，权限各不相同" />
+</p>
+
+> 截图全部由 `tools/shoot_readme.py`（Playwright）**真跑一遍核心流程**后拍摄：
+> 先登录、真的运行一次筛选 Agent、真的生成一份带违规表述的 JD。
+> 不是摆拍的空壳界面 —— 所以图里能看到真实分数、真实合规结论、真实市场数据。
+
+---
+
+## 它和「HR 系统的演示原型」不一样在哪
+
+| # | 能力 | 为什么它是真的（不是话术） |
+|---|---|---|
+| 1 | **分数可解释** | 每个分数下面有一栏「为什么是这个分」：逐维算式（`技能匹配 40 × 0.95 = 38`）＋决定性因素＋还差几分进下一档。归因**只读**打分时已算出的系数、不做二次计算，测试里锁死「分项之和 == 总分」「满分 × 系数 == 该维得分」。 |
+| 2 | **规则与模型分工明确** | 分数与档位 **100% 由确定性规则算出**（0 token、可复现、可追溯、可签字）；模型只做三件事：推荐理由的**措辞**、制度问答的语言组织、JD 润色。所以「不配大模型也能跑通全流程」不是降级方案，是设计选择。对照评测见 [`docs/16`](docs/16_规则与LLM双模式对照评测.md)。 |
+| 3 | **权限真的在服务端** | 24 个能力 × 7 个角色 ＋ 行级数据范围（`all/dept/self`）＋ PII 字段脱敏，**全部在出数据之前生效**。员工身份导出全公司花名册是**真 403**（缺 `employee:export` 能力），前端按钮显隐只是体验层。 |
+| 4 | **审计改不掉** | 应用层只插不改，外加迁移 v4 建的 `BEFORE UPDATE` / `BEFORE DELETE` 触发器 `RAISE(ABORT)` —— 想改审计得先改 schema，而 schema 是版本化迁移管的。 |
+| 5 | **JD 接地真实市场 ＋ 合规红线** | 生成前先按「标题优先」检索市场在招同类岗位（仓库自带 183 条抓取快照），拼接前做最长公共子串 + bigram 双去重；命中「限男性」「35 岁以下」这类表述**直接阻止发布**，每条给法条依据与建议改法（见上图右下）。 |
+
+---
+
+## 先看一眼（零安装 · 30 秒）
+
+**在线 demo**：**https://myc20050802-debug.github.io/hr-agent-os/**
+
+为什么它能免安装：`平台原型/index.html` 是**完全自包含的单文件** —— 内联了全部样式与脚本，
+`<script src=` / `<link href=` 均 0 命中（`.github/workflows/pages.yml` 里有一条断言专门卡这件事）。
+所以它天生就是静态站点：不用 clone、不用装 Node、不用登录，打开就是 **24 个页面全部可点**，
+数据是内置演示数据（页面顶部会明确标注「在线预览 · 离线模式」，不假装连着后端）。
+
+要真实 SQLite 持久化、Agent 引擎、权限拦截这些**需要后端**的能力，仍需按下一节本地启动。
+
+> ⚠️ 离线演示态用的是**内置演示数据**，所以「岗位资料库」页在静态托管下是空的
+> （那 183 条市场岗位存在服务端 SQLite 里）。想看满血版就本地跑，或直接看上面的截图。
 
 ---
 
@@ -42,7 +102,9 @@ Windows 双击 `server/start.bat` 即可（自动开浏览器）。
    实测宿主的 Job Object 会把普通 `spawn(detached)` 的子进程一起回收，而 WMI 创建的进程不在其中。
 2. **前端自动找后端**（`平台原型/src/app.js`）—— 先探当前源，失败再探 `127.0.0.1:8788`，
    探到就切过去。左下角有一条**连接状态条**，只在「没连上」或「跨源连上了」时出现，
-   离线时会给出「双击 `server/start.bat`」和「重试连接」，不装作一切正常。
+   离线时会**按宿主给不同的话**：本机打开 → 引导「双击 `server/start.bat`」+「重试连接」；
+   静态托管的访客（如 GitHub Pages）→ 说明「这是在线预览 · 离线模式，这里没有后端」，
+   而不是让他去找一个自己本机并不存在的文件。这段分流有专门用例锁着：`npm run test:pages`。
 
 验证这条链路：`npm run test:devup`（幂等启动 / CORS 白名单 / hook 接线 / 预览面板跨源场景）。
 后端已经在跑但版本旧了：`npm run dev:restart`。
@@ -53,7 +115,7 @@ Windows 双击 `server/start.bat` 即可（自动开浏览器）。
 
 | 文件 | 是什么 |
 |---|---|
-| `平台原型/index.html` | **可点击平台原型**，单文件 **491,922 bytes（约 480KB）**，23 个页面，双击即开（探测到本机后端会自动切到在线） |
+| `平台原型/index.html` | **可点击平台原型**，单文件 **535,804 bytes（约 523KB）**，24 个页面，双击即开（探测到本机后端会自动切到在线） |
 | `server/` | **真实后端**：Node 原生 HTTP + SQLite + Agent 引擎，零依赖；**16 个模块按 L0–L5 分层** |
 | `shared/` | **前后端共用的单一数据源**：`req-lib.js`（职能族词库）/ `override-codes.js`（推翻原因枚举）/ `score-why.js`（打分归因与系数阶梯）。只改这里，离线端与后端同时生效 |
 | `.workbuddy/settings.json` | **项目级 hook**：SessionStart → `tools/dev-up.sh`，每次打开项目把后端幂等拉起 |
@@ -166,7 +228,7 @@ Windows 双击 `server/start.bat` 即可（自动开浏览器）。
 
 同一份 `index.html`，两种状态：
 
-- **离线演示态**：直接双击打开。内置假数据，23 页全可点，适合给客户演示信息架构和交互。**不发任何网络请求**，断网可用。
+- **离线演示态**：直接双击打开。内置假数据，24 页全可点，适合演示信息架构与交互。**不发任何网络请求**，断网可用。
 - **真实后端态**：由 `server.js` 托管（访问 `http://127.0.0.1:8788`）。页面先探测后端，`strict` 模式下弹出**登录闸门**；登录后右上角亮「🟢 真实后端 · SQLite · 已认证」，此后：
   - 筛选 Agent 的打分**真的写进数据库**；
   - 高风险写操作**真的被闸门拦下**，生成真实审批单；
@@ -219,9 +281,10 @@ node --experimental-sqlite server.js
 一键跑全部（**推荐**）：起一个隔离实例（`127.0.0.1:8799` + 临时库），演示库 `server/hr_agent.db` 毫发无伤。
 
 ```bash
-node tools/run_all.js                 # 功能回归：10 套件
-node tools/run_all.js --only backend  # 只跑后端 5 套件（也可用套件 id：--only eval / --only auth）
+node tools/run_all.js                 # 功能回归：11 套件
+node tools/run_all.js --only backend  # 只跑后端 4 套件（也可用套件 id：--only eval / --only auth）
 node tools/run_all.js --only load     # 并发压测（单独一档，不混进默认回归）
+node tools/check_docs.js              # 文档守卫：页面数 / 原型字节数 是否与代码一致（已并入 npm test）
 ```
 
 > `--only` 打错字时**会报错退出**，而不是静默跑 0 套件假装通过 —— 假绿比红灯更贵。
@@ -233,20 +296,22 @@ node --experimental-sqlite tools/test_auth.js        # 可信底座 · 鉴权 / 
 node --experimental-sqlite tools/test_hiring.js      # 招聘链路 · 状态机 / 合规闸门 / 行级隔离
 node --experimental-sqlite tools/test_jd.js          # JD 生成口径 · 原文还原 / 段落化 / 往返无损
 node --experimental-sqlite tools/test_eval.js        # 筛选质量评测 · 黄金集 + 一致率接口 · 56 项
+node --experimental-sqlite tools/eval_dual_mode.js   # 规则 × LLM 双模式对照 · 分工证据 + Wilson 95% 区间（已并入 npm test）
 node --experimental-sqlite tools/test_screening.js   # 用量真实性 / 可重复运行 · 29 项
 node tools/test_devup.js                             # 打开即在线 · 幂等启动 / CORS / hook 接线 / 跨源场景 · 18 项
 node --experimental-sqlite tools/test_ops.js         # 运维面 · gzip / ETag / 源码隔离 / 重置开关 / 口令治理 / 备份 · 48 项
 npm run preflight                                    # 上线前自检（只读；退出码 0 才可以把链接发出去）
 npm run backup                                       # 在线备份（VACUUM INTO 快照，不用停服）
 cd 平台原型
-node test_prototype.js                               # 离线：23 页渲染 + 23 项交互（无需 server）
-node test_live.js                                    # 真后端：23 页渲染 + 27 项真链路（需先启动 server）
+node test_prototype.js                               # 离线：24 页渲染 + 23 项交互（无需 server）
+node test_pages.js                                   # Pages 静态托管：自包含断言 / 宿主提示分流 / 离线渲染
+node test_live.js                                    # 真后端：24 页渲染 + 27 项真链路（需先启动 server）
 ```
 
-当前状态：**全部 0 失败 · 10 套件全绿**（后端 4 + 评测 1 + 筛选 1 + 自包含 2 + 前端 2）。压测另跑，0 错误。
+当前状态：**全部 0 失败 · 11 套件全绿**（后端 4 + 自包含 3 + 前端 4）。压测另跑，0 错误。
 
 > 运行前端无头测试需要 `jsdom`：`NODE_PATH=<你的 workspace>/node_modules node test_live.js`（本项目自身不依赖任何 npm 包）。
-> 硬验证：删掉 `server/hr_agent.db` 后重启，空库自动跑到 `schemaVersion: 6`（19 张业务表 / 2 个触发器 / 20 个索引），无需人工干预。
+> 硬验证：删掉 `server/hr_agent.db` 后重启，空库自动跑到 `schemaVersion: 9`（20 张业务表 / 2 个触发器 / 23 个索引），无需人工干预。
 
 ---
 
@@ -263,7 +328,7 @@ node test_live.js                                    # 真后端：23 页渲染 
 
 3 例分歧全部同向（AI 过宽），且都是**故意埋的边界探针**：前端技术负责人（`JavaScript` 含「Java」字样被误命中）、资深算法工程师（业务/加分标签堆叠抬高分数）、资深销售（沟通类标签全中但无交付经验）。这三条直接对应 `override_code` 枚举里的 `keyword_fuzzy` / `biz_overrated`——**评测不只是打分，它给出了改进清单**。
 
-**打分口径：关键词必须跟着岗位走**（`shared/req-lib.js`，词库版本 `REQ_LIB_VER = 11`）
+**打分口径：关键词必须跟着岗位走**（词库在 `shared/req-lib.js`，版本号 `REQ_LIB_VER` 在 `server/engine.js`，当前 **14**）
 
 原型里有个更隐蔽的同类问题：`scoreResume` 曾**写死一份 Java 技术词表**（java/spring/kafka/mysql…），岗位要求只拿来判学历与年限两个闸门。于是任何非 Java 岗位都必然技能匹配 0/40 —— 把一份正文写着 `LLM`、`RAG`、`Agent` 的 AI 产品经理简历，拿去评「了解LLM RAG」的岗位，得到 **16 分 / 不合适**。已改为**关键词一律从岗位硬性要求抽**，四个维度的映射口径与后端 `scoreOne` 对齐，界面并把抽到的关键词显示出来（分数可解释）。
 
@@ -300,3 +365,42 @@ node test_live.js                                    # 真后端：23 页渲染 
 已补上的 P0：**身份认证**、**权限**（M1），以及**离线评测集**（30 例人工标注黄金集 + 一致率 / 漏筛率 / 误筛率）。评测数字与失败模式见上一节，不回避 25% 的误筛率 —— 它说明的是「规则型筛选在标签堆叠面前会偏宽」，而不是「我们做得很好」。
 
 仍然缺的：多租户物理隔离、真实 ATS / 招聘渠道集成、文件与简历原文存储、向量检索、模型评测平台、灰度与回滚。要变成生产系统，按 `docs/02` 的 8 阶段路线推进。
+
+---
+
+## 参与与反馈
+
+- 📋 **[CHANGELOG.md](CHANGELOG.md)** —— 版本演进、每个版本改了什么、为什么改
+- 🤝 **[CONTRIBUTING.md](CONTRIBUTING.md)** —— 怎么跑测试、改动的硬约束（改前必读）
+- 🔐 **[SECURITY.md](SECURITY.md)** —— 安全边界与漏洞上报方式
+- 🐛 **Issue / PR 模板**在 `.github/` 下，按提示填即可
+
+这个仓库最值得看的三份文档：**[`docs/05`](docs/05_从PoC到企业级的差距清单.md)**（离企业级还差什么，按 P0/P1/P2 分级，不回避）、
+**[`docs/09`](docs/09_实现说明与验收报告.md)**（凭什么说做完了，含 4 条被测试抓出的真实缺陷）、
+**[`docs/16`](docs/16_规则与LLM双模式对照评测.md)**（规则与模型的分工证据 + Wilson 置信区间）。
+
+---
+
+## 许可
+
+**MIT License** —— 可自由使用、修改、分发（含商用），只需保留版权与许可声明。全文见 [LICENSE](LICENSE)。
+
+两点说明：
+
+- 岗位抓取脚本访问的是 BOSS 直聘 / 智联招聘的**公开页面**。请自行确认并遵守目标站点的 robots 与服务条款，不要高频请求。
+- 仓库内 `reference_jobs` 里的市场岗位数据为抓取快照，仅用于演示「JD 生成要接地真实市场」这一能力，**不代表任何公司的招聘承诺**。
+
+---
+
+## 生成物说明
+
+根目录下带日期的 `.html` 与 `平台原型/index.html` **都是生成物，不要手改**：
+
+```bash
+npm run build                                   # 重新打包前端原型
+python tools/md2dark_html.py --out out.html \
+  --title "标题" --subtitle "副标题" docs/xx.md   # md -> 暗色阅读版 HTML
+```
+
+改完源头（`平台原型/src/*` 或 `docs/*.md`）记得重新生成，否则 md 与 HTML 会不一致。
+`.gitattributes` 已用 `linguist-generated=true` 标记这些文件，GitHub 会折叠它们的 diff。

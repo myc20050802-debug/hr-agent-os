@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GitHub 开源前 · 改进清单</title>
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+  --line:#262c39; --line2:#323a4b;
+  --tx:#e7eaf1; --tx2:#a8b1c2; --tx3:#6f7a8d;
+  --ac:#4c8dff; --ac2:#7aa9ff; --grn:#3ddc97; --yel:#f5b942; --red:#ff6b6b; --pur:#a78bfa;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:15px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+header{position:sticky;top:0;z-index:50;background:rgba(13,15,20,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:14px 26px 0}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1.brand{font-size:17px;margin:0;letter-spacing:.3px}
+.sub{color:var(--tx3);font-size:12.5px}
+.searchbox{margin-left:auto;display:flex;align-items:center;gap:8px}
+input#q{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:9px;
+  padding:8px 12px;width:240px;font-size:13px;outline:none}
+input#q:focus{border-color:var(--ac)}
+.hint{font-size:12px;color:var(--tx3)}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx2);
+  padding:9px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac2);border-bottom-color:var(--ac);font-weight:600}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1560px;margin:0 auto}
+aside{position:sticky;top:112px;align-self:start;height:calc(100vh - 112px);overflow-y:auto;
+  padding:22px 14px 60px 26px;border-right:1px solid var(--line)}
+.tocgroup{display:flex;flex-direction:column;gap:1px}
+.toclink{display:block;color:var(--tx2);text-decoration:none;font-size:13px;padding:5px 9px;
+  border-radius:7px;line-height:1.45}
+.toclink:hover{background:var(--panel2);color:var(--tx)}
+.toclink.lvl2{padding-left:20px}
+.toclink.lvl3{padding-left:32px;font-size:12.5px;color:var(--tx3)}
+main{padding:26px 34px 120px;min-width:0}
+.docmeta{font:12px var(--mono);color:var(--tx3);margin-bottom:18px;
+  border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;display:inline-block}
+article h1{font-size:27px;margin:26px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+article h2{font-size:21px;margin:38px 0 14px;padding:9px 0 9px 13px;border-left:3px solid var(--ac);
+  background:linear-gradient(90deg,rgba(76,141,255,.09),transparent);border-radius:0 8px 8px 0}
+article h3{font-size:17px;margin:28px 0 10px;color:var(--ac2)}
+article h4{font-size:15px;margin:20px 0 8px;color:var(--tx2)}
+p{margin:9px 0}
+a{color:var(--ac2)}
+strong{color:#fff;font-weight:650}
+em{color:var(--yel);font-style:normal}
+code{font:12.6px var(--mono);background:var(--panel2);border:1px solid var(--line);
+  padding:1.5px 5px;border-radius:5px;color:#ffd479}
+.codeblock{margin:14px 0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0a0c11}
+.codetop{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);font:11.5px var(--mono);color:var(--tx3)}
+.copybtn{background:var(--panel2);border:1px solid var(--line2);color:var(--tx2);font-size:11.5px;
+  padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.copybtn:hover{color:var(--tx);border-color:var(--ac)}
+pre{margin:0;padding:14px 16px;overflow-x:auto}
+pre code{background:none;border:none;padding:0;color:#cfd8e6;font-size:12.6px;line-height:1.62}
+blockquote{margin:14px 0;padding:13px 16px;background:linear-gradient(90deg,rgba(167,139,250,.10),rgba(167,139,250,.02));
+  border-left:3px solid var(--pur);border-radius:0 10px 10px 0;color:#d9def0}
+blockquote p{margin:4px 0}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+th{background:var(--panel);text-align:left;padding:10px 12px;font-weight:640;color:var(--ac2);
+  border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(76,141,255,.05);color:var(--tx)}
+ul,ol{margin:9px 0;padding-left:24px}
+li{margin:5px 0;color:var(--tx2)}
+li strong{color:var(--tx)}
+hr.sep{border:none;border-top:1px solid var(--line);margin:26px 0}
+mark{background:rgba(245,185,66,.34);color:#fff;border-radius:3px;padding:0 2px}
+.hidden{display:none !important}
+footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-size:12.5px;text-align:center}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}aside{display:none}main{padding:20px 16px 90px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 class="brand">GitHub 开源前 · 改进清单</h1>
+    <span class="sub">HR-Agent OS · 基于实际仓库审计（88 个跟踪文件）</span>
+    <div class="searchbox">
+      <span class="hint" id="hint">全文搜索</span>
+      <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs"><button class="tab active" data-doc="doc0">GitHub 开源前 · 改进清单</button></div>
+</header>
+<div class="wrap">
+  <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--GitHub-开源前-改进清单" data-text="GitHub 开源前 · 改进清单">GitHub 开源前 · 改进清单</a><a class="toclink lvl2" href="#doc0--零-先给判断" data-text="零、先给判断">零、先给判断</a><a class="toclink lvl2" href="#doc0--一-P0-必须改-会直接坏事" data-text="一、P0 · 必须改（会直接坏事）">一、P0 · 必须改（会直接坏事）</a><a class="toclink lvl3" href="#doc0--1-1-没有-LICENSE-而且是-默认最严-状态-已解决-选了-MIT" data-text="1.1 没有 LICENSE —— 而且是「默认最严」状态 · ✅ 已解决（选了 MIT）">1.1 没有 LICENSE —— 而且是「默认最严」状态 · ✅ 已解决（选了 MIT）</a><a class="toclink lvl3" href="#doc0--1-2-有-10-套回归套件-但没有-CI-已解决-github-workflows-test-yml" data-text="1.2 有 10 套回归套件，但没有 CI · ✅ 已解决（.github/workflows/test.yml）">1.2 有 10 套回归套件，但没有 CI · ✅ 已解决（.github/workflows/test.yml）</a><a class="toclink lvl3" href="#doc0--1-3-Python-抓取脚本-依赖没声明-缺依赖时抛裸回溯栈-已解决" data-text="1.3 Python 抓取脚本：依赖没声明，缺依赖时抛裸回溯栈 · ✅ 已解决">1.3 Python 抓取脚本：依赖没声明，缺依赖时抛裸回溯栈 · ✅ 已解决</a><a class="toclink lvl3" href="#doc0--1-4-C-Users-用户名-硬编码-12-处-横跨-8-个文件-已清零" data-text="1.4 C:\Users\&lt;用户名&gt;\... 硬编码 12 处，横跨 8 个文件 · ✅ 已清零">1.4 C:\Users\&lt;用户名&gt;\... 硬编码 12 处，横跨 8 个文件 · ✅ 已清零</a><a class="toclink lvl2" href="#doc0--二-P1-强烈建议-性价比高" data-text="二、P1 · 强烈建议（性价比高）">二、P1 · 强烈建议（性价比高）</a><a class="toclink lvl3" href="#doc0--2-1-根目录堆了-21-个散落文档-而且同类文档分了两处" data-text="2.1 根目录堆了 21 个散落文档，而且同类文档分了两处">2.1 根目录堆了 21 个散落文档，而且同类文档分了两处</a><a class="toclink lvl3" href="#doc0--2-2-15-个-暗色-HTML-阅读版-要不要入库-得做个明确决定" data-text="2.2 15 个「暗色 HTML 阅读版」要不要入库 —— 得做个明确决定">2.2 15 个「暗色 HTML 阅读版」要不要入库 —— 得做个明确决定</a><a class="toclink lvl3" href="#doc0--2-3-README-30-KB-长得有点过头" data-text="2.3 README 30 KB，长得有点过头">2.3 README 30 KB，长得有点过头</a><a class="toclink lvl3" href="#doc0--2-4-没有-github" data-text="2.4 没有 .github/">2.4 没有 .github/</a><a class="toclink lvl2" href="#doc0--三-P2-打磨" data-text="三、P2 · 打磨">三、P2 · 打磨</a><a class="toclink lvl3" href="#doc0--3-1-演示口令-Demo-2026-明文出现在多处" data-text="3.1 演示口令 Demo@2026 明文出现在多处">3.1 演示口令 Demo@2026 明文出现在多处</a><a class="toclink lvl3" href="#doc0--3-2-gitattributes-的-linguist-generated-列表同步" data-text="3.2 .gitattributes 的 linguist-generated 列表同步">3.2 .gitattributes 的 linguist-generated 列表同步</a><a class="toclink lvl3" href="#doc0--3-3-文档命名统一" data-text="3.3 文档命名统一">3.3 文档命名统一</a><a class="toclink lvl3" href="#doc0--3-4-package-json-元数据" data-text="3.4 package.json 元数据">3.4 package.json 元数据</a><a class="toclink lvl2" href="#doc0--四-提交策略-重要" data-text="四、提交策略（重要）">四、提交策略（重要）</a><a class="toclink lvl2" href="#doc0--五-上传前自检清单" data-text="五、上传前自检清单">五、上传前自检清单</a><a class="toclink lvl2" href="#doc0--附-优先级速览" data-text="附：优先级速览">附：优先级速览</a></div></aside>
+  <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">14_GitHub开源前改进清单.md</div><h1 id="doc0--GitHub-开源前-改进清单">GitHub 开源前 · 改进清单</h1>
+<blockquote>审计对象：<code>hr平台</code>（HR-Agent OS）本地仓库 · 审计时间 2026-09-30 15:57（北京时间） 方法：实际检查 83 个已跟踪文件、git 历史、依赖声明、路径硬编码、仓库体积、CI 可行性。 <strong>不是通用建议清单</strong> —— 每条都带证据（文件:行号 / 实测数字）。 <strong>进度更新（2026-09-30 16:30）</strong>：§1 的四个 P0 项<strong>已全部落地</strong>，完成情况见文末「附」。下面保留原始审计内容作为记录。</blockquote>
+<hr class="sep">
+<h2 id="doc0--零-先给判断">零、先给判断</h2>
+<p><strong>底子比多数开源项目干净。</strong> 先说好的，因为这几件事你已经做对了、别退回去：</p>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>实测</th><th>说明</th></tr></thead><tbody><tr><td>敏感文件未入库</td><td>✅</td><td>已跟踪文件里<strong>没有</strong> <code>.env</code> / <code>.session_secret</code> / <code>*.db</code> / <code>backups/</code>（我逐个查过 <code>git ls-files</code>）</td></tr><tr><td>忽略清单质量</td><td>✅ 67 行，分 6 类带理由</td><td>不只写规则，每条注释都解释了「为什么忽略」</td></tr><tr><td>依赖极简</td><td>✅ <code>dependencies: {}</code></td><td>运行时零依赖（Node 原生 http + 内置 sqlite），只有 <code>jsdom</code> 一个 devDependency</td></tr><tr><td>Commit 历史</td><td>✅ 可读</td><td><code>feat(scoring):</code> / <code>fix(tools):</code> / <code>docs:</code> 前缀规范，每条讲一件事</td></tr><tr><td><code>.gitattributes</code></td><td>✅ 有想法</td><td>用 <code>linguist-generated=true</code> 标记生成物，让 GitHub 折叠 diff（但列表已过期，见 §3.2）</td></tr><tr><td>仓库体积</td><td>✅ 8.1 MB</td><td>已跟踪最大文件 516 KB（生成的原型 HTML），<strong>不需要 Git LFS</strong></td></tr><tr><td>工程化文档</td><td>✅</td><td><code>.env.example</code> 逐项写了「为什么」，<code>npm run preflight</code> 有只读自检，README 结构完整</td></tr></tbody></table></div>
+<p><strong>但有 4 个必须在上传前解决</strong>（§1），否则别人 clone 下来跑不起来、或者法律上不能用。</p>
+<hr class="sep">
+<h2 id="doc0--一-P0-必须改-会直接坏事">一、P0 · 必须改（会直接坏事）</h2>
+<h3 id="doc0--1-1-没有-LICENSE-而且是-默认最严-状态-已解决-选了-MIT">1.1 没有 LICENSE —— 而且是「默认最严」状态 · ✅ 已解决（选了 MIT）</h3>
+<p><strong>证据</strong>：<code>package.json</code> → <code>"license": "UNLICENSED"</code>，仓库根目录<strong>没有</strong> <code>LICENSE</code> 文件。</p>
+<p><strong>为什么这是 P0</strong>：在 GitHub 上，<strong>没有 license = 保留所有权利</strong>（Berne 公约默认）。所以现在的实际效果是「公开给人看，但谁都不能合法使用/修改/分发」。这很可能不是你的本意。</p>
+<p><strong>要先做一个决定</strong>：</p>
+<div class="tablewrap"><table><thead><tr><th>你的意图</th><th>该做什么</th></tr></thead><tbody><tr><td>让别人能自由参考/使用</td><td>加 <code>LICENSE</code>（MIT 最省事；Apache-2.0 更正式，含专利授权）</td></tr><tr><td>只想展示、不许使用</td><td><strong>保留现状</strong>，但在 README 顶部和 <code>LICENSE</code> 里用大白话写清楚「仅供阅读参考」</td></tr><tr><td>自己也要商用、不想别人抄</td><td>建议<strong>先私有仓库</strong>，等商用路径定了再开源</td></tr></tbody></table></div>
+<p>顺带：<code>"private": true</code> 只影响 <code>npm publish</code>，<strong>不影响 GitHub 可见性</strong>，可以留着。</p>
+<hr class="sep">
+<h3 id="doc0--1-2-有-10-套回归套件-但没有-CI-已解决-github-workflows-test-yml">1.2 有 10 套回归套件，但没有 CI · ✅ 已解决（<code>.github/workflows/test.yml</code>）</h3>
+<p><strong>证据</strong>：</p>
+<ul>
+<li><code>package.json</code> → <code>"test": "node tools/run_all.js"</code>，实际 <strong>10 套件</strong>（后端契约 / 招聘链路 / JD 口径 / 筛选评测 / 筛选运行 / 打开即在线 / 运维面 / 前端离线 / 导航 / 前端在线）</li>
+<li>README 写着「10 套件全绿」「一致率 90.0%」「误筛率 25.0%」这些数字</li>
+<li>仓库里<strong>没有 <code>.github/</code> 目录</strong>（<code>ls .github</code> → 不存在）</li>
+</ul>
+<p><strong>为什么这是 P0</strong>：这些数字目前<strong>全靠你口头保证</strong>。访客无法自己验证。而把「我测过」变成「任何人都能验证」，只需要 15 行 YAML —— 这是整个清单里性价比最高的一个动作。</p>
+<p><strong>可行性我已经验证过了</strong>：<code>tools/run_all.js</code> 用的是普通 <code>spawn</code> / <code>spawnSync</code>（第 16 / 53 / 81 行），<strong>没有任何平台特定调用</strong>；Windows 专属代码只存在于 <code>tools/dev-up.js</code>（WMI 拉进程），而 CI 根本用不到它。所以 <code>ubuntu-latest</code> 上能跑。</p>
+<p>需要 Node ≥ 22.5（<code>--experimental-sqlite</code>），<code>engines</code> 字段已经写对了。</p>
+<p><strong>可直接用</strong>（<code>.github/workflows/test.yml</code>）：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">yaml</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>name: test
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci || npm install
+      - name: 一键回归（11 套件 · 隔离实例 + 临时库）
+        run: npm test</code></pre></div>
+<blockquote>注：<code>run_all.js</code> 自带「隔离实例 127.0.0.1:8799 + 临时库」，<strong>不会碰演示库</strong>，天生适合 CI。</blockquote>
+<hr class="sep">
+<h3 id="doc0--1-3-Python-抓取脚本-依赖没声明-缺依赖时抛裸回溯栈-已解决">1.3 Python 抓取脚本：依赖没声明，缺依赖时抛裸回溯栈 · ✅ 已解决</h3>
+<p><strong>证据</strong>：</p>
+<ul>
+<li><code>tools/scrape_boss_jobs.py:40</code> → <code>from scrapling.fetchers import StealthyFetcher</code>（<strong>模块顶层，无 try/except</strong>）</li>
+<li><code>tools/scrape_zhaopin_jobs.py:36</code> → 同上</li>
+<li>仓库里<strong>没有</strong> <code>requirements.txt</code> / <code>pyproject.toml</code>（<code>ls</code> 均不存在）</li>
+</ul>
+<p><strong>为什么是 P0</strong>：这两个脚本是「岗位资料库」的<strong>唯一数据入口</strong>，<code>docs/13</code> 和前端「岗位资料库」页都在教用户怎么跑它们。别人 clone 后执行，拿到的是一个 <code>ModuleNotFoundError</code> 回溯栈，不知道要装什么、装哪个版本。</p>
+<p><strong>改法</strong>（两件小事）：</p>
+<ol>
+<li>新增 <code>tools/requirements-scrape.txt</code>，内容一行：<code>scrapling&gt;=0.4.15</code></li>
+<li>把 import 包起来，给一句人话：</li>
+</ol>
+<div class="codeblock"><div class="codetop"><span class="lang">python</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>try:
+    from scrapling.fetchers import StealthyFetcher
+except ImportError:  # 依赖缺失时给可用信息，而不是回溯栈
+    raise SystemExit(
+        "缺少 scrapling。请先装依赖：\n"
+        "  python -m pip install -r tools/requirements-scrape.txt\n"
+        "注意：抓取脚本与后端（Node）无关，后端零依赖照常运行。"
+    )</code></pre></div>
+<hr class="sep">
+<h3 id="doc0--1-4-C-Users-用户名-硬编码-12-处-横跨-8-个文件-已清零">1.4 <code>C:\Users\&lt;用户名&gt;\...</code> 硬编码 12 处，横跨 8 个文件 · ✅ 已清零</h3>
+<p><strong>证据</strong>（原审计时扫描本机绝对路径）：</p>
+<div class="tablewrap"><table><thead><tr><th>文件</th><th>次数</th><th>位置性质</th></tr></thead><tbody><tr><td><code>docs/02_搭建实操教程.md</code></td><td>3</td><td><strong>第 58 / 62 / 63 行 —— 是「怎么跑起来」的操作步骤</strong></td></tr><tr><td><code>HR-AI-Agent平台_产品方案.html</code></td><td>3</td><td>生成物（该篇无 md 源，直接改 HTML）</td></tr><tr><td><code>JD生成口径修复说明.md</code></td><td>1</td><td>第 3 行文档抬头「平台：」路径</td></tr><tr><td><code>JD生成口径说明_v12_已填内容润色.md</code></td><td>1</td><td>第 3 行同上</td></tr><tr><td><code>面试前缺口审计_待补清单.md</code></td><td>1</td><td>第 4 行「审计对象：」路径</td></tr><tr><td>对应 3 个 <code>.html</code></td><td>3</td><td>生成物</td></tr></tbody></table></div>
+<p><strong>为什么是 P0</strong>：两个后果 —— ① <strong>泄露本机用户名</strong>；② <strong>复制粘贴必断</strong>，<code>docs/02</code> 是唯一的「手把手搭建」文档，别人照着做 100% 失败。</p>
+<p><strong>改法</strong>：</p>
+<ul>
+<li>代码路径一律改仓库相对路径（<code>平台原型/</code>、<code>tools/</code>、<code>server/</code>）</li>
+<li>Python 解释器改成 <code>python</code> / <code>python3</code>，并注明「任意 3.9+ 均可」</li>
+<li>文档抬头的「平台：」路径删掉或改成 <code>&lt;仓库根&gt;</code></li>
+<li>改完<strong>重跑 <code>tools/md2dark_html.py</code> 重新生成 HTML</strong>（否则改了的 md 与 HTML 不一致）</li>
+</ul>
+<p><strong>完成情况</strong>：12 处已全部替换为仓库相对路径 / <code>python</code>；涉及 md 的 5 篇 HTML 已重新生成，<code>git grep -nE 'C:[\\/]Users|/Users/'</code> 现在无输出。</p>
+<hr class="sep">
+<h2 id="doc0--二-P1-强烈建议-性价比高">二、P1 · 强烈建议（性价比高）</h2>
+<h3 id="doc0--2-1-根目录堆了-21-个散落文档-而且同类文档分了两处">2.1 根目录堆了 21 个散落文档，而且同类文档分了两处</h3>
+<p><strong>证据</strong>：</p>
+<ul>
+<li>根目录：15 个 <code>.html</code> + 6 个 <code>.md</code>（不含 README）= <strong>21 个散落文件</strong></li>
+<li><code>docs/</code>：<code>01_</code>~<code>13_</code> 编号文档 + 1 个未编号的</li>
+<li><strong>最刺眼的一处</strong>：<code>JD生成口径修复说明.md</code> 在<strong>根目录</strong>，而它的后继版本 <code>docs/JD生成口径v13修复说明_岗位职责栏与语义分段.md</code> 在 <strong>docs/</strong>。同一个主题的前后两版，分居两处。</li>
+</ul>
+<p><strong>建议</strong>：</p>
+<ul>
+<li>根目录<strong>只留 <code>README.md</code></strong></li>
+<li>散落的 <code>.md</code> 收进 <code>docs/</code>；历史版本进 <code>docs/archive/</code></li>
+<li>HTML 阅读版统一放 <code>docs/html/</code>（或按 §2.2 决定不入库）</li>
+</ul>
+<blockquote>理由：访客打开仓库第一屏看到的是 21 个文件，而不是「这是个什么项目、怎么跑」。</blockquote>
+<hr class="sep">
+<h3 id="doc0--2-2-15-个-暗色-HTML-阅读版-要不要入库-得做个明确决定">2.2 15 个「暗色 HTML 阅读版」要不要入库 —— 得做个明确决定</h3>
+<p><strong>证据</strong>：约 <strong>900 KB 生成物</strong>已入库；<code>.gitattributes</code> 里有 <code>linguist-generated=true</code> 标记。</p>
+<p><code>linguist-generated</code> 这个做法<strong>本身很聪明</strong>（GitHub 会折叠 diff，避免把打包产物误读成手写代码）。<strong>但列表已经过期</strong> —— 这批不在里面：</p>
+<ul>
+<li><code>岗位资料库与Boss抓取接入.html</code>（本轮新生成）</li>
+<li><code>JD生成口径v13修复说明_岗位职责栏与语义分段.html</code></li>
+</ul>
+<p><strong>两条路二选一，别含糊</strong>：</p>
+<div class="tablewrap"><table><thead><tr><th>方案</th><th>要做的事</th></tr></thead><tbody><tr><td><strong>① 继续入库</strong>（我倾向这个）</td><td>把 <code>linguist-generated</code> 列表补全；README 写明「改了 md 必须重跑 <code>tools/md2dark_html.py</code> 重新生成」</td></tr><tr><td><strong>② 不入库</strong></td><td>加进 <code>.gitignore</code>，README 给生成命令，让别人自己生成</td></tr></tbody></table></div>
+<p>倾向 ① 的理由：HTML 是你对外演示的主要形态。但它需要<strong>纪律</strong> —— 现在就已经出现「md 更新了、HTML 还是旧的」的情况了。</p>
+<hr class="sep">
+<h3 id="doc0--2-3-README-30-KB-长得有点过头">2.3 README 30 KB，长得有点过头</h3>
+<p><strong>结构本身很好</strong>（一分钟跑起来 / 交付物 / M1 可信底座 / 打分可解释 / 两种运行模式 / 五分钟演示路径 / 技术选型 / 测试 / 质量与性能实测 / 这不是什么）。</p>
+<p><strong>问题</strong>：根目录已经有「产品方案」「从 0 到 1 复盘」「实现验收报告」等长文，README 里再塞长论证就是<strong>重复</strong>。</p>
+<p><strong>建议压到「一屏看懂 + 一屏跑起来」</strong>：保留 <code>一分钟跑起来</code>、<code>交付物</code>、<code>技术选型</code>、<code>测试</code>、<code>这不是什么</code>，长论证下沉 docs 并给链接。</p>
+<p><strong>另外建议补三样</strong>：</p>
+<ol>
+<li><strong>一张界面截图或 30 秒 GIF</strong> —— 现在纯文字，访客无法「一眼看到产品长什么样」，这是当前 README 最大的短板</li>
+<li><strong>Badges</strong> —— CI 状态（做完 §1.2 就有了）+ Node ≥ 22.5 + 零运行时依赖</li>
+<li><strong>最前面一句显著声明</strong>：这是 PoC，不是生产系统</li>
+</ol>
+<hr class="sep">
+<h3 id="doc0--2-4-没有-github">2.4 没有 <code>.github/</code></h3>
+<p>除了 CI，建议加：</p>
+<ul>
+<li><strong><code>SECURITY.md</code></strong> —— 说清「这是 PoC / 演示口令 <code>Demo@2026</code> / 不要用于真实候选人 PII」，性价比最高</li>
+<li><code>CONTRIBUTING.md</code>（可选）、PR/Issue 模板（可选）</li>
+</ul>
+<p>对一个主打「可信底座、合规红线」的项目，<code>SECURITY.md</code> 的存在本身就在传递信号。</p>
+<hr class="sep">
+<h2 id="doc0--三-P2-打磨">三、P2 · 打磨</h2>
+<h3 id="doc0--3-1-演示口令-Demo-2026-明文出现在多处">3.1 演示口令 <code>Demo@2026</code> 明文出现在多处</h3>
+<p>对 PoC 完全合理，而且 <code>npm run preflight</code> 已经会检查它。但开源后建议在 README 顶部用醒目 blockquote 声明「<strong>演示口令仅供本地，部署即改</strong>」，避免有人 clone 完直接上线。</p>
+<h3 id="doc0--3-2-gitattributes-的-linguist-generated-列表同步">3.2 <code>.gitattributes</code> 的 <code>linguist-generated</code> 列表同步</h3>
+<p>见 §2.2 —— 补上新生成的 HTML，否则 GitHub 的语言统计和 diff 折叠不准。</p>
+<h3 id="doc0--3-3-文档命名统一">3.3 文档命名统一</h3>
+<p><code>docs/</code> 是 <code>01_</code>~<code>13_</code> 编号，但 <code>docs/JD生成口径v13修复说明_岗位职责栏与语义分段.md</code> 没编号。要么给编号，要么整体放弃编号 —— 现在是「两套规矩」。</p>
+<h3 id="doc0--3-4-package-json-元数据">3.4 <code>package.json</code> 元数据</h3>
+<ul>
+<li>缺 <code>repository</code>（有 <code>description</code>，写得不错）</li>
+<li>建议补 <code>repository</code> / <code>homepage</code> / <code>bugs</code></li>
+<li>GitHub 仓库建议设 <code>topics</code>：<code>hr-tech</code>、<code>ai-agent</code>、<code>poc</code>、<code>nodejs</code>、<code>zero-dependency</code>、<code>node-sqlite</code></li>
+</ul>
+<hr class="sep">
+<h2 id="doc0--四-提交策略-重要">四、提交策略（重要）</h2>
+<p><strong>现在堆了两批未提交改动，建议拆成 2~3 个语义化提交，别一次性糊上去。</strong></p>
+<div class="tablewrap"><table><thead><tr><th>批次</th><th>内容</th></tr></thead><tbody><tr><td><strong>① v13 岗位职责栏 + 语义分段</strong></td><td><code>shared/req-lib.js</code>、<code>server/engine.js</code>、<code>server/migrations.js</code>、<code>tools/test_jd.js</code>、<code>平台原型/src/{app.js,agent.js,app.css}</code>、<code>平台原型/test_prototype.js</code>、<code>docs/JD生成口径v13修复说明…md</code></td></tr><tr><td><strong>② 岗位资料库 v9 + 抓取链路</strong></td><td><code>server/referenceJobs.js</code>(新)、<code>server/routes.js</code>、<code>tools/scrape_boss_jobs.py</code>(新)、<code>tools/scrape_zhaopin_jobs.py</code>(新)、<code>tools/import_boss_jobs.py</code>、<code>docs/13…md</code>、重打包的 <code>平台原型/index.html</code>、<code>岗位资料库与Boss抓取接入.html</code></td></tr><tr><td><strong>③ （可选）开源前收尾</strong></td><td>审计清单、LICENSE、CI workflow、requirements、路径清理</td></tr></tbody></table></div>
+<p><strong>理由</strong>：你的 commit 历史质量很高（每条讲一件事），一次性巨型提交会破坏可读性 —— 而<strong>历史本身就是这个仓库被参观的一部分</strong>。</p>
+<hr class="sep">
+<h2 id="doc0--五-上传前自检清单">五、上传前自检清单</h2>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code># 1. 敏感文件确认没被跟踪（当前是干净的，改完再确认一次）
+git ls-files | grep -iE "\.env$|secret|\.db$|backups/"
+
+# 2. 本机路径残留清零
+git grep -nE 'C:[\\/]Users|/Users/'      # 期望：无输出
+
+# 3. 一键回归 + 上线自检
+npm install
+npm test                          # 期望：11 套件全绿
+npm run preflight                 # 期望：本地演示两项是 ⚠（预期），退出码 0
+
+# 4. 确认 .gitignore 仍生效（工具产物不该进库）
+git status --porcelain            # 期望：只有你要提交的文件，无 _*.json / _*.txt / *.log
+
+# 5. 分支名与首次推送
+git branch -M main
+git remote add origin &lt;你的仓库地址&gt;
+git push -u origin main</code></pre></div>
+<hr class="sep">
+<h2 id="doc0--附-优先级速览">附：优先级速览</h2>
+<div class="tablewrap"><table><thead><tr><th>优先级</th><th>事项</th><th>工作量</th></tr></thead><tbody><tr><td><strong>P0</strong></td><td>✅ 加 LICENSE</td><td>已完成 · MIT</td></tr><tr><td><strong>P0</strong></td><td>✅ 加 CI workflow</td><td>已完成 · <code>.github/workflows/test.yml</code></td></tr><tr><td><strong>P0</strong></td><td>✅ 抓取脚本依赖声明 + 友好报错</td><td>已完成 · <code>tools/requirements-scrape.txt</code></td></tr><tr><td><strong>P0</strong></td><td>✅ 清掉 12 处本机路径硬编码 + 重生成 HTML</td><td>已完成</td></tr><tr><td><strong>P1</strong></td><td>根目录文档收敛到 <code>docs/</code></td><td>30 分钟</td></tr><tr><td><strong>P1</strong></td><td>README 精简 + 补截图/badges</td><td>1~2 小时（截图是主要成本）</td></tr><tr><td><strong>P1</strong></td><td>加 <code>SECURITY.md</code></td><td>15 分钟</td></tr><tr><td><strong>P2</strong></td><td>命名统一 / 元数据 / topics</td><td>15 分钟</td></tr></tbody></table></div>
+<p><strong>最小可行上线路径</strong>：P0 四项做完（约 1 小时）就可以安心公开 —— 别人能跑起来、能验证、法律上不尴尬。其余都是打磨。</p>
+<blockquote><strong>2026-09-30 更新</strong>：P0 四项已全部完成，仓库现在可以公开。剩下的是 P1（文档收敛 / README 截图 / SECURITY.md）与 P2（命名与元数据）打磨。</blockquote></article></main>
+</div>
+<footer>生成时间：2026-09-30 16:52（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<script>
+const docs = [{"key": "doc0", "name": "GitHub 开源前 · 改进清单"}];
+
+function copyCode(btn) {
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1400);
+  });
+}
+
+function showDoc(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.doc === key));
+  document.querySelectorAll('article.doc').forEach(a => a.style.display = (a.dataset.doc === key ? '' : 'none'));
+  document.querySelectorAll('.tocgroup').forEach(g => g.style.display = (g.dataset.doc === key ? '' : 'none'));
+  resetHighlight();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showDoc(t.dataset.doc));
+
+// 滚动高亮目录
+const links = () => Array.from(document.querySelectorAll('.tocgroup:not([style*="none"]) .toclink'));
+window.addEventListener('scroll', () => {
+  const actives = links();
+  let cur = null;
+  for (const a of actives) {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el && el.getBoundingClientRect().top < 180) cur = a;
+  }
+  actives.forEach(a => a.style.color = '');
+  if (cur) { cur.style.color = 'var(--ac2)'; }
+});
+
+// 全文搜索 + 高亮
+let marks = [];
+function resetHighlight() {
+  document.querySelectorAll('mark').forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  marks = [];
+  document.getElementById('hint').textContent = '全文搜索';
+  document.getElementById('hint').style.color = 'var(--tx3)';
+}
+document.getElementById('q').addEventListener('input', e => {
+  const kw = e.target.value.trim();
+  resetHighlight();
+  if (kw.length < 2) return;
+  const activeArt = document.querySelector('article.doc:not([style*="none"])') || document.body;
+  let count = 0, first = null;
+  const walker = document.createTreeWalker(activeArt, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.trim().length > 1 && !/^(SCRIPT|STYLE|MARK)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const low = node.nodeValue.toLowerCase(), k = kw.toLowerCase();
+    if (low.indexOf(k) === -1) return;
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    while (true) {
+      const idx = rest.toLowerCase().indexOf(k); if (idx === -1) break;
+      frag.appendChild(document.createTextNode(rest.slice(0, idx)));
+      const m = document.createElement('mark'); m.textContent = rest.slice(idx, idx + kw.length);
+      frag.appendChild(m); marks.push(m); count++;
+      rest = rest.slice(idx + kw.length);
+    }
+    frag.appendChild(document.createTextNode(rest));
+    node.parentNode.replaceChild(frag, node);
+  });
+  const h = document.getElementById('hint');
+  h.textContent = count ? `命中 ${count} 处` : '无匹配';
+  h.style.color = count ? 'var(--grn)' : 'var(--red)';
+  if (count) { first = marks[0]; first.scrollIntoView({behavior:'smooth', block:'center'}); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.id !== 'q') { e.preventDefault(); document.getElementById('q').focus(); }
+  if (e.key === 'Escape') { document.getElementById('q').value = ''; resetHighlight(); }
+});
+</script>
+</body>
+</html>

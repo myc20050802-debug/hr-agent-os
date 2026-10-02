@@ -6,6 +6,8 @@
 <title>HR-Agent OS · B端 HR AI Agent SaaS 平台原型</title>
 <style>/* ===========================================================
    HR-Agent OS · 后台设计系统（暗色）
+   打磨约定：过渡只写精确属性（禁 transition:all）；按压反馈统一 scale(.96)；
+   动态数字一律 tabular-nums；结构边框保留、状态用 ring/色变表达。
    =========================================================== */
 :root{
   --bg:#0d0f14; --bg2:#11141b; --panel:#161a23; --panel2:#1b2029; --panel3:#20262f;
@@ -23,6 +25,7 @@
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--tx);
   font:14px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
   overflow:hidden}
 ::-webkit-scrollbar{width:9px;height:9px}
 ::-webkit-scrollbar-thumb{background:#2c3444;border-radius:6px}
@@ -58,11 +61,13 @@ nav{flex:1;overflow-y:auto;padding:8px 8px 20px}
 .navgroup-title{font-size:10.5px;color:var(--tx3);letter-spacing:.9px;padding:14px 10px 6px;font-weight:600}
 .navitem{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;color:var(--tx2);
   font-size:13px;cursor:pointer;user-select:none;white-space:nowrap;position:relative}
+.navitem{transition:background-color .14s ease,color .14s ease}
 .navitem:hover{background:var(--panel);color:var(--tx)}
 .navitem.active{background:var(--acbg);color:#fff;font-weight:600}
 .navitem.active::before{content:"";position:absolute;left:0;top:7px;bottom:7px;width:2.5px;border-radius:2px;background:var(--ac)}
 .navitem .ico{width:17px;text-align:center;font-size:14px;flex-shrink:0}
 .navitem .cnt{margin-left:auto;background:var(--redbg);color:var(--red);font-size:10.5px;
+  font-variant-numeric:tabular-nums;
   padding:1px 6px;border-radius:9px;font-weight:600}
 .navsub{padding-left:0}
 .navsub .navitem{padding-left:36px;font-size:12.5px}
@@ -97,6 +102,8 @@ header{height:54px;flex-shrink:0;border-bottom:1px solid var(--line);background:
   display:flex;align-items:center;gap:12px;padding:0 18px}
 .iconbtn{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--panel);
   color:var(--tx2);display:grid;place-items:center;font-size:13px}
+.iconbtn{transition:color .15s ease,border-color .15s ease,background-color .15s ease,transform .08s ease}
+.iconbtn:active{transform:scale(.96)}
 .iconbtn:hover{color:var(--tx);border-color:var(--line2)}
 .iconbtn.alert{color:#ffcf70;border-color:#6b5320;box-shadow:0 0 0 2px rgba(255,190,90,.10)}
 .crumb{color:var(--tx3);font-size:12.5px}
@@ -108,10 +115,13 @@ header{height:54px;flex-shrink:0;border-bottom:1px solid var(--line);background:
   font-family:inherit}
 .searchbar input::placeholder{color:var(--tx3)}
 .btn{border:1px solid var(--line2);background:var(--panel);color:var(--tx);border-radius:9px;
-  padding:7px 13px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  padding:7px 13px;font-size:12.5px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+  transition:background-color .15s ease,border-color .15s ease,color .15s ease,transform .08s ease}
+.btn:active{transform:scale(.96)}
 .btn:hover{border-color:var(--ac);background:var(--panel2)}
 .btn.primary{background:linear-gradient(135deg,#4c8dff,#3a6fe0);border-color:#4c8dff;color:#fff;font-weight:600}
 .btn.primary:hover{filter:brightness(1.1)}
+.btn.primary:active{transform:scale(.96);filter:brightness(.98)}
 .btn.ghost{background:transparent}
 .btn.sm{padding:4px 9px;font-size:11.5px;border-radius:7px}
 .btn.danger{border-color:rgba(255,107,107,.5);color:var(--red)}
@@ -120,8 +130,8 @@ header{height:54px;flex-shrink:0;border-bottom:1px solid var(--line);background:
 
 .content{flex:1;overflow-y:auto;padding:20px 22px 80px;min-height:0}
 .page-head{margin-bottom:16px}
-.page-head h2{margin:0 0 5px;font-size:19px;display:flex;align-items:center;gap:9px}
-.page-head p{margin:0;color:var(--tx3);font-size:12.8px;max-width:900px}
+.page-head h2{margin:0 0 5px;font-size:19px;display:flex;align-items:center;gap:9px;text-wrap:balance}
+.page-head p{margin:0;color:var(--tx3);font-size:12.8px;max-width:900px;text-wrap:pretty}
 .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
 .col{flex:1;min-width:320px}
 
@@ -129,7 +139,7 @@ header{height:54px;flex-shrink:0;border-bottom:1px solid var(--line);background:
 .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:15px 16px}
 .card.pad0{padding:0;overflow:hidden}
 .card-h{display:flex;align-items:center;gap:9px;margin-bottom:12px}
-.card-h h3{margin:0;font-size:14px;font-weight:650}
+.card-h h3{margin:0;font-size:14px;font-weight:650;text-wrap:balance}
 .card-h .spacer{flex:1}
 .card.pad0 .card-h{padding:13px 16px 0;margin-bottom:10px}
 .card-sub{color:var(--tx3);font-size:11.8px}
@@ -137,7 +147,8 @@ header{height:54px;flex-shrink:0;border-bottom:1px solid var(--line);background:
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:12px;margin-bottom:16px}
 .kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:13px 15px;position:relative;overflow:hidden}
 .kpi .k-label{color:var(--tx3);font-size:11.8px;display:flex;align-items:center;gap:5px}
-.kpi .k-val{font-size:25px;font-weight:700;margin:5px 0 2px;letter-spacing:-.5px}
+.kpi .k-val{font-size:25px;font-weight:700;margin:5px 0 2px;letter-spacing:-.5px;
+  font-variant-numeric:tabular-nums}
 .kpi .k-val small{font-size:12.5px;font-weight:500;color:var(--tx3);margin-left:3px}
 .kpi .k-foot{font-size:11.5px;color:var(--tx3)}
 .kpi .k-foot .up{color:var(--grn)}
@@ -147,7 +158,7 @@ header{height:54px;flex-shrink:0;border-bottom:1px solid var(--line);background:
 
 /* ---------- 表格 ---------- */
 .tblwrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line)}
-table{border-collapse:collapse;width:100%;font-size:12.8px}
+table{border-collapse:collapse;width:100%;font-size:12.8px;font-variant-numeric:tabular-nums}
 th{background:var(--panel2);text-align:left;padding:9px 11px;font-weight:640;color:var(--tx2);
   border-bottom:1px solid var(--line);white-space:nowrap;font-size:12px;position:sticky;top:0}
 td{padding:9px 11px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:middle}
@@ -158,6 +169,7 @@ td.name{color:var(--tx);font-weight:600}
 
 /* ---------- 标签 ---------- */
 .tag{display:inline-flex;align-items:center;gap:4px;font-size:11.2px;padding:2px 8px;border-radius:6px;
+  font-variant-numeric:tabular-nums;
   border:1px solid transparent;white-space:nowrap}
 .tag.g{background:var(--grnbg);color:var(--grn);border-color:rgba(61,220,151,.28)}
 .tag.y{background:var(--yelbg);color:var(--yel);border-color:rgba(245,185,66,.28)}
@@ -175,13 +187,21 @@ td.name{color:var(--tx);font-weight:600}
 
 /* ---------- 表单 ---------- */
 label.f{display:block;font-size:12px;color:var(--tx2);margin:0 0 5px}
+label.f .hint{font-size:10.5px;color:var(--tx3);font-weight:400;margin-left:7px;letter-spacing:.2px}
+.fld-div{border-top:1px dashed var(--line);margin:15px 0 13px}
 input.i,textarea.i,select.i{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:9px;
-  color:var(--tx);padding:8px 11px;font-size:13px;font-family:inherit;outline:none}
-input.i:focus,textarea.i:focus,select.i:focus{border-color:var(--ac)}
+  color:var(--tx);padding:8px 11px;font-size:13px;font-family:inherit;outline:none;
+  transition:border-color .15s ease,box-shadow .15s ease,background-color .15s ease}
+input.i:hover,textarea.i:hover,select.i:hover{border-color:var(--line2)}
+input.i:focus,textarea.i:focus,select.i:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--acbg)}
 textarea.i{resize:vertical;line-height:1.6}
 .field{margin-bottom:12px}
-.checks{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--tx2)}
-.checks label{display:flex;align-items:center;gap:6px;cursor:pointer}
+.checks{display:flex;gap:8px;flex-wrap:wrap;font-size:12px}
+.checks label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;border:1px solid var(--line2);
+  border-radius:999px;padding:4px 11px;background:var(--bg2);color:var(--tx2);transition:border-color .15s,background .15s}
+.checks label:hover{border-color:var(--line2);filter:brightness(1.15)}
+.checks label:has(input:checked){border-color:rgba(76,141,255,.45);background:var(--acbg);color:var(--tx)}
+.checks input{accent-color:var(--ac);margin:0}
 
 /* ---------- 弹层 ---------- */
 .overlay{position:fixed;inset:0;background:rgba(6,8,12,.66);backdrop-filter:blur(3px);z-index:200;
@@ -296,6 +316,7 @@ textarea.i{resize:vertical;line-height:1.6}
 .jd-p{margin:3px 0}
 .jd-gap{height:5px}
 .jd-doc b{color:var(--tx);font-weight:600}
+.callout.slim{font-size:12px;color:var(--tx3);padding:8px 12px}
 .callout{background:var(--panel2);border:1px solid var(--line2);border-radius:9px;padding:10px 13px;
   font-size:12.6px;color:var(--tx2);margin:11px 0}
 .callout b{color:var(--tx)}
@@ -1565,24 +1586,30 @@ textarea.i{resize:vertical;line-height:1.6}
      duty          : 一句行业化职责补充句（仅在与职能职责不重复时才拼入）
      metrics/terms : 该行业的指标词与专业术语，供展示与后续扩展
      ========================================================= */
+  /* fit（v13）：该行业语境句**适配的职能族白名单**。
+     为什么必须加：行业句写的是「该行业主力职能」的指标口径 ——
+     制造业的「良率 / OEE / 瓶颈工序」属于生产与设备职能，拼给同行业的
+     采购岗就是语义错位（采购不背良率）。调用方（engine.dutiesFor /
+     agent.expandReqs）必须传 fnKey；认不出职能或不在白名单 → 整句不拼。
+     宁可少一句行业行话，也不放一句对不上岗位的话。 */
   const INDUSTRY_CTX = {
-    '互联网': { metrics: ['DAU／MAU', '留存率', '转化率', 'LTV', 'CAC'], terms: ['埋点', 'A/B 实验', '灰度发布', '数据看板'], duty: '以 DAU、留存与转化漏斗为核心指标，结合埋点与 A/B 实验验证迭代效果' },
-    '制造业': { metrics: ['良率', 'OEE', '直通率', '交付准时率'], terms: ['MES', '精益生产', '5S', 'SPC'], duty: '围绕良率、OEE 与交付准时率等现场指标开展复盘，推动瓶颈工序改善' },
-    '零售连锁': { metrics: ['坪效', '人效', '客单价', '动销率', '损耗率'], terms: ['陈列（VM）', '进销存', '会员体系', '区域督导'], duty: '以坪效、人效与损耗率为考核口径，通过陈列（VM）与会员运营提升复购' },
-    '医疗健康': { metrics: ['患者满意度', '不良事件发生率', '平均住院日'], terms: ['三查七对', '分级护理', '院感防控', '电子病历'], duty: '按三查七对与院感防控要求，围绕不良事件发生率等指标持续改进护理质量' },
-    '教育培训': { metrics: ['完课率', '续报率', '退费率', '到课率'], terms: ['教研体系', '学情分析', '课消管理'], duty: '对完课率、续报率与退费率等指标负责，通过学情分析与课消管理提升效果' },
-    '金融': { metrics: ['不良率', '拨备覆盖率', '审批时效', '通过率'], terms: ['KYC', '反洗钱（AML）', '征信', '适当性管理'], duty: '把控不良率与审批时效，落实 KYC、反洗钱（AML）等监管合规要求' },
-    '销售': { metrics: ['签约额', '回款额', '转化率', '续约率'], terms: ['CRM', '商机漏斗', '招投标', '账期管理'], duty: '依托 CRM 管理商机漏斗，对签约额、回款额与续约率等指标负责' },
-    '人力资源': { metrics: ['离职率', '招聘周期', '人均效能', '敬业度'], terms: ['人才盘点', '继任计划', 'HR 三支柱', '薪酬带宽'], duty: '以离职率、招聘周期与人均效能为管理口径，输出人效分析与改善建议' },
-    '建筑工程': { metrics: ['工程进度', '一次验收合格率', '安全事故率', '成本偏差'], terms: ['施工组织设计', '工程测量', '安全文明施工', '竣工结算'], duty: '以工程进度、一次验收合格率与成本偏差为考核口径，落实竣工结算要求' },
-    '物流运输': { metrics: ['准时率', '货损率', '单票成本', '车辆装载率'], terms: ['TMS／WMS', '运力调度', '承运商管理', '路线优化'], duty: '对准时率、货损率与单票成本等指标负责，依托 TMS／WMS 优化运力调度' },
-    '酒店餐饮': { metrics: ['翻台率', '客单价', '食材成本率', '顾客满意度'], terms: ['出品标准', '食品安全', '中央厨房', '前厅／后厨'], duty: '以食材成本率与顾客满意度为考核口径，落实出品标准与中央厨房出品规范' },
-    '医药健康': { metrics: ['学术覆盖', '处方转化', '合规拜访达标率'], terms: ['学术推广', '医药代表备案', '临床数据', 'GSP'], duty: '在医药代表备案与 GSP 合规前提下，对学术覆盖与合规拜访达标率负责' },
-    '游戏': { metrics: ['留存率', '付费率', 'ARPU', 'LTV'], terms: ['数值建模', '经济平衡', '版本迭代', '玩家分层'], duty: '以留存率、付费率与 ARPU 为验收口径，用数据驱动版本迭代与经济调优' },
-    '能源电力': { metrics: ['发电量', '可利用率', '度电成本', '故障停机时长'], terms: ['光伏电站', '储能系统', '继电保护', '并网'], duty: '以发电量、可利用率与度电成本为考核口径，落实两票三制与并网技术监督要求' },
-    '传媒文化': { metrics: ['播放量', '完播率', '互动率', '涨粉数'], terms: ['选题策划', '脚本分镜', '后期制作', '账号矩阵'], duty: '对播放量、完播率与互动率等指标负责，持续优化选题策划与脚本分镜' },
-    '专业服务': { metrics: ['项目交付质量', '客户满意度', '回款率', '合规风险项'], terms: ['合同审核', '尽职调查', '专业意见', '项目制交付'], duty: '按项目制交付，对项目交付质量、客户满意度与回款率等指标负责' },
-    '物业管理': { metrics: ['客户满意度', '物业费收缴率', '设备完好率', '报修及时率'], terms: ['设施设备维保', '安保秩序', '保洁绿化', '应急管理'], duty: '以客户满意度、物业费收缴率与报修及时率为考核口径，落实应急管理要求' }
+    '互联网': { fit: ['product', 'operation', 'data', 'game'], metrics: ['DAU／MAU', '留存率', '转化率', 'LTV', 'CAC'], terms: ['埋点', 'A/B 实验', '灰度发布', '数据看板'], duty: '以 DAU、留存与转化漏斗为核心指标，结合埋点与 A/B 实验验证迭代效果' },
+    '制造业': { fit: ['production', 'process', 'quality', 'engineering'], metrics: ['良率', 'OEE', '直通率', '交付准时率'], terms: ['MES', '精益生产', '5S', 'SPC'], duty: '围绕良率、OEE 与交付准时率等现场指标开展复盘，推动瓶颈工序改善' },
+    '零售连锁': { fit: ['retail', 'operation'], metrics: ['坪效', '人效', '客单价', '动销率', '损耗率'], terms: ['陈列（VM）', '进销存', '会员体系', '区域督导'], duty: '以坪效、人效与损耗率为考核口径，通过陈列（VM）与会员运营提升复购' },
+    '医疗健康': { fit: ['medical'], metrics: ['患者满意度', '不良事件发生率', '平均住院日'], terms: ['三查七对', '分级护理', '院感防控', '电子病历'], duty: '按三查七对与院感防控要求，围绕不良事件发生率等指标持续改进护理质量' },
+    '教育培训': { fit: ['education'], metrics: ['完课率', '续报率', '退费率', '到课率'], terms: ['教研体系', '学情分析', '课消管理'], duty: '对完课率、续报率与退费率等指标负责，通过学情分析与课消管理提升效果' },
+    '金融': { fit: ['risk', 'finance'], metrics: ['不良率', '拨备覆盖率', '审批时效', '通过率'], terms: ['KYC', '反洗钱（AML）', '征信', '适当性管理'], duty: '把控不良率与审批时效，落实 KYC、反洗钱（AML）等监管合规要求' },
+    '销售': { fit: ['sales'], metrics: ['签约额', '回款额', '转化率', '续约率'], terms: ['CRM', '商机漏斗', '招投标', '账期管理'], duty: '依托 CRM 管理商机漏斗，对签约额、回款额与续约率等指标负责' },
+    '人力资源': { fit: ['hr'], metrics: ['离职率', '招聘周期', '人均效能', '敬业度'], terms: ['人才盘点', '继任计划', 'HR 三支柱', '薪酬带宽'], duty: '以离职率、招聘周期与人均效能为管理口径，输出人效分析与改善建议' },
+    '建筑工程': { fit: ['construction', 'engineering'], metrics: ['工程进度', '一次验收合格率', '安全事故率', '成本偏差'], terms: ['施工组织设计', '工程测量', '安全文明施工', '竣工结算'], duty: '以工程进度、一次验收合格率与成本偏差为考核口径，落实竣工结算要求' },
+    '物流运输': { fit: ['logistics'], metrics: ['准时率', '货损率', '单票成本', '车辆装载率'], terms: ['TMS／WMS', '运力调度', '承运商管理', '路线优化'], duty: '对准时率、货损率与单票成本等指标负责，依托 TMS／WMS 优化运力调度' },
+    '酒店餐饮': { fit: ['hospitality'], metrics: ['翻台率', '客单价', '食材成本率', '顾客满意度'], terms: ['出品标准', '食品安全', '中央厨房', '前厅／后厨'], duty: '以食材成本率与顾客满意度为考核口径，落实出品标准与中央厨房出品规范' },
+    '医药健康': { fit: ['pharma'], metrics: ['学术覆盖', '处方转化', '合规拜访达标率'], terms: ['学术推广', '医药代表备案', '临床数据', 'GSP'], duty: '在医药代表备案与 GSP 合规前提下，对学术覆盖与合规拜访达标率负责' },
+    '游戏': { fit: ['game', 'product', 'design'], metrics: ['留存率', '付费率', 'ARPU', 'LTV'], terms: ['数值建模', '经济平衡', '版本迭代', '玩家分层'], duty: '以留存率、付费率与 ARPU 为验收口径，用数据驱动版本迭代与经济调优' },
+    '能源电力': { fit: ['energy', 'engineering'], metrics: ['发电量', '可利用率', '度电成本', '故障停机时长'], terms: ['光伏电站', '储能系统', '继电保护', '并网'], duty: '以发电量、可利用率与度电成本为考核口径，落实两票三制与并网技术监督要求' },
+    '传媒文化': { fit: ['media', 'operation', 'marketing'], metrics: ['播放量', '完播率', '互动率', '涨粉数'], terms: ['选题策划', '脚本分镜', '后期制作', '账号矩阵'], duty: '对播放量、完播率与互动率等指标负责，持续优化选题策划与脚本分镜' },
+    '专业服务': { fit: ['delivery', 'legal', 'risk', 'finance', 'hr'], metrics: ['项目交付质量', '客户满意度', '回款率', '合规风险项'], terms: ['合同审核', '尽职调查', '专业意见', '项目制交付'], duty: '按项目制交付，对项目交付质量、客户满意度与回款率等指标负责' },
+    '物业管理': { fit: ['property', 'engineering', 'service'], metrics: ['客户满意度', '物业费收缴率', '设备完好率', '报修及时率'], terms: ['设施设备维保', '安保秩序', '保洁绿化', '应急管理'], duty: '以客户满意度、物业费收缴率与报修及时率为考核口径，落实应急管理要求' }
   };
 
   /* 字符 bigram 集合 —— 用于「行业语境句是否与已有职责重复」的判定 */
@@ -1615,9 +1642,13 @@ textarea.i{resize:vertical;line-height:1.6}
              ② 与某条职责的 bigram 重合度 ≥0.5（相对较短者）。
      行业句写成「指标 + 行话」口径，与职能句（动作口径）天然互补，
      正常不会被误杀；被拦只说明该职能族本身已完整覆盖了行业表达。 */
-  function industryDuty(industry, duties) {
+  function industryDuty(industry, duties, fnKey) {
     const ctx = INDUSTRY_CTX[industry];
     if (!ctx || !ctx.duty) return '';
+    /* 适配闸（v13，配合上方 fit 白名单）：职责句与岗位职能对不上就整句不拼。
+       fnKey 未传（认不出职能）同样不拼 —— 此时职责本就回落到行业通用模板，
+       再叠一句主力职能口径的行话只会更错位。 */
+    if (ctx.fit && ctx.fit.length && (!fnKey || ctx.fit.indexOf(fnKey) < 0)) return '';
     const cb = bigrams(ctx.duty);
     const dup = (duties || []).some(d => {
       if (lcsLen(ctx.duty, d) >= 8) return true;
@@ -1820,7 +1851,10 @@ textarea.i{resize:vertical;line-height:1.6}
   /* 行首残留符号 */
   const RE_LI_MARK = /^[·•▪▫◦・∙●○◆■□★☆※→➤+]\s*/;
   const RE_LI_DASH = /^[-–—]\s+/;
-  const RE_LI_NUM = /^\d{1,2}\s*[.、)）:：]\s+/;
+  /* v14：中文编号符（、)）:：）后的空格改为可选 —— 「5、逻辑清晰」这类写法不带空格，
+     旧正则的 \s+ 剥不掉，序号就残留在条目里（表现为「（五）软技能」下直接跟「5、…」）。
+     西文句点仍强制要求空格，避免「1.5 年经验」被误剥成「5 年经验」。 */
+  const RE_LI_NUM = /^(?:\d{1,2}\s*[、)）:：]\s*|\d{1,2}\s*\.\s+)/;
   const RE_LI_PAREN = /^[（(]\s*\d{1,2}\s*[)）]\s*/;
   const RE_LI_CIRCLE = /^[①-⑳㉑-㉟]\s*/;
   const RE_MD_HEAD = /^#{1,6}\s*/;
@@ -1828,7 +1862,14 @@ textarea.i{resize:vertical;line-height:1.6}
   /* 小标题词：识别与归位共用一套，避免「认出来了却归错桶」。
      只收「一看就是标签」的词，不收裸的「要求 / 技能 / 学历」——
      否则「有相关证书要求」这类句子会被当成标题吞掉。 */
-  const RE_HEAD_ANY = /(更香|加分项|加分条件|你会做什么|主要做什么|工作内容|主要职责|岗位职责|职责描述|你将负责|主要工作|日常工作|我们提供|福利待遇|福利|待遇|你将获得|团队介绍|关于我们|公司简介|岗位亮点|任职要求|岗位要求|招聘要求|资格要求|能力要求|技能要求|经验要求|学历要求|其他要求|基本要求|我们想找|我们要找|我们期待|我们希望)/;
+  const RE_HEAD_ANY = /(更香|加分项|加分条件|你会做什么|主要做什么|工作内容|主要职责|岗位职责|职责描述|职位职责|职位描述|工作职责|职务职责|你将负责|主要工作|日常工作|我们提供|福利待遇|福利|待遇|你将获得|团队介绍|关于我们|公司简介|岗位亮点|任职要求|岗位要求|招聘要求|资格要求|能力要求|技能要求|经验要求|学历要求|其他要求|基本要求|职位要求|岗位描述|工作要求|职务要求|任职资格|应聘要求|招聘条件|我们想找|我们要找|我们期待|我们希望|我们希望你)/;
+  /* v14 新增：行首小标题（「标签 + 编号/内容同行」的写法）。
+     旧逻辑靠「整行 ≤ 12 字」判标签，「职位职责1、对接售前/商务，承接…」这种
+     标签与内容挤在同一行的写法整行都判不出标题 → 被当成一条职责落进正文，
+     再被模板套上序号，输出「1. 职位职责1、对接售前/商务…」（编号叠加）。
+     这里只做**行首**匹配，且要求标签后紧跟 行尾 / 冒号 / 列表编号，
+     「负责岗位职责梳理」这类以标签词开头的正文句因此不受影响。 */
+  const RE_HEAD_LEAD = /^(职位职责|职位描述|职务职责|岗位职责|岗位描述|工作职责|主要职责|职责描述|职位要求|职务要求|岗位要求|工作要求|任职要求|任职资格|应聘要求|招聘条件|资格要求|能力要求|技能要求|经验要求|学历要求|其他要求|基本要求|工作内容|加分项|加分条件|我们提供|福利待遇|团队介绍|关于我们|公司简介|岗位亮点|你会做什么|主要做什么|你将负责|主要工作|日常工作|我们想找|我们要找|我们期待|我们希望|我们希望你)/;
   const RE_HEAD_NICE = /(更香|加分)/;
   const RE_HEAD_BENEFIT = /(我们提供|福利|待遇|你将获得|团队介绍|关于我们|公司简介|岗位亮点)/;
   const RE_HEAD_DUTY = /(你会做什么|主要做什么|工作内容|职责|你将负责|主要工作|日常工作)/;
@@ -1848,11 +1889,28 @@ textarea.i{resize:vertical;line-height:1.6}
       return RE_LI_MARK.test(n) || RE_LI_DASH.test(n) || RE_LI_NUM.test(n) || RE_LI_PAREN.test(n) || RE_LI_CIRCLE.test(n);
     };
 
+    const keyOf = label => RE_HEAD_NICE.test(label) ? 'nice'
+      : RE_HEAD_BENEFIT.test(label) ? 'benefit'
+        : RE_HEAD_DUTY.test(label) ? 'duty' : 'must';
     lines.forEach((rawLine, i) => {
       if (!rawLine.trim()) { flush(); return; }              /* 空行 = 段落边界 */
       let s = rawLine.trim();
       let marked = false, mdHead = false, numHead = false;
       if (RE_MD_HEAD.test(s)) { mdHead = true; s = s.replace(RE_MD_HEAD, '').trim(); }
+      /* v14：行首标签剥离 —— 必须在下面的编号剥离循环**之前**执行，
+         这样剥出来的「1、对接…」才能被那个循环去掉序号，而不是整行落进正文。 */
+      if (!mdHead) {
+        const mHead = s.match(RE_HEAD_LEAD);
+        if (mHead) {
+          const rest = s.slice(mHead[1].length).replace(/^[：:\s]+/, '').trim();
+          if (!rest || RE_LI_NUM.test(rest) || RE_CN_NUM.test(rest) || RE_LI_PAREN.test(rest)
+            || RE_LI_CIRCLE.test(rest) || RE_LI_MARK.test(rest) || RE_LI_DASH.test(rest)) {
+            s = rest;
+            flush(); heads++; key = keyOf(mHead[1]);
+            if (!s) return;                                 /* 纯标题行 */
+          }
+        }
+      }
       for (let k = 0; k < 4; k++) {                          /* 容忍「1. · 内容」这类叠加 */
         const before = s;
         if (RE_LI_MARK.test(s)) { marked = true; s = s.replace(RE_LI_MARK, '').trim(); }
@@ -1878,15 +1936,27 @@ textarea.i{resize:vertical;line-height:1.6}
       /* 无符号裸行的启发式阈值必须压到 8 字以内：
          「拆成能落地的产品方案」这类半句（10 字、无标点、下一行是条目）
          曾经被误判成小标题而整条吞掉 —— 短标签才是标题。 */
-      const isHead = mdHead || numHead || (bare && (looksLabel || labelHead
-        || (s.length <= 8 && !/[。！？!?；;，,、：:]/.test(s) && !RE_REQ_START.test(s) && nextMarked(i))));
+      /* 文末孤行（v13）：裸行判标题必须「后面还有内容」—— 否则最后一条
+         恰好含标签词（「有短视频策划经验更香」含「更香」）时会被当成标题
+         整条吞掉，用户写的最后一条直接消失。两个例外不受影响：
+         ① 「标签：内容」整行（labelHead）—— 标题与内容同行，自包含；
+         ② 文末的纯标签行（「加分项」这类 ≤6 字的孤立标题）→ 静默丢弃，
+            不落成正文噪声。 */
+      const hasTail = !!nextNonEmpty(i);
+      if (bare && !hasTail && RE_HEAD_ANY.test(s) && s.replace(/[：:]/g, '').length <= 6) return;
+      /* v14：带编号的行不再**无条件**当标题 —— 「1、对接售前/商务…」是条目序号，
+         不是章节标题。上一版把 numHead 直接当标题，整行被 return 吞掉，
+         用户粘的职责/要求会**整段消失**（只剩模板补位句）。
+         现在只有「剥掉编号后仍像标签」（命中标签词表且 ≤12 字，如「1. 岗位职责」）
+         才认标题，否则按内容落桶 —— 编号此时已被剥掉，不会再叠加。 */
+      const numHeadLabel = numHead && RE_HEAD_ANY.test(s) && s.length <= 12
+        && !(RE_REQ_START.test(s) && !/(更香|加分)/.test(s));
+      const isHead = mdHead || numHeadLabel || (bare && ((hasTail && (looksLabel
+        || (s.length <= 8 && !/[。！？!?；;，,、：:]/.test(s) && !RE_REQ_START.test(s) && nextMarked(i)))) || labelHead));
       if (isHead) {
         const m = s.match(/^(.{0,14}?)[：:]\s*(.+)$/);
         const label = m ? m[1].trim() : s;
-        flush(); heads++;
-        key = RE_HEAD_NICE.test(label) ? 'nice'
-          : RE_HEAD_BENEFIT.test(label) ? 'benefit'
-            : RE_HEAD_DUTY.test(label) ? 'duty' : 'must';
+        flush(); heads++; key = keyOf(label);
         if (m) cur = { text: m[2].trim() };                  /* 「加分项：有A」→ 标题+内容都不丢 */
         return;
       }
@@ -1899,7 +1969,15 @@ textarea.i{resize:vertical;line-height:1.6}
               「• 把模糊的用户场景」+「拆成能落地的产品方案」。
            表单里一行一条的写法（无符号、无标点）不满足任一条件，
            不会被合并，「一行一条 → 提交 → 再载入」往返无损。 */
-        cur.text += RE_END_MID.test(cur.text) ? '' : (/[A-Za-z0-9]$/.test(cur.text) ? ' ' : '，');
+        /* v14：列表项续行时，若下一行只是被换行**切断的短尾**（去掉标点后 ≤2 字，
+           如「…交付经验优」+「先；」实为「优先」），直接拼接、不插分隔符 ——
+           补逗号会插进词中间。其余情况沿用原规则（补逗号），例如
+           「• 把模糊的用户场景」+「拆成能落地的产品方案」。 */
+        const tailShort = cur.marked && !RE_END_MID.test(cur.text)
+          && s.replace(/[；;，,、。．.]+$/, '').trim().length <= 2;
+        if (!tailShort) {
+          cur.text += RE_END_MID.test(cur.text) ? '' : (/[A-Za-z0-9]$/.test(cur.text) ? ' ' : '，');
+        }
         cur.text += s;
       } else { flush(); cur = { text: s, marked: marked }; }
     });
@@ -1911,6 +1989,14 @@ textarea.i{resize:vertical;line-height:1.6}
     /* 「 / 」并列项拆开（要求斜杠两侧有空格）；「AI/大模型」这类写法不受影响 */
     ['duty', 'must', 'nice', 'benefit'].forEach(k => {
       b[k] = b[k].flatMap(t => String(t).split(/\s+[／/]\s+/).map(x => x.trim()).filter(Boolean));
+      /* v14：行内条目切分 —— 复制来的 JD 常把多条挤在同一行
+         （「…业务流程；2、独立完成…；3、跟进…」），只按换行切会整段粘成一条。
+         这里**只在「；+编号」处**切，普通分号一律不切，
+         保持「表单一行一条 → 往返无损」的既有铁律
+         （表单写入的每条都在独立行，不含「；数字、」这个模式）。 */
+      b[k] = b[k].flatMap(t => String(t).split(/[；;]\s*(?=\d{1,2}\s*[、)）])/))
+        .map(x => x.replace(/^[；;\s]+/, '').replace(/^\d{1,2}\s*[、)）]\s*/, '').trim())
+        .filter(Boolean);
     });
     return { lead: b.lead, duty: b.duty, must: b.must, nice: b.nice, benefit: b.benefit, heads: heads };
   }
@@ -2045,7 +2131,9 @@ textarea.i{resize:vertical;line-height:1.6}
        · 其余 → 保守补「者优先」。 */
   const RE_NICE_PRED = /^(?:有|具备|拥有|掌握|熟悉|了解|精通|擅长|持|获得|取得|通过|参与|主导|做过|会|能|可|对|在|曾)/;
   const RE_NICE_NOUN = /(?:经历|经验|背景|证书|资质|作品|成果|项目|能力|认识|理解|判断|资源|渠道)$/;
-  const RE_NICE_DONE = /(?:优先|更佳|更好|为佳)$/;
+  /* 「更具优势」也是规范的收尾（「更香」的书面化产物），命中即视为已规范化，
+     不能再叠「者优先」—— 否则会产出「…更具优势者优先」。 */
+  const RE_NICE_DONE = /(?:优先|更佳|更好|为佳|更具优势)$/;
   function polishNiceItem(s) {
     const raw = String(s == null ? '' : s).trim();
     if (!raw) return '';
@@ -3336,6 +3424,19 @@ window.Agent = (function () {
     return { lead: a.lead.concat(b.lead), duty: a.duty.concat(b.duty), must: a.must.concat(b.must),
       nice: a.nice.concat(b.nice), benefit: a.benefit.concat(b.benefit), heads: a.heads + b.heads };
   };
+  /* v14：整段 JD「分栏回填」—— 用户在任一 JD 输入框粘入完整 JD 时，
+     把职责 / 任职要求 / 加分项分派到各自输入框，而不是只取一栏、静默丢弃其余。
+     与后端 engine.js 的 splitReqInput 同源；lead（引言）仅在 ≥2 个小标题时独立存在。
+     返回：已清理（去序号、去尾标点）并去重的多行字段数组。 */
+  function splitJdFields(text) {
+    const p = splitReqInput(text, '');
+    const cl = arr => dedupeReq((arr || []).map(cleanReq).filter(Boolean));
+    return {
+      lead: cl(p.lead), duty: cl(p.duty), must: cl(p.must),
+      nice: cl([].concat(p.nice || [], p.benefit || [])),
+      heads: p.heads
+    };
+  }
   const toReqs = v => parseReqInput(v, 'must').must;
   const cleanReq = s => String(s).replace(/[。；;，,、\s]+$/, '').trim();
   /* 维度归位判据（与后端 engine.js 同源；v12 起 REQ_EXP 含「实习」） */
@@ -3353,7 +3454,10 @@ window.Agent = (function () {
   const coveredByUser = (k, userTexts) => userTexts.some(u => similarReq(u, k, 0.28) || similarReq(k, u, 0.28));
   /* 自动补位产物的固定句式；清除「跨职能族的历史错配产物」——见后端 engine.js 同名函数注释。
      离线侧同样需要：JD 草稿生成后会把扩充结果写回表单，反复编辑会累积错配条目。 */
-  const AUTO_FILL_RE = /^熟悉\s?.{1,40}，能独立应用于实际业务场景$/;
+  /* 尾缀轮换与句式族：与后端 engine.js 同源同款（新增尾缀两处必须同步） */
+  const SKILL_TAILS = ['能独立应用于实际业务场景', '并在真实业务中完整落地过', '能独立完成该方向的日常工作', '并了解常见的实践方法与工具'];
+  const JUNIOR_NICE = ['有相关岗位的实习经历者优先', '有学生干部或社团组织经历者优先', '在校期间有相关项目或竞赛经历者优先'];
+  const AUTO_FILL_RE = /^熟悉\s?.{1,40}，(?:能独立应用于实际业务场景|并在真实业务中完整落地过|能独立完成该方向的日常工作|并了解常见的实践方法与工具)$/;
   function stripMisfitAutoFill(arr, keepFnKey) {
     const RL = window.ReqLib;
     if (!RL || !Array.isArray(arr)) return Array.isArray(arr) ? arr : [];
@@ -3410,8 +3514,8 @@ window.Agent = (function () {
     });
     const userAll = [...uMust, ...uNice];
     const bench = fn ? dedupeReq(lib.core).filter(k => !coveredByUser(k, userAll)) : [];
-    const kwWord = k => `熟悉${/^[A-Za-z]/.test(k) ? ' ' : ''}${k}，能独立应用于实际业务场景`;
-    bench.slice(0, Math.max(0, 4 - s1.length)).forEach(k => s1.push(kwWord(k)));
+    const kwWord = (k, i) => `熟悉${/^[A-Za-z]/.test(k) ? ' ' : ''}${k}，${SKILL_TAILS[i % SKILL_TAILS.length]}`;
+    bench.slice(0, Math.max(0, 4 - s1.length)).forEach((k, i) => s1.push(kwWord(k, i)));
     if (!s1.length) s1.push(`掌握${title || '本岗位'}所需的核心专业技能，能独立完成岗位交付`);
     /* 工作经验：管培生 / 实习 / 应届岗不设年限门槛（与后端 engine.js 同口径）
        ⚠️ 判重扫**全部已填内容**而非只看 s2 —— 二次展开时「有 1–2 段…实习经历」
@@ -3438,7 +3542,13 @@ window.Agent = (function () {
        模板里的「有 X」因表述不同而躲过 similarReq。 */
     const niceList = dedupeReq((RL && RL.polishNiceItem) ? uNice.map(RL.polishNiceItem) : uNice);
     const niceTarget = niceList.length >= 3 ? niceList.length : 4;
-    const nicePool = !fn ? [] : (R.nice.length ? R.nice : lib.plus.map(p => /^[有主]/.test(p) ? p : `有${p}相关经历`));
+    /* 管培生／实习岗不得补资深口径的加分项（与后端 engine.js 同一条规则） */
+    const SENIOR_NICE_RE = /从\s*0\s*到\s*1|主导|独立负责|独立完成|带店|扭亏|多年|资深|搭建.{0,6}(体系|团队)/;
+    let nicePool = !fn ? [] : (R.nice.length ? R.nice : lib.plus.map(p => /^[有主]/.test(p) ? p : `有${p}相关经历`));
+    if (junior && fn) {
+      nicePool = nicePool.filter(t => !SENIOR_NICE_RE.test(t));
+      JUNIOR_NICE.forEach(t => { if (!nicePool.some(x => similarReq(x, t))) nicePool.push(t); });
+    }
     nicePool.forEach(t => {
       if (niceList.length >= niceTarget) return;
       if (niceList.some(x => similarReq(x, t))) return;
@@ -3456,7 +3566,7 @@ window.Agent = (function () {
        说什么行话」；与已选职责去重后追加。与后端 engine.js 同源规则 + 同一份
        词库，保证离线 / 在线产出一致。 */
     if (dutyPicked.length && RL && RL.industryDuty) {
-      const ctx = RL.industryDuty(industry, dutyPicked);
+      const ctx = RL.industryDuty(industry, dutyPicked, fnKey);
       if (ctx) dutyList = dutyPicked.concat([ctx]);
     }
     return {
@@ -3522,9 +3632,17 @@ window.Agent = (function () {
     const dept = input.dept || '待填写部门';
     /* 任职要求：在已填内容基础上，按六维度扩充（同后端 engine.js 规则） */
     const reqs = expandReqs({ title, industry, dept, years: input.years, eduRank: input.eduRank, must: input.must, nice: input.nice });
+    /* 「岗位职责」栏（v13）：HR 单独填写、优先级最高的职责来源（与后端 runJD 同口径） */
+    let userDutyItems = [];
+    if (input.duty && String(input.duty).trim() && window.ReqLib && window.ReqLib.parseReqText) {
+      const dp = window.ReqLib.parseReqText(String(input.duty));
+      const raw = (dp.heads ? dp.duty : dp.must).map(s => String(s).trim()).filter(Boolean);
+      userDutyItems = raw.map(t => (window.ReqLib.polishMustItem ? window.ReqLib.polishMustItem(t) : t)).filter(Boolean);
+    }
     /* 岗位职责同样「职能优先」：职责模板由 expandReqs 按职能族给出，识别不出才退回行业模板。
        若 HR 整段粘进来一份 JD 且写了「你会做什么」，以 HR 自己写的为准（≥3 条不再叠加模板）。 */
-    const uDuty = (reqs.userDuties || []).map(d => String(d).replace('{title}', title));
+    const uDutySource = userDutyItems.length ? userDutyItems : (reqs.userDuties || []);
+    const uDuty = uDutySource.map(d => String(d).replace('{title}', title));
     const tplDuty = (reqs.duties || (JD_DUTY_TPL[industry] || JD_DUTY_TPL['通用']))
       .map(d => d.replace('{title}', title).replace('{dept}', dept));
     const duties = !uDuty.length ? tplDuty
@@ -3558,6 +3676,7 @@ window.Agent = (function () {
       ? window.ReqLib.extractKeywords([...reqs.must, ...reqs.nice], INDUSTRY_CORE)
       : [];
     return { jd, flagged: scan.flagged, legal: scan.legal, must: reqs.must, soft: reqs.soft, nice: reqs.nice, dims: reqs.dims,
+      duties, userDuties: uDutySource,
       fnKey: reqs.fnKey, fnName: reqs.fnName, reqSource: reqs.source, junior: !!reqs.junior,
       keywords, industry, title };
   }
@@ -3746,7 +3865,7 @@ window.Agent = (function () {
       cites: [], badge: '⚠️ 知识库无匹配（相似度低于阈值 0.55）' };
   }
 
-  return { PLANS, run, generateJD, expandReqs, renderReqs, INDUSTRY_CORE, INDUSTRY_REQ, scoreResume, answer, classify, sleep };
+  return { PLANS, run, generateJD, expandReqs, renderReqs, INDUSTRY_CORE, INDUSTRY_REQ, scoreResume, answer, classify, sleep, splitJdFields };
 })();
 </script>
 <script>/* ===========================================================
@@ -3800,6 +3919,7 @@ window.Agent = (function () {
     ]},
     { group: '人才与员工', items: [
       { id: 'jobs', ico: '📋', name: '岗位管理（可自建）', perm: 'job:read' },
+      { id: 'reference', ico: '🗂️', name: '岗位资料库', perm: 'job:read' },
       { id: 'candidates', ico: '👥', name: '候选人库', perm: 'candidate:read' },
       { id: 'employees', ico: '🪪', name: '员工档案', perm: 'employee:read' }
     ]},
@@ -3881,8 +4001,9 @@ window.Agent = (function () {
   /* 离线兜底：无后端时由内置 Agent 生成（与后端 engine.js 同源规则：六维度扩充 + 真合规扫描） */
   function offlineGenJD(p) {
     const r = A.generateJD({ title: p.title, dept: p.dept, industry: p.industry, years: p.years, eduRank: p.eduRank,
-      must: p.must, nice: p.nice, salary: p.salary, headcount: p.headcount, benefits: p.benefits });
+      must: p.must, nice: p.nice, duty: p.duty, salary: p.salary, headcount: p.headcount, benefits: p.benefits });
     return { jd: r.jd, mustHave: r.must, niceHave: r.nice, softHave: r.soft, dims: r.dims,
+      duties: r.duties || [], userDuties: r.userDuties || [],
       fnKey: r.fnKey, fnName: r.fnName, reqSource: r.reqSource,
       keywords: r.keywords || [], scan: { flagged: r.flagged || [], legal: r.legal || [] },
       blockPublish: ((r.flagged || []).length + (r.legal || []).length) > 0 };
@@ -3943,6 +4064,14 @@ window.Agent = (function () {
   const isTopWindow = () => { try { return window.self === window.top; } catch (e) { return false; } };
   /* jsdom（无头测试）里没有 fetch，且 navigation 未实现 —— 必须识别出来，否则离线用例会被误跳转污染 */
   const isHeadless = () => typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent || '');
+  /* 宿主是否「本机」：file:// 双击、127.0.0.1、localhost。
+     为什么要区分：探测不到后端时，本机用户该被引导去启动后端；
+     而 GitHub Pages 这类**静态托管**的访客本机根本没有 server/start.bat，
+     给他是纯噪音 —— 他需要的是「这是什么 + 完整版怎么跑」。 */
+  const isLocalHost = () => {
+    if (location.protocol === 'file:') return true;
+    return /^(127\.0\.0\.1|localhost|\[::1\]|0\.0\.0\.0)$/.test(location.hostname);
+  };
   /* 逃生开关：?offline=1 / #offline 强制离线演示（断网演示、离线用例都靠它） */
   const wantOffline = () => /(^|[?&#])offline(=1)?($|[&#])/.test(location.search + location.hash);
   try { AUTH.token = localStorage.getItem('hr_token') || null; } catch (e) { /* 隐私模式禁 localStorage */ }
@@ -4139,31 +4268,41 @@ window.Agent = (function () {
   }
 
   async function liveBootstrap() {
-    /* ① 当前源就是后端（后端托管原型）→ 与从前完全一致，什么都不用做 */
+    /* ① 显式要求离线（?offline=1 / #offline）→ 保持内置演示数据，连探测都不做。
+          **必须排在最前**。它原来排在「探测当前源」之后，于是后端托管原型时
+          （本机最常见的打开方式：直接开 8788）第 ② 步就 return 了 ——
+          README 承诺的「不想登录？加 ?offline=1」实际失效，照样弹登录闸门。
+          显式意图优先于自动升级；否则一个逃生开关会被「贴心」地关掉。 */
+    if (wantOffline()) { connBar(''); return; }
+
+    /* ② 当前源就是后端（后端托管原型）→ 与从前完全一致，什么都不用做 */
     const here = await probeHealth('');
     if (here) { API_BASE = ''; connBar(''); return afterHealth(here); }
 
-    /* 显式要求离线（?offline=1 / #offline）→ 保持内置演示数据，连探测都不做 */
-    if (wantOffline()) { connBar(''); return; }
-
-    /* ② 探测本机后端（跨源 GET /api/health；后端只对 127.0.0.1/localhost 与 file:// 放行） */
+    /* ③ 探测本机后端（跨源 GET /api/health；后端只对 127.0.0.1/localhost 与 file:// 放行） */
     const local = await probeHealth(BACKEND_ORIGIN);
     if (!local) {
-      connBar('📴 <b>离线演示态</b> —— 没找到本地后端，当前用内置演示数据（刷新即复原）。'
-        + ' 要真实持久化（SQLite + Agent 引擎）：双击 <code>server/start.bat</code>，'
-        + ' 或直接说一句「启动服务」。'
-        + ' <a href="#" data-act="reconnect">重试连接</a>', 'off');
+      /* 分语境给提示，别让静态托管的访客去找一个他本机不存在的文件 */
+      connBar(isLocalHost()
+        ? ('📴 <b>离线演示态</b> —— 没找到本地后端，当前用内置演示数据（刷新即复原）。'
+           + ' 要真实持久化（SQLite + Agent 引擎）：双击 <code>server/start.bat</code>，'
+           + ' 或直接说一句「启动服务」。'
+           + ' <a href="#" data-act="reconnect">重试连接</a>')
+        : ('📴 <b>在线预览 · 离线模式</b> —— 这是静态托管的原型演示，用内置演示数据，'
+           + '刷新即复原、不上传任何操作。这里没有后端，所以「真实 SQLite 持久化 / Agent 引擎 / '
+           + '权限拦截」这些能力跑不起来（页面会明确标注），要看完整版请按仓库 README 本地启动后端。'),
+        'off');
       return;
     }
 
-    /* ③ 顶层窗口 → 切到后端自己的源：之后 Cookie / 令牌 / 相对路径全部与同源一致。
+    /* ④ 顶层窗口 → 切到后端自己的源：之后 Cookie / 令牌 / 相对路径全部与同源一致。
           无头环境（jsdom）不实现 navigation，跳过去只会产生一条 jsdomError 噪音 → 跳过。 */
     if (isTopWindow() && !isHeadless() && location.origin !== BACKEND_ORIGIN) {
       location.replace(BACKEND_ORIGIN + '/' + (location.hash || ''));
       return;
     }
 
-    /* ④ 被嵌在预览面板里（或跑在无头环境里）→ 不能导航：后端带
+    /* ⑤ 被嵌在预览面板里（或跑在无头环境里）→ 不能导航：后端带
           X-Frame-Options: SAMEORIGIN，跳过去会白屏。改为跨源直连 ——
           后端已放行 127.0.0.1 任意来源，且预览源与后端同 site，Cookie 会话依然有效。 */
     API_BASE = BACKEND_ORIGIN;
@@ -4544,8 +4683,7 @@ window.Agent = (function () {
       : ['互联网', '制造业', '零售连锁', '医疗健康', '教育培训', '金融', '销售', '人力资源', '通用'];
     return `
     <div class="page-head"><h2>招聘 Agent · JD 工作台</h2>
-      <p>写清楚你要招什么人，Agent 生成规范 JD，并自动扫描歧视性用语与违法表述。<br>
-      <b>岗位名称、行业都随你填</b>——必须项留空也行，Agent 会按所选行业给你一版建议，你改完再生成。生成结果必须经你确认才能发布。</p></div>
+      <p>写清楚你要招什么人，Agent 生成规范 JD 并自动做合规扫描。<b>必须项留空也行</b>，Agent 会按行业给一版建议，你改完再生成；结果必须经你确认才能发布。</p></div>
     <div class="row">
       <div class="col" style="flex:1;min-width:340px">
         <div class="card">
@@ -4571,11 +4709,14 @@ window.Agent = (function () {
             <div style="flex:1"><label class="f">学历要求</label>
               <select class="i" id="jdEdu">${EDU_OPTS.map(([v, t]) => `<option value="${v}" ${v === 2 ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
           </div>
-          <div class="field"><label class="f">任职要求（留空 = Agent 生成六维度版本；已填则保留核心信息并润色后扩充）</label>
-            <textarea class="i" id="jdMust" rows="3" placeholder="留空即可；也可以只写一条，例如「3 年以上采购经验」。已填内容会被保留并做书面化润色，再扩成专业技能／工作经验／学历背景／综合素质／软技能"></textarea></div>
-          <div class="field"><label class="f">加分项（留空 = Agent 按职能族建议；已填则美化完善）</label>
-            <textarea class="i" id="jdNice" rows="2" placeholder="留空则由 Agent 按职能族/行业给建议；已填内容会保留条件本身，统一写成「…者优先」的专业句式"></textarea></div>
-          <div class="field"><label class="f">复用条款（勾选后自动写入 JD）</label>
+          <div class="fld-div"></div>
+          <div class="field"><label class="f">岗位职责<span class="hint">留空 = Agent 按职能族生成 · 已填则以你的为准</span></label>
+            <textarea class="i" id="jdDuty" rows="3" placeholder=""></textarea></div>
+          <div class="field"><label class="f">任职要求<span class="hint">留空生成六维度版本 · 已填保留并润色扩充</span></label>
+            <textarea class="i" id="jdMust" rows="3" placeholder=""></textarea></div>
+          <div class="field"><label class="f">加分项<span class="hint">留空按职能族建议 · 已填统一成「…者优先」</span></label>
+            <textarea class="i" id="jdNice" rows="2" placeholder=""></textarea></div>
+          <div class="field"><label class="f">复用条款<span class="hint">勾选后自动写入 JD</span></label>
             <div class="checks">
               <label><input type="checkbox" id="jdB0" checked> 弹性工作制</label>
               <label><input type="checkbox" id="jdB1" checked> 五险一金足额</label>
@@ -4584,7 +4725,7 @@ window.Agent = (function () {
               <label><input type="checkbox" id="jdB4"> 培训预算</label>
             </div></div>
           <button class="btn primary" data-act="runJD" style="width:100%">🚀 生成 JD 并做合规扫描</button>
-          <div class="callout">Agent 会在生成后自动执行两道检查：<b>歧视性用语扫描</b>（性别/年龄/婚育/户籍/院校/地域/外貌）与 <b>违法表述检查</b>（社保/合同/押金/工时/工伤）。命中即拦截，不允许直接发布。</div>
+          <div class="callout slim">生成后自动执行 <b>歧视性用语扫描</b> 与 <b>违法表述检查</b>，命中即拦截，不允许直接发布。</div>
         </div>
       </div>
       <div class="col" style="flex:1.3;min-width:380px">
@@ -5701,6 +5842,57 @@ window.Agent = (function () {
   };
 
   /* ---- 知识库 ---- */
+  /* ---- 岗位资料库 ----
+     表里装的是**外部市场公开在招岗位**（BOSS 直聘抓取），不是本公司的岗位。
+     它唯一的用途是给 JD 生成做参考接地 —— 生成前先读这里，生成后引言里会标明参考了多少个真实在招岗。
+     所以它不该也不能进打分关键词通道：拿外部岗位要求去筛本公司候选人，等于用别人的尺子量自己的人。 */
+  PAGES.reference = () => {
+    const rows = Array.isArray(D.refJobs) ? D.refJobs : [];
+    const st = D.refStats || {};
+    const total = st.total != null ? st.total : rows.length;
+    const withJd = st.withJd != null ? st.withJd : rows.filter(r => r.job_description).length;
+    const withSal = st.withSalary != null ? st.withSalary : rows.filter(r => r.salary_range).length;
+    const last = st.lastScraped || (rows[0] && rows[0].scraped_at) || '';
+    const cell = (v, dim) => v ? esc(v) : `<span class="small muted">${dim || '—'}</span>`;
+    const rowsHtml = rows.slice(0, 200).map(r => `<tr data-ref-row="${esc((r.job_title || '') + (r.company_name || '') + (r.location || '')).toLowerCase()}">
+        <td class="name">${esc(r.job_title || '—')}</td>
+        <td>${cell(r.company_name)}</td>
+        <td>${cell(r.company_industry)}${r.company_scale ? `<span class="small muted"> · ${esc(r.company_scale)}</span>` : ''}</td>
+        <td class="mono">${cell(r.salary_range)}</td>
+        <td>${cell(r.location)}</td>
+        <td>${cell(r.skill_labels)}</td>
+        <td class="mono small">${cell((r.scraped_at || '').slice(0, 10))}</td>
+        <td class="small">${r.job_description ? esc(String(r.job_description).slice(0, 60)) + (String(r.job_description).length > 60 ? '…' : '') : '<span class="small muted">未抓取</span>'}</td></tr>`).join('');
+    return `
+    <div class="page-head"><h2>岗位资料库</h2>
+      <p>外部市场的<b>真实在招岗位</b>（BOSS 直聘 + 智联招聘抓取入库）。生成岗位 JD 时，Agent 会<b>先读这里</b>再下笔 ——
+      岗位要求与薪资口径对齐真实市场，而不是闭门造车。资料库<b>只读</b>：不参与本公司招聘流程，也不进简历打分。</p></div>
+    <div class="kpis">
+      <div class="kpi"><div class="k-label">在库岗位</div><div class="k-val">${total}<small>条</small></div><div class="k-foot">去重后（岗位名+公司+地点）</div></div>
+      <div class="kpi"><div class="k-label">含完整 JD</div><div class="k-val">${withJd}<small>条</small></div><div class="k-foot">${total ? Math.round(withJd / total * 100) : 0}% · 需 --with-job-detail 抓取</div></div>
+      <div class="kpi"><div class="k-label">含薪资区间</div><div class="k-val">${withSal}<small>条</small></div><div class="k-foot">${total ? Math.round(withSal / total * 100) : 0}%</div></div>
+      <div class="kpi"><div class="k-label">最近抓取</div><div class="k-val small">${last ? esc(last.slice(0, 10)) : '—'}</div><div class="k-foot">${last ? '北京时间' : '尚无抓取记录'}</div></div>
+    </div>
+    ${rows.length ? `
+    <div class="card" style="margin-top:14px">
+      <div class="card-hd"><h3>在库岗位（${rows.length}）</h3>
+        <input class="i" id="refQ" style="max-width:240px" placeholder="按岗位名 / 公司 / 地点筛选"
+          oninput="var q=this.value.trim().toLowerCase();var n=0;document.querySelectorAll('[data-ref-row]').forEach(function(tr){var hit=!q||tr.getAttribute('data-ref-row').indexOf(q)>=0;tr.style.display=hit?'':'none';if(hit)n++;});var e=document.getElementById('refCount');if(e)e.textContent=n;">
+      </div>
+      <div class="card-bd">
+        <div class="hint" style="margin-bottom:8px">当前显示 <b id="refCount">${rows.length}</b> 条 · 薪资与 JD 分两条通道抓：BOSS 出 JD 正文，智联出薪资区间，所以单行往往只填了一侧；两栏都空的是早期只抓了岗位名的老产物。</div>
+        ${tbl(['岗位名称', '公司', '行业 · 规模', '薪资', '地点', '技能标签', '抓取时间', 'JD 摘要'], [rowsHtml], '资料库为空 —— 见下方「如何写入」')}
+      </div></div>` : `
+    <div class="card" style="margin-top:14px"><div class="card-hd"><h3>资料库还是空的</h3></div>
+      <div class="card-bd"><p class="small muted">当前没有在库岗位。两种写入方式：</p>
+        <ol class="small muted" style="line-height:1.9;margin:8px 0 0 18px">
+          <li><b>抓 BOSS（JD 正文，免登录）</b>：<code>python tools/scrape_boss_jobs.py --seed &lt;岗位详情页URL&gt; --max-jobs 40</code></li>
+          <li><b>抓智联（薪资区间，免登录）</b>：<code>python tools/scrape_zhaopin_jobs.py --kw 律师 --jl 530 --pages 2</code></li>
+          <li><b>入库（幂等）</b>：<code>python tools/import_boss_jobs.py --file &lt;上面产出的 json&gt;</code>，重复导入不会翻倍。</li>
+        </ol></div></div>`}
+    <div class="callout slim" style="margin-top:14px">离线演示态不含资料库数据（它存在服务端 SQLite 里）。连上本地后端后本页才有内容。</div>`;
+  }
+
   PAGES.kb = () => `
     <div class="page-head"><h2>知识库管理</h2>
       <p>员工自助 Agent 的「手册」。制度文档必须带<b>版本与生效日期</b>，过期自动降权 —— 用过期制度回答员工，比不回答更糟。</p></div>
@@ -5970,6 +6162,7 @@ window.Agent = (function () {
         salary: val('#jfSalary'),
         mustHave: val('#jfMust'),
         niceHave: val('#jfNice'),
+        duties: (state.jobForm && state.jobForm.data && state.jobForm.data.duties) || [],
         jd: val('#jfJd')
       };
       const mode = state.jobForm && state.jobForm.mode;
@@ -6062,6 +6255,7 @@ window.Agent = (function () {
       /* 一行一条：条目边界 = 换行。用「，」拼回去会被当成一句话，重新解析就黏成一条。 */
       set('#jdMust', (((j.mustHaveText && j.mustHaveText.length ? j.mustHaveText : j.mustHave) || []).join('\n')));
       set('#jdNice', ((j.niceHave || []).join('\n')));
+      set('#jdDuty', ((j.duties || []).join('\n')));
       const edu = $('#jdEdu'); if (edu) edu.value = String(j.mustEduRank == null ? 2 : j.mustEduRank);
       const ind = $('#jdIndustry'); if (ind && j.industry) ind.value = j.industry;
       toast('已载入岗位「' + j.title + '」（' + (j.industry || '') + '），可直接生成或修改。');
@@ -6071,7 +6265,7 @@ window.Agent = (function () {
       state.jobForm = { mode: 'new', data: {
         title: last.title, industry: last.industry, dept: last.dept,
         mustYears: last.years, headcount: last.headcount, salary: last.salary,
-        mustHave: last.mustHave, niceHave: last.niceHave, jd: last.jd
+        mustHave: last.mustHave, niceHave: last.niceHave, duties: last.duties || [], jd: last.jd
       } };
       state.page = 'jobs'; render();
       toast('JD 已带入岗位表单，确认后点「保存岗位」。');
@@ -6223,7 +6417,7 @@ GitHub 有开源项目 800 star。期望薪资 35k。</textarea>
         ['#jdB2', '带薪年假、法定节假日按国家规定执行'], ['#jdB3', '补充商业医疗保险'], ['#jdB4', '培训预算与内部晋升通道']];
       const payload = {
         title, industry: val('#jdIndustry') || '通用', dept: val('#jdDept'),
-        must: val('#jdMust'), nice: val('#jdNice'),
+        must: val('#jdMust'), nice: val('#jdNice'), duty: val('#jdDuty'),
         years: Number(val('#jdYears') || 0), eduRank: Number(val('#jdEdu') || 0),
         headcount: Number(val('#jdHead') || 1), salary: val('#jdSalary'),
         benefits: BENEFIT_MAP.filter(([sel]) => { const e = $(sel); return e && e.checked; }).map(([, t]) => t)
@@ -6241,8 +6435,8 @@ GitHub 有开源项目 800 star。期望薪资 35k。</textarea>
       const flagged = (r.scan && r.scan.flagged) || [], legal = (r.scan && r.scan.legal) || [];
       const blocked = flagged.length + legal.length;
       state.lastJd = { title, industry: payload.industry, dept: payload.dept, years: payload.years,
-        headcount: payload.headcount, salary: payload.salary,
-        mustHave: r.mustHave || [], niceHave: r.niceHave || [], jd: r.jd };
+        headcount: payload.headcount, salary: payload.salary, duty: payload.duty,
+        mustHave: r.mustHave || [], niceHave: r.niceHave || [], duties: r.userDuties || r.duties || [], jd: r.jd };
       $('#jdMeta').textContent = `生成完成 · 命中 ${flagged.length} 处歧视性表述 · ${legal.length} 处违法表述`;
       $('#jdBody').innerHTML = `
         ${blocked
@@ -6256,7 +6450,7 @@ GitHub 有开源项目 800 star。期望薪资 35k。</textarea>
           <b style="color:var(--red)">违法表述：${esc(f.word)}${f.line ? '（第 ' + f.line + ' 行）' : ''}</b><br>
           <span class="small">风险：${esc(f.why)}</span><br>
           <span class="small" style="color:var(--grn)">建议改为：${esc(f.fix)}</span></div>`).join('')}
-        <div class="callout"><b>Agent 依据</b>：${r.fnName ? `识别职能「${esc(r.fnName)}」` : '未识别出明确职能，按行业兜底'} · 行业「${esc(r.industry || payload.industry)}」 · 已填内容保留核心信息并书面化润色，任职要求按六维度扩充 · 自动抽取打分关键词 ${(r.keywords || []).length} 个<br>
+        <div class="callout"><b>Agent 依据</b>：${r.fnName ? `识别职能「${esc(r.fnName)}」` : '未识别出明确职能，按行业兜底'} · 行业「${esc(r.industry || payload.industry)}」 · ${payload.duty ? `岗位职责以你填写的为准（已书面化）` : '岗位职责按职能族生成'} · 任职要求按六维度扩充 · 自动抽取打分关键词 ${(r.keywords || []).length} 个<br>
           ${(r.keywords || []).map(k => `<span class="tag">${esc(k)}</span>`).join(' ') || '<span class="muted small">（离线模式未抽取，启动后端后可见）</span>'}
           <div class="small muted" style="margin-top:6px">这些关键词会在「简历筛选台」用来给候选人打分 —— 所以 JD 写什么，决定 Agent 怎么筛人。</div></div>
         <div class="small muted" style="margin:14px 0 6px">JD 正文：</div>
@@ -7019,6 +7213,42 @@ WHERE tenant_id = current_tenant() AND job_id = 'J-2026-118'<br>
     const fn = ACT[el.dataset.act];
     if (fn) fn(el);
   });
+
+  /* 整段 JD 分栏回填（v14）：
+     用户把「职位职责 + 职位要求」整段粘进任一 JD 输入框时，按结构拆开并把
+     任职要求 / 加分项分派到各自输入框 —— 老行为是「岗位职责」栏只取职责、
+     把要求静默丢弃（用户以为平台吞了内容）。这里统一三栏都监听，粘哪栏都对。
+     合并策略一律「追加 + 去重」，绝不覆盖已填内容：宁可多一条，不可丢一条。 */
+  document.addEventListener('paste', e => {
+    const t = e.target;
+    if (!t || !t.id || !/^jd(Duty|Must|Nice)$/.test(t.id)) return;
+    const A2 = window.Agent;
+    if (!A2 || !A2.splitJdFields) return;
+    const cb = e.clipboardData || window.clipboardData;
+    const text = (cb && cb.getData) ? cb.getData('text') : '';
+    if (!text || !text.trim()) return;
+    let f; try { f = A2.splitJdFields(text); } catch (_) { return; }
+    /* heads < 2 = 不是一份完整 JD（只是零散条目）→ 交回浏览器默认粘贴，
+       不做任何干预，保持「一行一条」的手工填法完全不受影响。 */
+    if (!f || f.heads < 2) return;
+    if (!f.duty.length && !f.must.length && !f.nice.length) return;
+    e.preventDefault();
+    const merge = (sel, items) => {
+      const el = $(sel); if (!el || !items.length) return 0;
+      const lines = el.value.split('\n').map(s => s.trim()).filter(Boolean);
+      const seen = new Set(lines); let n = 0;
+      items.forEach(x => { if (!seen.has(x)) { seen.add(x); lines.push(x); n++; } });
+      el.value = lines.join('\n');
+      return n;
+    };
+    const dutyItems = f.lead.concat(f.duty);
+    const nD = merge('#jdDuty', dutyItems), nM = merge('#jdMust', f.must), nN = merge('#jdNice', f.nice);
+    const parts = [];
+    if (nD) parts.push(`岗位职责 +${nD} 条`);
+    if (nM) parts.push(`任职要求 +${nM} 条`);
+    if (nN) parts.push(`加分项 +${nN} 条`);
+    toast(`✅ 已识别为整段 JD 并自动分栏：${parts.join(' · ')}（追加去重，未覆盖你已填的内容）。`);
+  });
   document.addEventListener('click', e => {
     const chip = e.target.closest('.qchip');
     if (chip) sendChat(chip.dataset.q);
@@ -7082,7 +7312,7 @@ document.getElementById('collapseBtn').addEventListener('click', function () {
   this.setAttribute('aria-expanded', app.classList.contains('collapsed') ? 'false' : 'true');
 });
 // 原型说明：检测到 server/ 启动后自动切换为真实后端（SQLite + Agent 引擎），否则使用内置演示数据。
-console.log('%cHR-Agent OS 原型', 'color:#7aa9ff;font-weight:700', '构建时间 2026-09-30 09:25 · 无后端依赖，双击可用');
+console.log('%cHR-Agent OS 原型', 'color:#7aa9ff;font-weight:700', '构建时间 2026-10-02 10:01 · 无后端依赖，双击可用');
 </script>
 </body>
 </html>

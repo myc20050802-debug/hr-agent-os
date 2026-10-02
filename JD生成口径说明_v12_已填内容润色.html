@@ -97,7 +97,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <div class="wrap">
   <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--JD-工作台-任职要求-加分项-已填内容润色口径-v12" data-text="JD 工作台 · 「任职要求 / 加分项」已填内容润色口径（v12）">JD 工作台 · 「任职要求 / 加分项」已填内容润色口径（v12）</a><a class="toclink lvl2" href="#doc0--一-需求原文" data-text="一、需求原文">一、需求原文</a><a class="toclink lvl2" href="#doc0--二-差额-缺的是-润色-不是-丰富" data-text="二、差额：缺的是「润色」，不是「丰富」">二、差额：缺的是「润色」，不是「丰富」</a><a class="toclink lvl2" href="#doc0--三-实现分三层" data-text="三、实现分三层">三、实现分三层</a><a class="toclink lvl3" href="#doc0--第-1-层-规则润色-默认-离线可用" data-text="第 1 层 · 规则润色（默认，离线可用）">第 1 层 · 规则润色（默认，离线可用）</a><a class="toclink lvl3" href="#doc0--第-2-层-结构锁-防止-润色-变成-创作" data-text="第 2 层 · 结构锁（防止「润色」变成「创作」）">第 2 层 · 结构锁（防止「润色」变成「创作」）</a><a class="toclink lvl3" href="#doc0--第-3-层-LLM-增强-可选-配了模型才走" data-text="第 3 层 · LLM 增强（可选，配了模型才走）">第 3 层 · LLM 增强（可选，配了模型才走）</a><a class="toclink lvl2" href="#doc0--四-规则清单-白名单-可逐条审计" data-text="四、规则清单（白名单，可逐条审计）">四、规则清单（白名单，可逐条审计）</a><a class="toclink lvl3" href="#doc0--4-1-通用清洗-对任何条目都安全" data-text="4.1 通用清洗（对任何条目都安全）">4.1 通用清洗（对任何条目都安全）</a><a class="toclink lvl3" href="#doc0--4-2-口语-书面" data-text="4.2 口语 → 书面">4.2 口语 → 书面</a><a class="toclink lvl3" href="#doc0--4-3-句首冗余引导语-句尾语气词" data-text="4.3 句首冗余引导语 / 句尾语气词">4.3 句首冗余引导语 / 句尾语气词</a><a class="toclink lvl3" href="#doc0--4-4-加分项统一句式" data-text="4.4 加分项统一句式">4.4 加分项统一句式</a><a class="toclink lvl2" href="#doc0--五-改前-vs-改后-同一份输入的真实产出" data-text="五、改前 vs 改后（同一份输入的真实产出）">五、改前 vs 改后（同一份输入的真实产出）</a><a class="toclink lvl2" href="#doc0--六-顺手修掉的两个真-bug" data-text="六、顺手修掉的两个真 bug">六、顺手修掉的两个真 bug</a><a class="toclink lvl2" href="#doc0--七-规则改在哪" data-text="七、规则改在哪">七、规则改在哪</a><a class="toclink lvl2" href="#doc0--八-回归证据-都是实跑-不是推断" data-text="八、回归证据（都是实跑，不是推断）">八、回归证据（都是实跑，不是推断）</a><a class="toclink lvl2" href="#doc0--九-边界-还没做" data-text="九、边界（还没做）">九、边界（还没做）</a></div></aside>
   <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">JD生成口径说明_v12_已填内容润色.md</div><h1 id="doc0--JD-工作台-任职要求-加分项-已填内容润色口径-v12">JD 工作台 · 「任职要求 / 加分项」已填内容润色口径（v12）</h1>
-<blockquote><strong>平台</strong>：HR-Agent OS · 本地全栈 PoC（<code>C:\Users\mayunchong\WorkBuddy\hr平台</code>） <strong>场景</strong>：招聘 Agent · JD 工作台 → 「生成 JD 并做合规扫描」 <strong>需求提出</strong>：2026-09-29（北京时间） <strong>词库版本</strong>：<code>REQ_LIB_VER</code> 11 → <strong>12</strong>（老 JD 启动时自动重算）</blockquote>
+<blockquote><strong>平台</strong>：HR-Agent OS · 本地全栈 PoC（仓库根目录） <strong>场景</strong>：招聘 Agent · JD 工作台 → 「生成 JD 并做合规扫描」 <strong>需求提出</strong>：2026-09-29（北京时间） <strong>词库版本</strong>：<code>REQ_LIB_VER</code> 11 → <strong>12</strong>（老 JD 启动时自动重算）</blockquote>
 <h2 id="doc0--一-需求原文">一、需求原文</h2>
 <blockquote>在 JD 工作台中生成岗位 JD 时，请按以下规则处理「任职要求」和「加分项」两栏内容： 若「任职要求」栏已有内容，则在保留其核心信息的基础上进一步丰富和润色生成 JD； 若该栏为空，则按原有默认逻辑生成。若「加分项」栏已有内容，则依据这些内容进行 美化和完善后再生成；若为空，则按原有默认逻辑处理。请确保最终生成的 JD 语言流畅、 表述专业，并忠实于已有的输入内容，不要凭空添加未提供的信息。</blockquote>
 <h2 id="doc0--二-差额-缺的是-润色-不是-丰富">二、差额：缺的是「润色」，不是「丰富」</h2>
@@ -188,7 +188,7 @@ AI产品实习经历；懂点技术能和工程对话；         有AI产品实�
 </ul>
 <p>降级分支；实跑证据待配模型后补。</p></article></main>
 </div>
-<footer>生成时间：2026-09-29 17:11（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-09-30 16:18（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "JD 工作台 · 「任职要求 / 加分项」已填内容润色口径（v12）"}];
 

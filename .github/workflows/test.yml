@@ -1,0 +1,55 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# CI 只需要读代码，不写任何东西
+permissions:
+  contents: read
+
+jobs:
+  # 一键回归：run_all.js 自带「隔离实例 127.0.0.1:8799 + 临时库」，不会碰演示库
+  regression:
+    name: 回归（11 套件 + 文档守卫 + 双模式评测）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # 运行时零依赖，只有测试用的 jsdom 需要装
+      - name: 安装测试依赖
+        run: npm install --no-audit --no-fund
+
+      # run_all.js 在缺 jsdom 时会「静默跳过」前端套件，剩下的照样报全绿。
+      # 所以这里显式断言一次，避免拿到假绿。
+      - name: 断言 jsdom 就位（防前端套件被静默跳过）
+        run: node -e "require.resolve('jsdom'); console.log('jsdom ok')"
+
+      - name: 一键回归（11 套件 + 文档一致性守卫 + 双模式评测）
+        run: npm test
+
+  # 抓取脚本依赖很重（scrapling + playwright 浏览器内核），CI 里不装；
+  # 只做编译检查，顺带验证「缺依赖时的友好报错」这段代码本身是合法的。
+  python-syntax:
+    name: Python 脚本编译检查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: 编译检查 tools/ 下的 Python 脚本
+        run: |
+          python -m py_compile \
+            tools/scrape_boss_jobs.py \
+            tools/scrape_zhaopin_jobs.py \
+            tools/import_boss_jobs.py \
+            tools/build_share_pack.py \
+            tools/md2dark_html.py

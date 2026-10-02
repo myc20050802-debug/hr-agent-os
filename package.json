@@ -1,9 +1,9 @@
 {
   "name": "hr-agent-os",
   "version": "0.10.0",
-  "private": true,
+  "private": false,
   "description": "B 端 HR AI Agent 平台 · 可运行的本地全栈 PoC。运行时零依赖（Node 原生 http + 内置 node:sqlite）；jsdom 仅用于前端无头测试。",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "engines": {
     "node": ">=22.5.0"
   },
@@ -16,7 +16,11 @@
     "backup": "node tools/backup.js",
     "backup:list": "node tools/backup.js --list",
     "preflight": "node --experimental-sqlite tools/preflight.js",
-    "test": "node tools/run_all.js",
+    "test": "node tools/run_all.js && node tools/check_docs.js && node --experimental-sqlite tools/eval_dual_mode.js",
+    "check:docs": "node tools/check_docs.js",
+    "test:dual": "node --experimental-sqlite tools/eval_dual_mode.js",
+    "eval:dual": "node --experimental-sqlite tools/eval_dual_mode.js --md docs/16_规则与LLM双模式对照评测.md",
+    "share": "python tools/build_share_pack.py",
     "test:backend": "node tools/run_all.js --only backend",
     "test:frontend": "node tools/run_all.js --only frontend",
     "test:load": "node tools/run_all.js --only load",
@@ -28,9 +32,31 @@
     "test:eval": "node --experimental-sqlite tools/test_eval.js",
     "test:screening": "node --experimental-sqlite tools/test_screening.js",
     "test:offline": "node 平台原型/test_prototype.js",
+    "test:pages": "node 平台原型/test_pages.js",
     "test:live": "node 平台原型/test_live.js"
   },
   "devDependencies": {
     "jsdom": ">=24"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/myc20050802-debug/hr-agent-os.git"
+  },
+  "homepage": "https://myc20050802-debug.github.io/hr-agent-os/",
+  "bugs": {
+    "url": "https://github.com/myc20050802-debug/hr-agent-os/issues"
+  },
+  "keywords": [
+    "hr",
+    "recruiting",
+    "ai-agent",
+    "llm",
+    "human-in-the-loop",
+    "explainable-ai",
+    "sqlite",
+    "zero-dependency",
+    "nodejs",
+    "poc"
+  ],
+  "author": "Ma Yunchong"
 }

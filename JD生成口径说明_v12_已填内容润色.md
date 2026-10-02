@@ -1,6 +1,6 @@
 # JD 工作台 · 「任职要求 / 加分项」已填内容润色口径（v12）
 
-> **平台**：HR-Agent OS · 本地全栈 PoC（`C:\Users\mayunchong\WorkBuddy\hr平台`）
+> **平台**：HR-Agent OS · 本地全栈 PoC（仓库根目录）
 > **场景**：招聘 Agent · JD 工作台 → 「生成 JD 并做合规扫描」
 > **需求提出**：2026-09-29（北京时间）
 > **词库版本**：`REQ_LIB_VER` 11 → **12**（老 JD 启动时自动重算）

@@ -81,15 +81,17 @@ const html = fs.readFileSync(file, 'utf8');
   const badge = $('#liveBadge');
   const liveOn = badge && badge.style.display !== 'none' && badge.textContent.indexOf('真实后端') > -1;
   log(liveOn ? '  ✓ 已连接真实后端：' + badge.textContent : '  ⚠️ 未进入 LIVE 模式（离线兜底）');
-  /* 导航按能力裁剪：HRD 应看到全部 23 页 */
-  const navCount = ($('#nav') || { textContent: '' }).textContent.length;
-  const navItems = $('#nav').querySelectorAll('.navitem').length;
-  log('  ✓ 导航项 ' + navItems + ' 个（HRD 应按能力显示全部页面）');
+  /* 1. 逐页渲染
+     页面清单**从 app.PAGES 派生**，不再手写。
+     教训：这里原来是 23 个写死的 id，本项目新增「岗位资料库」页后它被静默漏掉 ——
+     在线套件少测一页却仍打印「全部通过」，比测试失败更危险（假绿）。
+     现在与 test_prototype.js 共用同一份事实源（PAGES），两边不可能再不同步。 */
+  const ids = Object.keys(app.PAGES);
+  if (!ids.length) { log('❌ app.PAGES 为空，无法确定页面清单'); process.exit(1); }
 
-  /* 1. 逐页渲染 */
-  const ids = ['dashboard', 'jobs', 'jd', 'screen', 'invite', 'interview', 'offer', 'onboarding', 'selfservice',
-    'reports', 'orchestrate', 'candidates', 'employees', 'approvals', 'risks', 'permissions',
-    'audit', 'privacy', 'integrations', 'kb', 'model', 'foundation', 'about'];
+  /* 导航按能力裁剪：HRD 应看到全部页面（页面节点 + 「招聘 Agent」目录节点） */
+  const navItems = $('#nav').querySelectorAll('.navitem').length;
+  log('  ✓ 导航项 ' + navItems + ' 个（HRD 应按能力显示全部页面；当前 ' + ids.length + ' 页 + 目录节点）');
   let bad = 0;
   for (const id of ids) {
     app.state.page = id;

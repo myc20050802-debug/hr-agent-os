@@ -6,12 +6,25 @@
 # 二进制
 *.db binary
 *.zip binary
+# README 用的产品截图：二进制，不做行尾归一、不展开文本 diff
+*.png binary
+*.jpg binary
 
 # 生成物标记：GitHub 会折叠其 diff，避免把「打包产物」误读为手写代码
-# 生成方式见 README「构建」一节
-平台原型/index.html            linguist-generated=true
-HR-AI-Agent平台_*.html         linguist-generated=true
-AI产品经理JD_模板结构.html      linguist-generated=true
-JD生成口径修复说明.html         linguist-generated=true
+# 这些文件都由 md / 源码生成，**不要手改** —— 改完源头请重新生成
+平台原型/index.html linguist-generated=true
 AI-Agent产品经理_校招JD_排版版.html linguist-generated=true
-面试前缺口审计_待补清单.html     linguist-generated=true
+AI产品经理JD_模板结构.html linguist-generated=true
+GitHub开源前改进清单.html linguist-generated=true
+HR-AI-Agent平台_*.html linguist-generated=true
+JD生成口径v13修复说明_岗位职责栏与语义分段.html linguist-generated=true
+JD生成口径修复说明.html linguist-generated=true
+JD生成口径说明_v12_已填内容润色.html linguist-generated=true
+JD粘贴解析口径v14修复说明.html linguist-generated=true
+上线部署手册_A档.html linguist-generated=true
+从PoC到可用软件的落地路径.html linguist-generated=true
+岗位资料库与Boss抓取接入.html linguist-generated=true
+产品经理视角项目评估.html linguist-generated=true
+招聘Agent目录与模块组织结构.html linguist-generated=true
+面试前缺口审计_待补清单.html linguist-generated=true
+规则与LLM双模式对照评测.html linguist-generated=true

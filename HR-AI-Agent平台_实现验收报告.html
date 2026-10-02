@@ -170,17 +170,17 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <div class="tablewrap"><table><thead><tr><th>套件</th><th>命令</th><th>覆盖</th><th>结果</th></tr></thead><tbody><tr><td>后端集成（真 HTTP，无依赖）</td><td><code>node --experimental-sqlite tools/test_auth.js</code></td><td>认证 / 三层权限 / 治理 / 迁移 / 错误契约 / 限流 / 会话吊销 <strong>127 项断言</strong></td><td>✅ <strong>127 通过 / 0 失败</strong></td></tr><tr><td>在线端到端（真后端 + 真鉴权）</td><td><code>NODE_PATH=... node 平台原型/test_live.js</code></td><td><strong>23 页渲染 + 16 项真链路交互</strong></td><td>✅ <strong>0 异常 / 0 错误</strong></td></tr><tr><td>离线兜底（单文件 <code>file://</code>）</td><td><code>NODE_PATH=... node 平台原型/test_prototype.js</code></td><td><strong>23 页渲染 + 16 项离线交互</strong></td><td>✅ <strong>0 异常 / 0 错误</strong></td></tr></tbody></table></div>
 <p>在线回归的关键日志（原文摘录）：</p>
 <div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>0. 身份认证
-  ✓ /api/health 无需登录：authMode=strict schema=v4
+  ✓ /api/health 无需登录：authMode=strict schema=v9
   ✓ 匿名访问 /api/bootstrap → 401（不再默认 HRD）
-  ✓ 已登录：李静（人力资源总监）· 能力 16 项 · 数据范围 all
-  ✓ 导航项 23 个（HRD 应按能力显示全部页面）
-  ✓ 23 个页面渲染：异常 0 个
+  ✓ 已登录：李静（人力资源总监）· 能力 22 项 · 数据范围 all
+  ✓ 导航项 25 个（24 个页面 + 「招聘 Agent」目录节点）
+  ✓ 24 个页面渲染：异常 0 个
   ✓ 越权导出被 403 拦截（切到员工身份）
       员工身份：403 拦截 + 审计留痕
   ✓ 审计 append-only 与越权留痕可查
-      审计：共 15 条，blocked 2 条；示例 → 被拦截：角色 employee 缺少能力 employee:export · requestId=96181a3…
-✅ 全部通过：LIVE 模式下 23 页渲染正常，16 项真实链路交互无错误。</code></pre></div>
-<blockquote>注意那行 <code>blocked 2 条</code>：1 条是种子里的演示记录（<code>actor_type='system'</code>），1 条是<strong>刚才那次真实越权</strong>。测试用例因此被特意收紧为「必须匹配到 <code>actor_type='user'</code> 且 <code>detail</code> 以『被拦截：』开头的那条」——<strong>否则种子数据会把用例糊过去</strong>（见 §六 R3）。</blockquote>
+      审计：共 16 条，blocked 3 条；示例 → 被拦截：角色 employee 缺少能力 employee:export · requestId=96181a3…
+✅ 全部通过：LIVE 模式下 24 页渲染正常，27 项真实链路交互无错误。</code></pre></div>
+<blockquote>注意那行 <code>blocked 3 条</code>：1 条是种子里的演示记录（<code>actor_type='system'</code>），其余来自<strong>历次真实越权测试</strong> —— 审计表是 append-only，每跑一次在线回归就多一条，所以这个数<strong>会随运行次数增长，不是固定值</strong>。测试用例因此被特意收紧为「必须匹配到 <code>actor_type='user'</code> 且 <code>detail</code> 以『被拦截：』开头的那条」——<strong>否则种子数据会把用例糊过去</strong>（见 §六 R3）。</blockquote>
 <h3 id="doc0--5-2-空库重建-一次硬验证">5.2 空库重建（一次硬验证）</h3>
 <div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>1) 删除 server/hr_agent.db（含 -wal / -shm）
 2) node --experimental-sqlite server.js          # 全新启动，无 --reset
@@ -506,7 +506,7 @@ fnKey = null（职能识别不出）→ 走行业兜底
 <hr class="sep">
 <p><em>配套阅读：<code>docs/07_项目计划书.md</code>（里程碑与决策）、<code>docs/08_架构设计文档.md</code>（L0–L5 与 ADR）、<code>docs/05_从PoC到企业级的差距清单.md</code>（本轮的立项依据）。凡本报告与代码冲突，<strong>以代码实测为准</strong>。</em></p></article></main>
 </div>
-<footer>生成时间：2026-09-29 16:35（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-09-30 16:43（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "09 · M1 实现说明与验收报告（可信底座）"}];
 

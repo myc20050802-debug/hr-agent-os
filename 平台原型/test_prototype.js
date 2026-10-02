@@ -28,10 +28,12 @@ JSDOM.fromFile(file, { runScripts: 'dangerously', pretendToBeVisual: true, virtu
     const app = window.__app;
     if (!app) { log('❌ window.__app 未暴露，脚本可能未执行'); process.exit(1); }
 
-    /* 1. 逐页渲染 */
-    const ids = ['dashboard', 'jobs', 'jd', 'screen', 'invite', 'interview', 'offer', 'onboarding', 'selfservice',
-      'reports', 'orchestrate', 'candidates', 'employees', 'approvals', 'risks', 'permissions',
-      'audit', 'privacy', 'integrations', 'kb', 'model', 'foundation', 'about'];
+    /* 页面清单**从 app.PAGES 派生**，不再手写。
+       这里原来是 24 个写死的 id —— 与 test_live.js 里那份 23 个的列表已经不同步过
+       （新加的「岗位资料库」页在在线套件里被静默漏掉）。两份写死清单必然漂移，
+       统一从 PAGES 派生后，新增页面自动进入两个套件的覆盖。 */
+    const ids = Object.keys(app.PAGES);
+    if (!ids.length) { log('❌ app.PAGES 为空，无法确定页面清单'); process.exit(1); }
     let bad = 0;
     for (const id of ids) {
       app.state.page = id;
@@ -403,6 +405,42 @@ JSDOM.fromFile(file, { runScripts: 'dangerously', pretendToBeVisual: true, virtu
          一旦误触发 location.replace，测试会直接红。这条断言就是那根护栏。 */
       if (app.LIVE.on) throw new Error('无后端时应保持离线演示态');
       if (!/^file:/.test(window.location.href)) throw new Error('离线用例里发生了跳转：' + window.location.href);
+    });
+
+    /* 离线逃生开关：**后端可达时也必须离线**。
+       这一条是真跑出来的，不是查字符串：
+       原断言只检查源码里出现过 'wantOffline'，于是「开关在、但走不到」这种故障完全测不出来。
+       实际故障：liveBootstrap 先探测当前源，后端托管原型时直接 return，
+       ?offline=1 被无视 —— 页面照样弹登录闸门。
+       构造方式：新开一个 JSDOM，把 URL 设成后端源 + ?offline=1，
+       并注入一个「同源 /api/health 一定成功」的 fetch 桩，模拟最容易吃掉开关的环境。 */
+    await tryAsync('离线逃生开关：后端可达时 ?offline=1 仍必须离线', async () => {
+      const html = fs.readFileSync(file, 'utf8');
+      const calls = [];
+      const vc2 = new VirtualConsole();
+      const dom2 = new JSDOM(html, {
+        url: 'http://127.0.0.1:8788/?offline=1',
+        runScripts: 'dangerously',
+        pretendToBeVisual: true,
+        virtualConsole: vc2,
+        beforeParse(w) {
+          /* 只实现 probeHealth 用到的形状：ok / json()。 */
+          w.fetch = function (u) {
+            calls.push(String(u));
+            return Promise.resolve({
+              ok: true, status: 200,
+              json: () => Promise.resolve({ ok: true, mode: 'rule', schemaVersion: 9, authMode: 'strict' }),
+              text: () => Promise.resolve(''),
+            });
+          };
+        },
+      });
+      await wait(400);
+      const app2 = dom2.window.__app;
+      if (!app2) throw new Error('第二实例未暴露 window.__app');
+      if (app2.LIVE.on) throw new Error('后端可达时 ?offline=1 被忽略 —— 仍然进了在线模式（逃生开关失效）');
+      if (calls.length) throw new Error('显式离线时不应发起任何探测请求，实际发了 ' + calls.length + ' 次：' + calls.slice(0, 3).join(', '));
+      dom2.window.close();
     });
 
     /* 岗位驱动的简历打分：把「关键词跟着岗位走」这条行为锁住。

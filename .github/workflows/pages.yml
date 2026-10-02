@@ -1,0 +1,79 @@
+name: pages
+
+# 为什么这个 workflow 值得存在：
+#   仓库里 16,000+ 行、24 个页面的产品，此前访客要 **clone → 装 Node 22 → 启动 → 登录**
+#   四步才能看到任何东西，任何一步掉人就永远看不到了。
+#   而 `平台原型/index.html` 是**完全自包含**的单文件（内联全部 CSS 与 JS，
+#   `<script src=` / `<link href=` 均 0 命中）—— 它天生就是静态站点，
+#   直接托管即可零安装访问。这是投入产出比最高的一步。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Pages 部署需要这三个权限，缺 id-token 会静默失败
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一分支只保留最新一次部署（旧的部署到一半就把资源覆盖了）
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: 打包单文件原型
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 只用 Node 原生能力，不需要 npm install（运行时零依赖）
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # 从 src/ 重新生成，保证「Pages 上跑的」与「仓库里的代码」逐字节一致，
+      # 而不是靠某个提交碰巧把 index.html 一起传上去了
+      - name: 打包前端（src/ → 单文件 index.html）
+        run: npm run build
+
+      - name: 组装站点
+        run: |
+          mkdir -p _site
+          cp 平台原型/index.html _site/index.html
+          # 关掉 Jekyll：它默认忽略下划线开头的文件，对我们不需要，还多一步构建
+          touch _site/.nojekyll
+          echo "--- 站点内容 ---"
+          ls -la _site
+          wc -c _site/index.html
+
+      # 自包含断言：一旦有人往 shell.html 里加了外部 <script src>/<link href>，
+      # Pages 上会白屏（外链 404），而本地 file:// 打开却看不出来。这里直接卡住。
+      - name: 断言原型为自包含单文件（否则 Pages 上会白屏）
+        run: |
+          node -e "
+          const fs=require('fs');
+          const s=fs.readFileSync('_site/index.html','utf8');
+          const ext=[...s.matchAll(/<script[^>]+src=\"([^\"]+)\"|<link[^>]+href=\"([^\"]+)\"/g)].map(m=>m[1]||m[2]);
+          if(ext.length){ console.error('✗ 发现外部引用，Pages 上会 404：'+ext.join(', ')); process.exit(1); }
+          console.log('✓ 自包含（无外部 script/link 引用），体积 '+s.length+' 字符');
+          "
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: 部署到 GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

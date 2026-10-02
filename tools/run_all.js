@@ -34,6 +34,7 @@ const SUITES = [
   { id: 'devup', kind: 'self', name: '打开即在线（幂等启动 / CORS 白名单 / hook 接线）', file: 'tools/test_devup.js' },
   { id: 'ops', kind: 'self', name: '运维面（gzip / ETag / 源码隔离 / 重置开关 / 口令治理 / 备份恢复）', file: 'tools/test_ops.js' },
   { id: 'offline', kind: 'frontend', name: '前端离线渲染与交互（无后端）', file: '平台原型/test_prototype.js' },
+  { id: 'pages', kind: 'frontend', name: 'Pages 静态托管（自包含 / 宿主分流 / 离线渲染）', file: '平台原型/test_pages.js' },
   { id: 'nav', kind: 'frontend', name: '导航结构（目录 / 模块归属 / 折叠与权限裁剪）', file: 'tools/test_nav.js' },
   { id: 'live', kind: 'frontend', name: '前端在线渲染与交互（真后端）', file: '平台原型/test_live.js' },
   /* 压测单独一档：它比功能回归慢一个量级，且对机器负载敏感。
