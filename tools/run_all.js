@@ -8,6 +8,7 @@
  * 隔离实例用 DB_PATH 指向临时目录，跑完即删，演示库毫发无伤。
  *
  * 用法：node tools/run_all.js [--only backend|frontend|all] [--verbose]
+ * 退出码：0 全绿 · 1 有套件失败 · 2 运行器异常 · 3 套件被杀 · 4 有套件未运行（结论不完整，不算通过）
  */
 'use strict';
 const path = require('node:path');
@@ -33,6 +34,7 @@ const SUITES = [
   { id: 'screening', kind: 'self', name: '筛选运行（用量真实性 / 可重复运行）', file: 'tools/test_screening.js' },
   { id: 'devup', kind: 'self', name: '打开即在线（幂等启动 / CORS 白名单 / hook 接线）', file: 'tools/test_devup.js' },
   { id: 'ops', kind: 'self', name: '运维面（gzip / ETag / 源码隔离 / 重置开关 / 口令治理 / 备份恢复）', file: 'tools/test_ops.js' },
+  { id: 'runner', kind: 'self', name: '回归运行器（未跑套件不许报通过）', file: 'tools/test_runner.js' },
   { id: 'offline', kind: 'frontend', name: '前端离线渲染与交互（无后端）', file: '平台原型/test_prototype.js' },
   { id: 'pages', kind: 'frontend', name: 'Pages 静态托管（自包含 / 宿主分流 / 离线渲染）', file: '平台原型/test_pages.js' },
   { id: 'nav', kind: 'frontend', name: '导航结构（目录 / 模块归属 / 折叠与权限裁剪）', file: 'tools/test_nav.js' },
@@ -44,7 +46,12 @@ const SUITES = [
 ];
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-const hasJsdom = () => { try { require.resolve('jsdom'); return true; } catch { return false; } };
+/* 允许显式模拟「缺依赖」，供 tools/test_runner.js 锁死「未跑套件不许报通过」这一行为；
+   不设该变量就是普通探测 —— 没有这个开关，装好 jsdom 的机器就复现不了跳过路径。 */
+const hasJsdom = () => {
+  if (process.env.HR_SIMULATE_NO_JSDOM === '1') return false;
+  try { require.resolve('jsdom'); return true; } catch { return false; }
+};
 
 let server = null;
 const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'hr-test-'));
@@ -151,19 +158,24 @@ function runSuite(s) {
   const skipped = results.filter(x => x.skipped).length;
 
   console.log('\n' + '='.repeat(52));
-  if (!bad.length) {
-    console.log(C.g + '全部通过' + C.x + '：' + ran.length + ' 套件'
-      + (skipped ? '，' + skipped + ' 套件跳过' : ''));
-  } else {
+  if (bad.length) {
     console.log(C.r + '有失败' + C.x + '：' + bad.length + '/' + ran.length + ' 套件未通过');
     bad.forEach(x => console.log('  · ' + x.s.name + '（退出码 ' + x.code + '）'));
+  } else if (skipped) {
+    /* 跳过的套件等于没测：以前这里照样打绿色「全部通过」并 exit 0 —— 本地「半跑」看着像全绿。
+       CI 有一条 require.resolve('jsdom') 断言兜底，本地没有，所以运行器自己必须失败。 */
+    console.log(C.r + '结论不完整' + C.x + '：' + ran.length + ' 套件通过，' + skipped + ' 套件未运行');
+    results.filter(x => x.skipped).forEach(x => console.log('  · ' + x.s.name));
+    console.log(C.d + '未运行的套件不能当作通过；装齐依赖后重跑：npm i -D jsdom' + C.x + '\n');
+  } else {
+    console.log(C.g + '全部通过' + C.x + '：' + ran.length + ' 套件');
   }
   console.log('='.repeat(52));
 
   children.forEach(p => { try { p.kill('SIGKILL'); } catch { /* 已退出 */ } });
   await sleep(300);
   try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch { /* Windows 文件锁，交给系统 */ }
-  process.exit(bad.length ? 1 : 0);
+  process.exit(bad.length ? 1 : (skipped ? 4 : 0));
 })().catch(e => {
   console.error('运行器异常：' + (e && e.stack || e));
   children.forEach(p => { try { p.kill('SIGKILL'); } catch { /* 忽略 */ } });

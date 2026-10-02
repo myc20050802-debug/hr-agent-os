@@ -150,27 +150,27 @@ const ANCHORS = [
     file: 'docs/09_实现说明与验收报告.md', count: 1, why: '段 B 无头回归输出',
     must: f => `${f.pages} 个页面渲染：异常 0 个`,
   },
-  /* --- 合并阅读版（无单一 md 源，与上面 md 同句，必须同步） --- */
+  /* --- 合并阅读版（docs/html/ 下的生成物，与上面 md 同句，必须同步） --- */
   {
-    file: 'HR-AI-Agent平台_产品方案.html', count: 1, why: '= docs/01+02+03 合并阅读版',
+    file: 'docs/html/HR-AI-Agent平台_产品方案.html', count: 1, why: '= docs/01+02+03 合并阅读版',
     must: f => `左侧菜单切换 ${f.pages} 个页面`,
   },
   {
     /* 注意：HTML 里 `**覆盖 N 个页面**` 会被渲成 <strong> 包裹，所以锚点要带上 </strong>，
        否则会和下面那条「各自覆盖 <strong>N 个页面渲染」的句子混淆、少命中一次。 */
-    file: 'HR-AI-Agent平台_从0到1产品复盘.html', count: 1, why: '= docs/04 阅读版（「我做的动作」）',
+    file: 'docs/html/HR-AI-Agent平台_从0到1产品复盘.html', count: 1, why: '= docs/04 阅读版（「我做的动作」）',
     must: f => `覆盖 ${f.pages} 个页面</strong>`,
   },
   {
-    file: 'HR-AI-Agent平台_从0到1产品复盘.html', count: 1, why: '= docs/04 阅读版（「我做的验证」）',
+    file: 'docs/html/HR-AI-Agent平台_从0到1产品复盘.html', count: 1, why: '= docs/04 阅读版（「我做的验证」）',
     must: f => `${f.pages} 个页面渲染`,
   },
   {
-    file: 'HR-AI-Agent平台_实现验收报告.html', count: 1, why: '= docs/09 阅读版（导航项 = 页面 + 目录节点）',
+    file: 'docs/html/HR-AI-Agent平台_实现验收报告.html', count: 1, why: '= docs/09 阅读版（导航项 = 页面 + 目录节点）',
     must: f => `导航项 ${f.navItems} 个`,
   },
   {
-    file: 'HR-AI-Agent平台_实现验收报告.html', count: 1, why: '= docs/09 阅读版',
+    file: 'docs/html/HR-AI-Agent平台_实现验收报告.html', count: 1, why: '= docs/09 阅读版',
     must: f => `${f.pages} 个页面渲染`,
   },
   /* --- 对外交付包（gitignore，但最容易过期：实测曾停在 9-24） --- */
@@ -262,20 +262,32 @@ for (const a of ANCHORS) {
 }
 
 /* ---------- 结构不变量（比数字更重要） ---------- */
-/* 根目录阅读版 HTML 是否都在 .gitattributes 标了 linguist-generated。
+/* 所有**入库的生成物 HTML** 是否都在 .gitattributes 标了 linguist-generated。
    这份清单**过期过一次**（原 7 条，漏了 4 个文件），所以让它自动校验 ——
-   新增一篇文档的 HTML 时忘了登记，靠人记必漏。 */
+   新增一篇文档的 HTML 时忘了登记，靠人记必漏。
+   文档收敛后阅读版搬到了 docs/html、docs/archive、docs/样例，扫描面必须跟着扩大：
+   只扫根目录的话，这个坑会以「新目录里的 HTML 没人标」的形式原样回来。 */
 const attrPats = read('.gitattributes').split(/\r?\n/)
   .filter(l => l.includes('linguist-generated'))
   .map(l => l.trim().split(/\s+/)[0])
   .map(p => new RegExp('^' + p.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '$'));
-const unmarkedHtml = fs.readdirSync(ROOT).filter(f => f.endsWith('.html'))
-  .filter(f => !attrPats.some(r => r.test(f)));
+function collectHtml(dir, acc) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (['node_modules', '.git', 'logs'].includes(e.name)) continue;
+    if (e.name === '分享包') continue;              /* 不入库（gitignore），不必标 */
+    if (e.isDirectory() && e.name === 'src') continue; /* 平台原型/src 是源码，不是生成物 */
+    const p = path.join(dir, e.name);
+    if (e.isDirectory()) collectHtml(p, acc);
+    else if (e.name.endsWith('.html')) acc.push(path.relative(ROOT, p).split(path.sep).join('/'));
+  }
+  return acc;
+}
+const unmarkedHtml = collectHtml(ROOT, []).filter(f => !attrPats.some(r => r.test(f)));
 
 console.log('\n===== 结构不变量 =====');
 const invariants = [
   ['PAGES 定义无重复', new Set(facts.pageSet).size === facts.pages],
-  ['根目录 HTML 全部标了 linguist-generated' + (unmarkedHtml.length ? '（缺：' + unmarkedHtml.join(', ') + '）' : ''),
+  ['入库的生成物 HTML 全部标了 linguist-generated' + (unmarkedHtml.length ? '（缺：' + unmarkedHtml.join(', ') + '）' : ''),
     unmarkedHtml.length === 0],
   ['页面数 > 0', facts.pages > 0],
   ['原型已打包（index.html 存在且非空）', facts.htmlBytes > 1000],

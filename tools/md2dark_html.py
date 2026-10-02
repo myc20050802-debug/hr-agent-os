@@ -3,7 +3,7 @@
 """把多份 Markdown 合并渲染为一个暗色单文件 HTML（零外部依赖、可搜索、可切换文档）。
 
 用法:
-    python md2dark_html.py --out ../HR-AI-Agent平台_产品方案.html \
+    python md2dark_html.py --out ../docs/html/HR-AI-Agent平台_产品方案.html \
         --title "..." docs/01.md docs/02.md
 """
 import argparse, html, os, re, json

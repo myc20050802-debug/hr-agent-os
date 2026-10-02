@@ -193,6 +193,7 @@ except ImportError:  # 依赖缺失时给可用信息，而不是回溯栈
 <li>HTML 阅读版统一放 <code>docs/html/</code>（或按 §2.2 决定不入库）</li>
 </ul>
 <blockquote>理由：访客打开仓库第一屏看到的是 21 个文件，而不是「这是个什么项目、怎么跑」。</blockquote>
+<p><strong>✅ 落地（2026-10-02）</strong>：已按上面的建议收敛 —— 16 个阅读版进 <code>docs/html/</code>、2 组历史口径说明进 <code>docs/archive/</code>、2 组 JD 样例进 <code>docs/样例/</code>，<code>面试前缺口审计_待补清单.md</code> 归入 <code>docs/</code>。根目录只剩 <code>README</code> / <code>LICENSE</code> / <code>CHANGELOG</code> / <code>CONTRIBUTING</code> / <code>SECURITY</code> + 代码目录。守卫的扫描面也从「根目录」扩到「全仓库入库的 HTML」，否则这个坑只会换个目录重新出现。</p>
 <hr class="sep">
 <h3 id="doc0--2-2-15-个-暗色-HTML-阅读版-要不要入库-得做个明确决定">2.2 15 个「暗色 HTML 阅读版」要不要入库 —— 得做个明确决定</h3>
 <p><strong>证据</strong>：约 <strong>900 KB 生成物</strong>已入库；<code>.gitattributes</code> 里有 <code>linguist-generated=true</code> 标记。</p>
@@ -204,6 +205,10 @@ except ImportError:  # 依赖缺失时给可用信息，而不是回溯栈
 <p><strong>两条路二选一，别含糊</strong>：</p>
 <div class="tablewrap"><table><thead><tr><th>方案</th><th>要做的事</th></tr></thead><tbody><tr><td><strong>① 继续入库</strong>（我倾向这个）</td><td>把 <code>linguist-generated</code> 列表补全；README 写明「改了 md 必须重跑 <code>tools/md2dark_html.py</code> 重新生成」</td></tr><tr><td><strong>② 不入库</strong></td><td>加进 <code>.gitignore</code>，README 给生成命令，让别人自己生成</td></tr></tbody></table></div>
 <p>倾向 ① 的理由：HTML 是你对外演示的主要形态。但它需要<strong>纪律</strong> —— 现在就已经出现「md 更新了、HTML 还是旧的」的情况了。</p>
+<p><strong>✅ 落地（2026-10-02）</strong>：选方案 ①，并把纪律做成机制 ——</p>
+<p>① <code>.gitattributes</code> 由<strong>逐文件列举</strong>改为<strong>目录通配</strong>（<code>docs/html/*.html</code> 等），新增文档时结构上不可能再漏登记；</p>
+<p>② 新增 <code>tools/build_docs_html.py</code>，把「哪个 HTML ← 哪几篇 md + 什么标题」固化成 MANIFEST，重生 = 一条命令；<code>--check</code> 已在 CI 里断言「产物未登记 / 源文件缺失 / 改了名没改清单」都会红；</p>
+<p>③ 20 个产物已全量重生成一遍，md 与 HTML 回到同步。</p>
 <hr class="sep">
 <h3 id="doc0--2-3-README-30-KB-长得有点过头">2.3 README 30 KB，长得有点过头</h3>
 <p><strong>结构本身很好</strong>（一分钟跑起来 / 交付物 / M1 可信底座 / 打分可解释 / 两种运行模式 / 五分钟演示路径 / 技术选型 / 测试 / 质量与性能实测 / 这不是什么）。</p>
@@ -268,7 +273,7 @@ git push -u origin main</code></pre></div>
 <p><strong>最小可行上线路径</strong>：P0 四项做完（约 1 小时）就可以安心公开 —— 别人能跑起来、能验证、法律上不尴尬。其余都是打磨。</p>
 <blockquote><strong>2026-09-30 更新</strong>：P0 四项已全部完成，仓库现在可以公开。剩下的是 P1（文档收敛 / README 截图 / SECURITY.md）与 P2（命名与元数据）打磨。</blockquote></article></main>
 </div>
-<footer>生成时间：2026-09-30 16:52（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-02 10:55（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "GitHub 开源前 · 改进清单"}];
 

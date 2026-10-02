@@ -190,7 +190,7 @@ jobs:
 <p><strong>可执行方案</strong>：<code>git tag -a v0.10.0 -m "..."</code> + Release notes 抄 CHANGELOG，附上 Pages 在线体验链接。这会让仓库看起来「有过发布」，而不是「一堆提交」。</p>
 <hr class="sep">
 <h3 id="doc0--G10-清理过期产物">G10 · 清理过期产物</h3>
-<div class="tablewrap"><table><thead><tr><th>对象</th><th>问题</th></tr></thead><tbody><tr><td>根目录 <strong>21 个散落文档/html</strong></td><td>同题材分两处：<code>JD生成口径修复说明.md</code> 在根，其<strong>后继版</strong> <code>JD生成口径v13修复说明…md</code> 在 <code>docs/</code></td></tr><tr><td><code>分享包/</code>（<strong>未入库</strong>）</td><td>本地留着的演示包是 <strong>9-24</strong> 的（297,951 字节），而当前原型是 <strong>9-30</strong> 的（527,133 字节）—— 差了 6 天、两轮能力。<code>使用说明.txt</code> 里还写着「23 个页面」</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>对象</th><th>问题</th></tr></thead><tbody><tr><td>根目录 <strong>21 个散落文档/html</strong></td><td>同题材分两处：<code>JD生成口径修复说明.md</code> 在根，其<strong>后继版</strong> <code>JD生成口径v13修复说明…md</code> 在 <code>docs/</code>。<strong>已于 2026-10-02 收敛</strong>：根目录只留 <code>README</code>/<code>LICENSE</code>/<code>CHANGELOG</code>/<code>CONTRIBUTING</code>/<code>SECURITY</code>，阅读版进 <code>docs/html/</code>、历史版本进 <code>docs/archive/</code>、样例进 <code>docs/样例/</code>（见 <code>docs/14</code> §2.1 落地记录）</td></tr><tr><td><code>分享包/</code>（<strong>未入库</strong>）</td><td>本地留着的演示包是 <strong>9-24</strong> 的（297,951 字节），而当前原型是 <strong>9-30</strong> 的（527,133 字节）—— 差了 6 天、两轮能力。<code>使用说明.txt</code> 里还写着「23 个页面」</td></tr></tbody></table></div>
 <p><strong>可执行方案</strong>：根目录只留 <code>README.md</code> + <code>LICENSE</code> + <code>CHANGELOG.md</code>，其余进 <code>docs/</code>；<code>分享包/</code> 若不打算入库就删掉，若打算入库必须重新打包（附一句「生成日期」）。</p>
 <hr class="sep">
 <h2 id="doc0--二-项目本身存在的问题">二、项目本身存在的问题</h2>
@@ -316,7 +316,7 @@ grep -n "70% 场景模板" 平台原型/src/app.js
 # 文档数字是否腐坏
 node tools/check_docs.js        # ← 建议新增，纳入 CI</code></pre></div></article></main>
 </div>
-<footer>生成时间：2026-09-30 16:57（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-02 10:55（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "产品经理视角 · 项目全面评估"}];
 

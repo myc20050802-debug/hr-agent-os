@@ -12,7 +12,7 @@ permissions:
 jobs:
   # 一键回归：run_all.js 自带「隔离实例 127.0.0.1:8799 + 临时库」，不会碰演示库
   regression:
-    name: 回归（11 套件 + 文档守卫 + 双模式评测）
+    name: 回归（12 套件 + 文档守卫 + 双模式评测）
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,12 +25,13 @@ jobs:
       - name: 安装测试依赖
         run: npm install --no-audit --no-fund
 
-      # run_all.js 在缺 jsdom 时会「静默跳过」前端套件，剩下的照样报全绿。
-      # 所以这里显式断言一次，避免拿到假绿。
+      # run_all.js 缺 jsdom 时会跳过 4 个前端套件，并强制以退出码 4 失败
+      # （这条行为由 tools/test_runner.js 锁着，且做过反向验证）。
+      # 这里仍显式断言一次：把失败**前移**到跑整套之前，几十秒的回归不必白跑。
       - name: 断言 jsdom 就位（防前端套件被静默跳过）
         run: node -e "require.resolve('jsdom'); console.log('jsdom ok')"
 
-      - name: 一键回归（11 套件 + 文档一致性守卫 + 双模式评测）
+      - name: 一键回归（12 套件 + 文档一致性守卫 + 双模式评测）
         run: npm test
 
   # 抓取脚本依赖很重（scrapling + playwright 浏览器内核），CI 里不装；
@@ -52,4 +53,10 @@ jobs:
             tools/scrape_zhaopin_jobs.py \
             tools/import_boss_jobs.py \
             tools/build_share_pack.py \
-            tools/md2dark_html.py
+            tools/md2dark_html.py \
+            tools/build_docs_html.py
+
+      # 文档阅读版是生成物：断言「清单与磁盘自洽」，避免新增文档忘了登记、
+      # 或改了 md 却没重生（产物与文档静默不一致，是最难发现的一类过期）。
+      - name: 文档阅读版清单自洽（生成物单一源）
+        run: python tools/build_docs_html.py --check

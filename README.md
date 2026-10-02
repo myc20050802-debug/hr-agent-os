@@ -140,9 +140,10 @@ Windows 双击 `server/start.bat` 即可（自动开浏览器）。
 | `docs/10_招聘Agent目录与模块组织结构.md` | 三级导航 IA（分组 → 目录 → 模块 → 页）与「新增一个 Agent」checklist |
 | `docs/11_从PoC到可用软件的落地路径.md` | **「可用」的三个档位**（演示可达 / 团队可用 / 对外可卖）与各自的真实差距 |
 | `docs/12_上线部署手册_A档.md` | **A 档上线手册**：`preflight` 每项检查在防什么 + 三条发布路径 + 上线前必做四件事 + 验收清单 |
-| `上线部署手册_A档.html` | `docs/12` 的暗色单文件阅读版（可搜索） |
-| `HR-AI-Agent平台_产品方案.html` | 三份文档合并的暗色单文件阅读版（可搜索、可复制代码） |
-| `HR-AI-Agent平台_项目计划与架构.html` | `docs/07` + `docs/08` 的暗色单文件阅读版（双文档 Tab 切换 · 可搜索） |
+| `docs/html/上线部署手册_A档.html` | `docs/12` 的暗色单文件阅读版（可搜索） |
+| `docs/html/HR-AI-Agent平台_产品方案.html` | `docs/01` + `docs/02` + `docs/03` 合并的暗色单文件阅读版（可搜索、可复制代码） |
+| `docs/html/HR-AI-Agent平台_项目计划与架构.html` | `docs/07` + `docs/08` 的暗色单文件阅读版（双文档 Tab 切换 · 可搜索） |
+| `docs/html/` | **全部文档的暗色单文件阅读版**（生成物，勿手改）：`docs/` 里的 md 改完，用 `tools/md2dark_html.py` 重新生成 |
 
 > ⚠️ `分享包/` 里的离线演示包是 **M1 之前的版本**（无登录层），口令与身份相关的演示路径以本仓库最新版为准。
 
@@ -281,13 +282,15 @@ node --experimental-sqlite server.js
 一键跑全部（**推荐**）：起一个隔离实例（`127.0.0.1:8799` + 临时库），演示库 `server/hr_agent.db` 毫发无伤。
 
 ```bash
-node tools/run_all.js                 # 功能回归：11 套件
+node tools/run_all.js                 # 功能回归：12 套件
 node tools/run_all.js --only backend  # 只跑后端 4 套件（也可用套件 id：--only eval / --only auth）
 node tools/run_all.js --only load     # 并发压测（单独一档，不混进默认回归）
 node tools/check_docs.js              # 文档守卫：页面数 / 原型字节数 是否与代码一致（已并入 npm test）
 ```
 
 > `--only` 打错字时**会报错退出**，而不是静默跑 0 套件假装通过 —— 假绿比红灯更贵。
+> 同理，**只要有套件没跑**（例如缺 `jsdom`），运行器就打印「结论不完整」并以 **退出码 4** 结束：
+> 没跑过的套件不允许被算作通过。这条行为由 `tools/test_runner.js` 自己锁着，且做过反向验证。
 
 单套件（`--experimental-sqlite` 是因为要 require 服务端模块；`test_hiring` / `test_live` 需先启动 server）：
 
@@ -308,7 +311,7 @@ node test_pages.js                                   # Pages 静态托管：自�
 node test_live.js                                    # 真后端：24 页渲染 + 27 项真链路（需先启动 server）
 ```
 
-当前状态：**全部 0 失败 · 11 套件全绿**（后端 4 + 自包含 3 + 前端 4）。压测另跑，0 错误。
+当前状态：**全部 0 失败 · 12 套件全绿**（后端 4 + 自包含 4 + 前端 4）。压测另跑，0 错误。
 
 > 运行前端无头测试需要 `jsdom`：`NODE_PATH=<你的 workspace>/node_modules node test_live.js`（本项目自身不依赖任何 npm 包）。
 > 硬验证：删掉 `server/hr_agent.db` 后重启，空库自动跑到 `schemaVersion: 9`（20 张业务表 / 2 个触发器 / 23 个索引），无需人工干预。

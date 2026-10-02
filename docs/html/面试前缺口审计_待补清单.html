@@ -156,7 +156,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <blockquote>⚙️ 执行顺序：<strong>规则前置过滤</strong>（硬性条件用代码判，<strong>不花模型钱</strong>）→ 物理剔除受保护字段 → 模型逐维打分 → PII 脱敏 → 写回 ATS</blockquote>
 <p><strong>即：同一页面上方说「不花模型钱」，右下方显示「模型成本 ¥0.06」。</strong></p>
 <p><strong>为什么这条最要命</strong></p>
-<p>项目的对外立场里有一句反复出现的红线：<strong>「不编硬数字 —— 补一个看起来合理的写进 JD，就是对外承诺。」</strong>（见 <code>AI产品经理JD_模板结构.md</code> §10 三条红线）</p>
+<p>项目的对外立场里有一句反复出现的红线：<strong>「不编硬数字 —— 补一个看起来合理的写进 JD，就是对外承诺。」</strong>（见 <code>样例/AI产品经理JD_模板结构.md</code> §10 三条红线）</p>
 <p>现在的代码，在<strong>默认演示模式</strong>（不配 LLM，也就是面试当天会跑的那一种）下，把一个<strong>凭空来的常数</strong> 160 token/份 × 假单价 ¥0.0000357 算成了页面上的金额。这是用自己的行为推翻自己的原则 —— 面试官不需要多懂技术，只要问一句「这个 ¥ 是怎么来的」。</p>
 <p><strong>修法（2 小时，三条都要）</strong></p>
 <ol>
@@ -328,7 +328,7 @@ try { db.exec('PRAGMA busy_timeout = 5000;'); } catch { ... }</code></pre></div>
 <h2 id="doc0--附-本次审计的原始证据-可复查">附：本次审计的原始证据（可复查）</h2>
 <div class="tablewrap"><table><thead><tr><th>结论</th><th>复查命令</th></tr></thead><tbody><tr><td>无 git / 无 .gitignore</td><td><code>ls -d .git .gitignore</code></td></tr><tr><td>敏感文件在源码树</td><td>`ls -la server/ \</td><td>grep -E 'db\</td><td>secret'<code> → </code>-wal` 4.2 MB</td></tr><tr><td>筛选链路 0 次模型调用</td><td>取 <code>runScreening</code> 函数体 grep <code>llm(</code> → 0 命中</td></tr><tr><td>虚报 token</td><td><code>grep -n 'tokens += 160' server/engine.js</code></td></tr><tr><td>UI 翻牌逻辑</td><td><code>grep -n "rule: !(opt &amp;&amp; opt.tokens)" 平台原型/src/app.js</code></td></tr><tr><td>显示成本</td><td><code>grep -n 'cost = (tokens' 平台原型/src/app.js</code></td></tr><tr><td>优化数据集不存在</td><td>`grep -rn 'dataset\</td><td>eval_set' server/` → 空</td></tr><tr><td>死按钮</td><td>括号匹配解析 <code>ACT</code> 表 → 57 键 vs 50 动作，缺 <code>resetJobScores</code></td></tr><tr><td>无障碍为 0</td><td>`grep -c 'aria-\</td><td>role=' 平台原型/src/app.js` → 0</td></tr><tr><td>WAL 无 checkpoint</td><td><code>grep -n 'PRAGMA' server/db.js</code> → 仅 journal_mode / busy_timeout</td></tr></tbody></table></div></article></main>
 </div>
-<footer>生成时间：2026-09-30 16:18（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-02 10:55（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "HR-Agent OS · 面试前缺口审计"}];
 

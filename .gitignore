@@ -53,6 +53,10 @@ node_modules/
 Thumbs.db
 desktop.ini
 
+# ---- 5b. 一键发布（「发布为应用」）在本机留的标记文件 ----
+# 只是本机的应用登记标记，不是项目内容，别混进仓库
+.wbapp_*.genie
+
 # 测试/评测/压测的产物（每次运行都会重算，不入库；数字写进 README 与 docs）
 _run_all.txt
 _eval_result.json
