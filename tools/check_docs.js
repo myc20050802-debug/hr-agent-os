@@ -25,6 +25,7 @@
      · 导航项数        ← 页面数 + 目录节点数
      · 原型字节数      ← 平台原型/index.html 的实际大小
      · 后端接口数      ← server/routes.js 的 r.<verb>('<path>') 计数
+     · 评测指标        ← tools/golden/baseline.json（test_eval.js --write-baseline 产出）
    覆盖的结构不变量：
      · 前端套件的页面清单必须**从 app.PAGES 派生**，禁止再写死 id 数组
      · PAGES 无重复定义；原型已打包
@@ -95,7 +96,14 @@ function realFacts() {
     };
   });
 
+  /* 评测指标：唯一源 = tools/golden/baseline.json（由 test_eval.js --write-baseline 产出）。
+     这些数字过去是手抄进 README / 文档的，实测漂移过一次 ——
+     README 表格已写 8.3%，同一篇正文仍写着「不回避 25% 的误筛率」。 */
+  const bPath = path.join(ROOT, 'tools', 'golden', 'baseline.json');
+  const evalM = fs.existsSync(bPath) ? JSON.parse(fs.readFileSync(bPath, 'utf8')) : null;
+
   return {
+    evalM,
     pages: pages.length,
     pageSet: pages,
     navItems: pages.length + NAV_CATALOG_NODES,
@@ -109,6 +117,8 @@ function realFacts() {
 }
 
 const comma = n => n.toLocaleString('en-US');
+/* 与 test_eval.js 的 pct() 同一口径（保留 1 位小数），否则文档锚点会差一个字 */
+const pctOf = x => (x * 100).toFixed(1) + '%';
 
 /* ===========================================================
    二 · 现状句锚点
@@ -206,7 +216,80 @@ const ANCHORS = [
     file: 'README.md', count: 1, why: '空库自建到的最新 schema 版本',
     must: f => `空库自动跑到 \`schemaVersion: ${f.schemaVer}\``,
   },
+  /* --- README 的「质量与性能实测」：评测指标（唯一源 = tools/golden/baseline.json）
+     这几行过去是手抄的，实测漂移过一次（表里 8.3% / 正文 25%）。
+     现在数字一变，守卫会指名道姓告诉你该改成什么。 --- */
+  {
+    file: 'README.md', count: 1, why: '档位一致率（源：tools/golden/baseline.json）',
+    must: f => `| 档位一致率 | **${pctOf(f.evalM.exactAgreement)}**（${f.evalM.same}/${f.evalM.n}） |`,
+  },
+  {
+    file: 'README.md', count: 1, why: '±1 档一致率（源：baseline）',
+    must: f => `| ±1 档一致率 | **${pctOf(f.evalM.within1Agreement)}**（${f.evalM.near}/${f.evalM.n}） |`,
+  },
+  {
+    file: 'README.md', count: 1, why: '漏筛率（源：baseline；安全红线）',
+    must: f => `| 漏筛率 | **${pctOf(f.evalM.missRate)}**（${f.evalM.missed}/${f.evalM.shouldPass}） |`,
+  },
+  {
+    file: 'README.md', count: 1, why: '误筛率（源：baseline）',
+    must: f => `| 误筛率 | **${pctOf(f.evalM.falsePassRate)}**（${f.evalM.overPassed}/${f.evalM.shouldReject}） |`,
+  },
+  {
+    file: 'README.md', count: 1,
+    why: '误筛率的口径解释句（曾与上表自相矛盾：表里 8.3%、正文仍写 25%）',
+    must: f => `不回避 **${pctOf(f.evalM.falsePassRate)}** 的误筛率`,
+  },
 ];
+
+/* ===========================================================
+   二b · 负向锚点：过期数字不得在「现状类」文档里复活
+   -----------------------------------------------------------
+   正向锚点只能保证「该出现的那句话在」，管不住「别处又写错了」。
+   实测：页面数 23 → 24 时，8 篇文档里残留 24 处「23 页」，
+   而正向锚点总共只钉住其中 2 句 —— 剩下的要靠人眼看，必漏。
+   所以补一条负向规则：**旧值不得出现**。
+
+   ★ 豁免清单（这几个文件保存的是「当时是多少」的证据，改掉才是篡改）：
+     · CHANGELOG.md            —— 它就是变更历史，其中记录了这次漂移
+     · docs/07_项目计划书.md    —— 规划值与里程碑检查点
+     · docs/08_架构设计文档.md  —— 设计时点的快照
+     · docs/09_实现说明与验收报告.md —— 实跑记录（当时套件写死 23 个 id，真漏测了 1 页）
+     · docs/15_产品经理视角项目评估.md —— 明确标注为「16:45 审计快照」的时点文档
+   =========================================================== */
+const STALE_SCAN_EXEMPT = [
+  'CHANGELOG.md',
+  'docs/07_项目计划书.md',
+  'docs/08_架构设计文档.md',
+  'docs/09_实现说明与验收报告.md',
+  'docs/15_产品经理视角项目评估.md',
+];
+
+/* 过期串：由事实算出（页面数前一个值），以及历史上真出过错的口径表述 */
+function staleStrings(f) {
+  return [
+    { s: (f.pages - 1) + ' 页', note: '旧页面数（现为 ' + f.pages + ' 页）' },
+    { s: '25% 的误筛', note: '旧误筛率（现为 ' + pctOf(f.evalM.falsePassRate) + '）' },
+  ];
+}
+
+function scanStale(f) {
+  const files = ['README.md'];
+  for (const n of fs.readdirSync(path.join(ROOT, 'docs'))) {
+    if (n.endsWith('.md')) files.push('docs/' + n);
+  }
+  const hits = [];
+  for (const file of files.filter(x => !STALE_SCAN_EXEMPT.includes(x))) {
+    const src = read(file);
+    const lines = src.split(/\r?\n/);
+    for (const { s, note } of staleStrings(f)) {
+      lines.forEach((line, i) => {
+        if (line.includes(s)) hits.push(file + ':' + (i + 1) + '（' + note + '）');
+      });
+    }
+  }
+  return hits;
+}
 
 /* ===========================================================
    三 · 校验
@@ -222,6 +305,14 @@ console.log('  原型字节数（index.html）      ' + comma(facts.htmlBytes) +
 console.log('  回归套件数（run_all.js）      ' + facts.suites.total
   + '  (后端 ' + facts.suites.backend + ' / 自包含 ' + facts.suites.self + ' / 前端 ' + facts.suites.frontend + ')');
 console.log('  schema 版本（migrations）     ' + facts.schemaVer);
+if (facts.evalM) {
+  const e = facts.evalM;
+  console.log('  评测基线（golden/baseline）   一致率 ' + pctOf(e.exactAgreement) + '（' + e.same + '/' + e.n
+    + '） / 漏筛 ' + pctOf(e.missRate) + ' / 误筛 ' + pctOf(e.falsePassRate)
+    + ' / 门槛 ' + e.gates + ' 例 · REQ_LIB_VER ' + e.reqLibVer);
+} else {
+  console.log('  评测基线（golden/baseline）   ⚠ 文件缺失');
+}
 
 if (LIST_ONLY) {
   console.log('\n' + C.d + '  --list 模式：跳过断言' + C.x + '\n');
@@ -285,7 +376,11 @@ function collectHtml(dir, acc) {
 const unmarkedHtml = collectHtml(ROOT, []).filter(f => !attrPats.some(r => r.test(f)));
 
 console.log('\n===== 结构不变量 =====');
+const staleHits = facts.evalM ? scanStale(facts) : ['（跳过：评测基线缺失）'];
 const invariants = [
+  ['评测基线存在（tools/golden/baseline.json）', !!facts.evalM],
+  ['旧值未在「现状类」文档里复活' + (staleHits.length ? '（命中：' + staleHits.join('、') + '）' : ''),
+    staleHits.length === 0],
   ['PAGES 定义无重复', new Set(facts.pageSet).size === facts.pages],
   ['入库的生成物 HTML 全部标了 linguist-generated' + (unmarkedHtml.length ? '（缺：' + unmarkedHtml.join(', ') + '）' : ''),
     unmarkedHtml.length === 0],
@@ -319,5 +414,6 @@ if (bad === 0) {
 }
 console.log(C.r + '❌ ' + bad + ' 处不一致 —— 数字以代码为准，去掉那个多余的数字' + C.x);
 console.log(C.d + '   页面数 = PAGES.* 定义数；字节数 = 平台原型/index.html 实际大小（改完前端记得 npm run build）。' + C.x);
+console.log(C.d + '   评测指标 = tools/golden/baseline.json（跑 test_eval.js --write-baseline 刷新）。' + C.x);
 console.log(C.d + '   改完字节数顺手执行 npm run share，让对外演示包同步。' + C.x + '\n');
 process.exit(1);

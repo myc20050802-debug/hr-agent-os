@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "updatedAt": "2026-10-03 (UTC+8)",
+  "note": "评测数字的唯一源。README / 文档里的指标由 tools/check_docs.js 按这里校验，tools/test_eval.js 按这里做「质量不倒退、错误不增长」守卫。改口径后刷新：node --experimental-sqlite tools/test_eval.js --write-baseline",
+  "reqLibVer": 16,
+  "goldenSet": {
+    "file": "tools/golden/golden_set.json",
+    "version": 1
+  },
+  "n": 30,
+  "same": 29,
+  "near": 30,
+  "shouldPass": 18,
+  "shouldReject": 12,
+  "missed": 0,
+  "overPassed": 1,
+  "exactAgreement": 0.9666666666666667,
+  "within1Agreement": 1,
+  "missRate": 0,
+  "falsePassRate": 0.08333333333333333,
+  "gates": 9
+}

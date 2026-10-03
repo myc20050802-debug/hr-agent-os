@@ -172,7 +172,7 @@ const DEMO_USER = req =&gt; (req.headers['x-user'] || 'U-001');   // 演示态�
 <p><strong>改法</strong>：加一层 <code>db.js</code> 的 PG 适配实现（保持同名导出），SQL 用参数化占位符差异抹平（<code>?</code> → <code>$1</code>）。</p>
 <p><strong>验收口径</strong></p>
 <ul>
-<li>双模式回归脚本在 PG 上全绿（23 页 + 16 项）</li>
+<li>双模式回归脚本在 PG 上全绿（24 页 + 23/27 项）</li>
 <li>并发压测：10 个并发筛选请求，0 个 <code>locked</code> 错误</li>
 <li>备份恢复演练：破坏数据后能恢复到上一备份点</li>
 </ul>
@@ -274,7 +274,7 @@ if (!r.ok) return null;                              // 失败 → 返回 null �
 <hr class="sep">
 <p><em>本文档为差距分析，不含实施承诺。所有「现状」均可在本仓库核验；所有「验收口径」均为可执行的测试条件。</em></p></article></main>
 </div>
-<footer>生成时间：2026-10-03 17:10（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-03 18:17（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "HR-Agent OS · 从 PoC 到企业级的差距清单"}];
 

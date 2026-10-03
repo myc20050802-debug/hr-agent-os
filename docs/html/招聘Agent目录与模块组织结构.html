@@ -197,7 +197,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <div class="tablewrap"><table><thead><tr><th>决策</th><th>理由</th><th>代价</th></tr></thead><tbody><tr><td><strong>目录不挂 <code>perm</code>，可见性由子项聚合</strong></td><td>若目录按自己的 <code>perm</code> 判可见，只有 <code>screen:run</code> 的招聘专员会连目录带「简历筛选台」一起消失——丢的是功能，不是权限</td><td>目录可见性判断多一层递归（已在 <code>nodeVisible</code> 里封装）</td></tr><tr><td><strong>模块下全部页面不可见时，模块标题一起隐藏</strong></td><td>避免留下一个点不开任何东西的空标题</td><td>无</td></tr><tr><td><strong>折叠状态持久化到 <code>localStorage</code></strong></td><td>只跑「简历筛选台」的人不想每次都被整列招聘菜单占地方</td><td><code>file://</code> 双击演示时 <code>localStorage</code> 不可用 → 已用 <code>try/catch</code> 兜底，退化为「本次会话内有效」</td></tr><tr><td><strong>跳转到目录内页面时自动展开该目录</strong></td><td>否则当前页在侧边栏里是「隐身」的，用户会觉得导航坏了</td><td>用户手动折叠的意图可能被覆盖——只在跳到该目录内页面时覆盖，可接受</td></tr><tr><td><strong>侧栏收起 / 窄屏时目录恒展开</strong></td><td>只剩图标的情况下还要求先点开目录才见得到子项，等于把「一步进入」变成「两步」</td><td>窄屏下模块标题隐藏，层级感减弱（可用空间换的）</td></tr><tr><td><strong>页面 h2 标题保留全名</strong></td><td>页面内部没有目录上下文，去掉前缀反而不清楚</td><td>与侧边栏短名存在表述差异，属有意为之</td></tr><tr><td><strong>目录头也是 <code>.navitem</code>（<code>role=button</code> / <code>tabindex=0</code> / <code>aria-expanded</code>）</strong></td><td>键盘用户必须能用 Enter 收起它；无障碍最小集里「导航项必须可聚焦」对它同样成立</td><td>无</td></tr></tbody></table></div>
 <hr class="sep">
 <h2 id="doc0--八-验收">八、验收</h2>
-<div class="tablewrap"><table><thead><tr><th>项目</th><th>结果</th></tr></thead><tbody><tr><td>导航结构专项（<code>tools/test_nav.js</code>）</td><td><strong>15 项全绿</strong>：目录与模块归属、短名与面包屑、折叠/展开、状态记录、跳转自动展开、只重绘侧栏、<code>flatNav</code> 覆盖全页、按能力裁剪</td></tr><tr><td>离线回归（<code>平台原型/test_prototype.js</code>）</td><td><strong>23 页 0 异常 · 22 项交互 0 错误</strong></td></tr><tr><td>在线回归（<code>平台原型/test_live.js</code>）</td><td><strong>23 页 0 异常 · 26 项真实链路 0 错误</strong></td></tr><tr><td>全量套件（<code>tools/run_all.js</code>）</td><td><strong>9 套件全部通过</strong>（后端 5 + 自包含 1 + 前端 3）</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>项目</th><th>结果</th></tr></thead><tbody><tr><td>导航结构专项（<code>tools/test_nav.js</code>）</td><td><strong>15 项全绿</strong>：目录与模块归属、短名与面包屑、折叠/展开、状态记录、跳转自动展开、只重绘侧栏、<code>flatNav</code> 覆盖全页、按能力裁剪</td></tr><tr><td>离线回归（<code>平台原型/test_prototype.js</code>）</td><td><strong>24 页 0 异常 · 23 项交互 0 错误</strong></td></tr><tr><td>在线回归（<code>平台原型/test_live.js</code>）</td><td><strong>24 页 0 异常 · 27 项真实链路 0 错误</strong></td></tr><tr><td>全量套件（<code>tools/run_all.js</code>）</td><td><strong>9 套件全部通过</strong>（后端 5 + 自包含 1 + 前端 3）</td></tr></tbody></table></div>
 <p>导航结构已经作为正式套件并入 <code>tools/run_all.js</code>（套件 id <code>nav</code>），不再是一次性脚本——否则「菜单少了一项、但页面不报错」这类问题永远不会被自动发现。</p>
 <p>复现命令：</p>
 <div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code># 打包（改了 平台原型/src/ 就必须重新打包，否则页面还是旧的）
@@ -219,7 +219,7 @@ node --experimental-sqlite tools/run_all.js</code></pre></div>
 <li><strong>代码层的目录化</strong>：<code>app.js</code> 已 3100+ 行，5 个招聘页面仍住在同一个文件里。若继续增长，可按模块拆成 <code>平台原型/src/agents/recruiting/*.js</code>（现有 <code>build.js</code> 的内联机制支持扩展脚本列表）。</li>
 </ol></article></main>
 </div>
-<footer>生成时间：2026-10-03 17:10（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-03 18:17（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "招聘 Agent 目录与模块组织结构"}];
 

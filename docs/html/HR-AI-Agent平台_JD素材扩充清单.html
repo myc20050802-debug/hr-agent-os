@@ -343,7 +343,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <li><strong>加版本号</strong>：<code>server/engine.js</code> 的 <code>REQ_LIB_VER</code> <strong>+1</strong>。</li>
 <li><strong>重算 JD</strong>：访问一次 <code>/api/bootstrap</code>（前端打开页面即可），11 个种子岗位的 JD 与关键词会<strong>自动重算</strong>。</li>
 <li><strong>重建单文件原型</strong>：跑一次 <code>build.py</code>，把新词库内联进 <code>平台原型/index.html</code>。</li>
-<li><strong>回归</strong>：跑 <code>test_prototype.js</code> + <code>test_live.js</code>，确认 23 页 + 16 项链路无异常。</li>
+<li><strong>回归</strong>：跑 <code>test_prototype.js</code> + <code>test_live.js</code>，确认 24 页 + 23/27 项链路无异常。</li>
 </ol>
 <h3 id="doc0--关于-行业语境词-的落地方式-两种">关于「行业语境词」的落地方式（两种）</h3>
 <div class="tablewrap"><table><thead><tr><th>方式</th><th>改动量</th><th>效果</th></tr></thead><tbody><tr><td><strong>A. 模板里手写死</strong></td><td>小</td><td>把行业词直接写进职责句（如"跟踪 DAU 与留存"），但同族会被固定成某个行业口径，<strong>不推荐</strong></td></tr><tr><td><strong>B. 生成时拼接</strong></td><td>中</td><td>在 <code>buildJD()</code> 里按 <code>job.industry</code> 取语境词，拼到职责句后。<strong>这才是真正把行业维度接回来</strong>，推荐</td></tr></tbody></table></div>
@@ -359,7 +359,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 </ul>
 <blockquote>一句话：<strong>这一步不接模型、不改逻辑，只把词填厚。</strong> 池子从 80 句到 200 句，JD 的不重样与行业感就已经解决一大半。</blockquote></article></main>
 </div>
-<footer>生成时间：2026-10-03 17:10（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-03 18:17（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "HR-Agent OS · JD 生成素材扩充清单"}];
 

@@ -1694,4 +1694,6 @@ module.exports = { runScreening, decide, chat, bootstrap, tryExportAll, audit, l
   runJD, buildJD, scanJd, suggestRequirements, expandRequirements, renderReqs, eduRequirement, INDUSTRY_REQ, REQ_DIMS,
   createJob, updateJob, deleteJob, autoSeedCandidates, nextJobId,
   /* 规则判定与一致率：供评测脚本与指标接口复用（同一份逻辑，避免「评测/线上两套」） */
-  scoreOne, ruleGate, evaluateCandidate, isJuniorJob, screeningAgreement, OverrideCodes };
+  scoreOne, ruleGate, evaluateCandidate, isJuniorJob, screeningAgreement, OverrideCodes,
+  /* 词库/口径版本：评测基线（tools/golden/baseline.json）与文档守卫都要引用它，避免各写一份 */
+  REQ_LIB_VER };

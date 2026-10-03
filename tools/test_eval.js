@@ -19,6 +19,7 @@
  *   两者的严重性不对称：漏筛是「悄悄杀掉机会」，误筛只是「多进一轮人工」。
  *   所以本套件把「漏筛率必须为 0」写成硬断言 —— 它是回归红线。
 
+ * A4 部分 · 基线守卫（比对 tools/golden/baseline.json；--write-baseline 刷新）
  * B 部分 · 一致率接口与推翻原因枚举（需要后端，BASE 环境变量）
  *   验证 override_code 枚举校验、三种人工结论的落库与方向自洽，
  *   以及 /api/metrics/agreement 的算术是否与真实操作一致。
@@ -33,6 +34,9 @@ const path = require('node:path');
 const ROOT = path.join(__dirname, '..');
 const BASE = process.env.BASE || 'http://127.0.0.1:8788';
 const PW = process.env.DEMO_PASSWORD || 'Demo@2026';
+/* 评测数字的唯一源（README / 文档由 check_docs.js 按它校验） */
+const WRITE_BASELINE = process.argv.includes('--write-baseline');
+const BASELINE_FILE = path.join(__dirname, 'golden', 'baseline.json');
 
 const engine = require(path.join(ROOT, 'server', 'engine.js'));
 const OC = require(path.join(ROOT, 'shared', 'override-codes.js'));
@@ -281,6 +285,68 @@ function runGoldenSet() {
   const gNoSkill = engine.evaluateCandidate(gateCand([]), gateJob());
   ok('简历没列技能时门槛不触发（不把「没解析出技能」当成「零命中」）', !gNoSkill.gate, 'gate=' + gNoSkill.gate);
 
+  /* ---- A4 · 基线守卫（质量不倒退 / 错误不增长） ----
+     为什么需要它：README 与文档里的 96.7% / 0% / 8.3% 过去是**手抄**的，
+     改一次口径要人肉去多处同步 —— 实测漏过一次：README 表格已改成 8.3%，
+     同一篇正文仍写着「不回避 25% 的误筛率」，两处自相矛盾。
+     现在数字只有一个源 tools/golden/baseline.json：
+       · 这里守「不许变差」（断言是**单向**的 ≥ / ≤，口径升级让指标变好时不该红，
+         变差时必须红 —— 这才是回归红线该有的方向性）；
+       · check_docs.js 守「文档必须写对」。
+     本段不依赖后端，所以 --write-baseline 只跑黄金集即可刷新基线。 */
+  const B = fs.existsSync(BASELINE_FILE)
+    ? JSON.parse(fs.readFileSync(BASELINE_FILE, 'utf8')) : null;
+
+  if (WRITE_BASELINE) {
+    const snap = {
+      schema: 1,
+      updatedAt: new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10) + ' (UTC+8)',
+      note: '评测数字的唯一源。README / 文档里的指标由 tools/check_docs.js 按这里校验，'
+          + 'tools/test_eval.js 按这里做「质量不倒退、错误不增长」守卫。'
+          + '改口径后刷新：node --experimental-sqlite tools/test_eval.js --write-baseline',
+      reqLibVer: engine.REQ_LIB_VER,
+      goldenSet: { file: 'tools/golden/golden_set.json', version: G.version },
+      n, same, near,
+      shouldPass: shouldPass.length,
+      shouldReject: shouldReject.length,
+      missed: missed.length,
+      overPassed: overPassed.length,
+      /* 存**原值**不存四舍五入后的值：第一版存了 toFixed(4)，
+         结果 29/30 → 0.9667 比真实值 0.96666… 略大，守卫立刻报了一次**假红**
+         （「不低于基线 96.7% → 96.7%」，两边打印出来一样却不过）。
+         原值进 JSON 再读回来是同一个 double，比较是精确的，不需要容差。 */
+      exactAgreement: metrics.exactAgreement,
+      within1Agreement: metrics.within1Agreement,
+      missRate: metrics.missRate,
+      falsePassRate: metrics.falsePassRate,
+      gates: metrics.gateBlocked,
+    };
+    fs.writeFileSync(BASELINE_FILE, JSON.stringify(snap, null, 2) + '\n');
+    console.log('\n  基线已写入 ' + path.relative(ROOT, BASELINE_FILE)
+      + '（REQ_LIB_VER ' + engine.REQ_LIB_VER + '）');
+    return metrics;
+  }
+
+  section('A4 · 基线守卫（源：' + path.relative(ROOT, BASELINE_FILE) + '）');
+  if (!B) {
+    ok('基线文件存在（缺失请先跑 --write-baseline）', false, '未找到 ' + BASELINE_FILE);
+  } else {
+    eq('样本数与基线一致', n, B.n);
+    ok('档位一致率不低于基线 ' + pct(B.exactAgreement),
+      metrics.exactAgreement >= B.exactAgreement, pct(metrics.exactAgreement));
+    ok('±1 档一致率不低于基线 ' + pct(B.within1Agreement),
+      metrics.within1Agreement >= B.within1Agreement, pct(metrics.within1Agreement));
+    ok('漏筛率不高于基线 ' + pct(B.missRate) + '（安全红线）',
+      metrics.missRate <= B.missRate, pct(metrics.missRate));
+    ok('误筛率不高于基线 ' + pct(B.falsePassRate),
+      metrics.falsePassRate <= B.falsePassRate, pct(metrics.falsePassRate));
+    ok('门槛拦截例数不高于基线 ' + B.gates, metrics.gateBlocked <= B.gates, String(metrics.gateBlocked));
+    if (engine.REQ_LIB_VER !== B.reqLibVer) {
+      console.log('  ⚠ 口径版本已升级（REQ_LIB_VER ' + B.reqLibVer + ' → ' + engine.REQ_LIB_VER
+        + '）：确认指标变化是有意的，再跑 --write-baseline 刷新基线，并重跑 npm run check:docs');
+    }
+  }
+
   /* 把评测结果落盘，供 README / 文档引用（同一份数字，不手抄） */
   const report = {
     generatedAt: new Date(Date.now() + 8 * 3600e3).toISOString().replace('T', ' ').slice(0, 19) + ' (UTC+8)',
@@ -411,7 +477,15 @@ async function runApiSuite() {
   console.log('HR-Agent OS · 筛选质量评测');
   console.log('（A 黄金集回放 · B 一致率接口；规则逻辑与线上同一份 evaluateCandidate）');
 
-  runGoldenSet();
+  const m = runGoldenSet();
+
+  /* --write-baseline 只跑黄金集就退出：B 需要起后端，与本开关无关 */
+  if (WRITE_BASELINE) {
+    console.log('\n基线刷新完成：一致率 ' + pct(m.exactAgreement) + ' / 漏筛 ' + pct(m.missRate)
+      + ' / 误筛 ' + pct(m.falsePassRate));
+    console.log('下一步：node tools/check_docs.js  （确认文档里的指标行跟着更新）');
+    process.exit(fails.length ? 1 : 0);
+  }
 
   try {
     await runApiSuite();

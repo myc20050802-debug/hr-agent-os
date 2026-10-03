@@ -128,6 +128,7 @@ Windows 双击 `server/start.bat` 即可（自动开浏览器）。
 | `tools/preflight.js` | **上线前自检**（`npm run preflight`，只读）：口令强度 / `COOKIE_SECURE` 与访问协议是否配对 / `ALLOW_RESET` / 库路径 / 备份新鲜度 —— 退出码 0 才可以把链接发出去 |
 | `tools/backup.js` | **在线备份与恢复**（`npm run backup`）：SQLite `VACUUM INTO` 只读快照，不停服、不阻塞写者；带 `integrity_check`、SHA-256 清单、保留策略，恢复前强制停服 |
 | `tools/test_ops.js` | **运维面回归**（48 项）：静态资源 gzip/ETag/源码隔离/目录穿越、CORS 预检头对齐、重置开关、口令治理、备份恢复与保留策略 |
+| `docs/` | **21 篇源文档**（PRD / 架构 / 项目计划 / 复盘 / 上线手册 / 评测 / 口径修复说明 …）。其中 [`docs/19`](docs/19_从0到1全流程与风险台账.md) 是**全流程与风险台账**（9 阶段 + 39 条风险 + GitHub 作品化指南）；完整清单：`python tools/build_docs_html.py --list` |
 | `docs/01_产品需求草稿PRD.md` | 七部分 PRD 草稿（定位 / 架构 / 模块 / 底座 / 合规 / MVP / 菜单） |
 | `docs/02_搭建实操教程.md` | 8 阶段落地教程（含建表 SQL、工具注册中心、闸门代码） |
 | `docs/03_本地全栈版运行说明.md` | 眼前这套代码怎么启动、怎么验证、怎么接模型、已知边界 |
@@ -143,7 +144,7 @@ Windows 双击 `server/start.bat` 即可（自动开浏览器）。
 | `docs/html/上线部署手册_A档.html` | `docs/12` 的暗色单文件阅读版（可搜索） |
 | `docs/html/HR-AI-Agent平台_产品方案.html` | `docs/01` + `docs/02` + `docs/03` 合并的暗色单文件阅读版（可搜索、可复制代码） |
 | `docs/html/HR-AI-Agent平台_项目计划与架构.html` | `docs/07` + `docs/08` 的暗色单文件阅读版（双文档 Tab 切换 · 可搜索） |
-| `docs/html/` | **全部文档的暗色单文件阅读版**（生成物，勿手改）：`docs/` 里的 md 改完，用 `tools/md2dark_html.py` 重新生成 |
+| `docs/html/` | **全部文档的暗色单文件阅读版**（生成物，勿手改）：清单固化在 `tools/build_docs_html.py` 的 `MANIFEST` 里（哪个产物 ← 哪几篇 md + 什么标题），改完 md 跑一次就全部重生；`--check` 已进 CI |
 
 > ⚠️ `分享包/` 里的离线演示包是 **M1 之前的版本**（无登录层），口令与身份相关的演示路径以本仓库最新版为准。
 
@@ -369,7 +370,7 @@ node test_live.js                                    # 真后端：24 页渲染 
 `docs/03` 第八节列了完整边界（并发、文件存储、集成、知识库、评测、多租户）。
 `docs/05` 把「离企业级还差什么」按 P0/P1/P2 分级列全了。
 
-已补上的 P0：**身份认证**、**权限**（M1），以及**离线评测集**（30 例人工标注黄金集 + 一致率 / 漏筛率 / 误筛率）。评测数字与失败模式见上一节，不回避 25% 的误筛率 —— 它说明的是「规则型筛选在标签堆叠面前会偏宽」，而不是「我们做得很好」。
+已补上的 P0：**身份认证**、**权限**（M1），以及**离线评测集**（30 例人工标注黄金集 + 一致率 / 漏筛率 / 误筛率）。评测数字与失败模式见上一节，不回避 **8.3%** 的误筛率（v16 加入相关性门槛之前是 25%）—— 它说明的是「规则型筛选在标签堆叠面前仍会偏宽」，而不是「我们做得很好」。
 
 仍然缺的：多租户物理隔离、真实 ATS / 招聘渠道集成、文件与简历原文存储、向量检索、模型评测平台、灰度与回滚。要变成生产系统，按 `docs/02` 的 8 阶段路线推进。
 
@@ -404,9 +405,13 @@ node test_live.js                                    # 真后端：24 页渲染 
 根目录下带日期的 `.html` 与 `平台原型/index.html` **都是生成物，不要手改**：
 
 ```bash
-npm run build                                   # 重新打包前端原型
+npm run build                             # 重新打包前端原型
+python tools/build_docs_html.py            # 按 MANIFEST 重生全部阅读版 HTML（单一源）
+python tools/build_docs_html.py --check    # 只校验清单与源文件有没有漏（已进 CI）
+
+# 单篇临时渲染（不走 MANIFEST，仅用于草稿；正式产物请登记进 MANIFEST）
 python tools/md2dark_html.py --out out.html \
-  --title "标题" --subtitle "副标题" docs/xx.md   # md -> 暗色阅读版 HTML
+  --title "标题" --subtitle "副标题" docs/xx.md
 ```
 
 改完源头（`平台原型/src/*` 或 `docs/*.md`）记得重新生成，否则 md 与 HTML 会不一致。

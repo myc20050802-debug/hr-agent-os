@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>平台从 0 到 1 · 全流程与风险台账</title>
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+  --line:#262c39; --line2:#323a4b;
+  --tx:#e7eaf1; --tx2:#a8b1c2; --tx3:#6f7a8d;
+  --ac:#4c8dff; --ac2:#7aa9ff; --grn:#3ddc97; --yel:#f5b942; --red:#ff6b6b; --pur:#a78bfa;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:15px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+header{position:sticky;top:0;z-index:50;background:rgba(13,15,20,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:14px 26px 0}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1.brand{font-size:17px;margin:0;letter-spacing:.3px}
+.sub{color:var(--tx3);font-size:12.5px}
+.searchbox{margin-left:auto;display:flex;align-items:center;gap:8px}
+input#q{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:9px;
+  padding:8px 12px;width:240px;font-size:13px;outline:none}
+input#q:focus{border-color:var(--ac)}
+.hint{font-size:12px;color:var(--tx3)}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx2);
+  padding:9px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac2);border-bottom-color:var(--ac);font-weight:600}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1560px;margin:0 auto}
+aside{position:sticky;top:112px;align-self:start;height:calc(100vh - 112px);overflow-y:auto;
+  padding:22px 14px 60px 26px;border-right:1px solid var(--line)}
+.tocgroup{display:flex;flex-direction:column;gap:1px}
+.toclink{display:block;color:var(--tx2);text-decoration:none;font-size:13px;padding:5px 9px;
+  border-radius:7px;line-height:1.45}
+.toclink:hover{background:var(--panel2);color:var(--tx)}
+.toclink.lvl2{padding-left:20px}
+.toclink.lvl3{padding-left:32px;font-size:12.5px;color:var(--tx3)}
+main{padding:26px 34px 120px;min-width:0}
+.docmeta{font:12px var(--mono);color:var(--tx3);margin-bottom:18px;
+  border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;display:inline-block}
+article h1{font-size:27px;margin:26px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+article h2{font-size:21px;margin:38px 0 14px;padding:9px 0 9px 13px;border-left:3px solid var(--ac);
+  background:linear-gradient(90deg,rgba(76,141,255,.09),transparent);border-radius:0 8px 8px 0}
+article h3{font-size:17px;margin:28px 0 10px;color:var(--ac2)}
+article h4{font-size:15px;margin:20px 0 8px;color:var(--tx2)}
+p{margin:9px 0}
+a{color:var(--ac2)}
+strong{color:#fff;font-weight:650}
+em{color:var(--yel);font-style:normal}
+code{font:12.6px var(--mono);background:var(--panel2);border:1px solid var(--line);
+  padding:1.5px 5px;border-radius:5px;color:#ffd479}
+.codeblock{margin:14px 0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0a0c11}
+.codetop{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);font:11.5px var(--mono);color:var(--tx3)}
+.copybtn{background:var(--panel2);border:1px solid var(--line2);color:var(--tx2);font-size:11.5px;
+  padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.copybtn:hover{color:var(--tx);border-color:var(--ac)}
+pre{margin:0;padding:14px 16px;overflow-x:auto}
+pre code{background:none;border:none;padding:0;color:#cfd8e6;font-size:12.6px;line-height:1.62}
+blockquote{margin:14px 0;padding:13px 16px;background:linear-gradient(90deg,rgba(167,139,250,.10),rgba(167,139,250,.02));
+  border-left:3px solid var(--pur);border-radius:0 10px 10px 0;color:#d9def0}
+blockquote p{margin:4px 0}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+th{background:var(--panel);text-align:left;padding:10px 12px;font-weight:640;color:var(--ac2);
+  border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(76,141,255,.05);color:var(--tx)}
+ul,ol{margin:9px 0;padding-left:24px}
+li{margin:5px 0;color:var(--tx2)}
+li strong{color:var(--tx)}
+hr.sep{border:none;border-top:1px solid var(--line);margin:26px 0}
+mark{background:rgba(245,185,66,.34);color:#fff;border-radius:3px;padding:0 2px}
+.hidden{display:none !important}
+footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-size:12.5px;text-align:center}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}aside{display:none}main{padding:20px 16px 90px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 class="brand">平台从 0 到 1 · 全流程与风险台账</h1>
+    <span class="sub">HR-Agent OS · 9 个阶段 / 39 条风险 / GitHub 作品化指南</span>
+    <div class="searchbox">
+      <span class="hint" id="hint">全文搜索</span>
+      <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs"><button class="tab active" data-doc="doc0">19 · 平台从 0 到 1 全流程与风险台账</button></div>
+</header>
+<div class="wrap">
+  <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--19-平台从-0-到-1-全流程与风险台账" data-text="19 · 平台从 0 到 1 全流程与风险台账">19 · 平台从 0 到 1 全流程与风险台账</a><a class="toclink lvl2" href="#doc0--〇-一页速览" data-text="〇、一页速览">〇、一页速览</a><a class="toclink lvl2" href="#doc0--一-全流程一张图" data-text="一、全流程一张图">一、全流程一张图</a><a class="toclink lvl2" href="#doc0--二-阶段表-关键节点-出口判据" data-text="二、阶段表：关键节点 + 出口判据">二、阶段表：关键节点 + 出口判据</a><a class="toclink lvl2" href="#doc0--三-风险台账-39-条" data-text="三、风险台账（39 条）">三、风险台账（39 条）</a><a class="toclink lvl3" href="#doc0--阶段-0-立项" data-text="阶段 0 · 立项">阶段 0 · 立项</a><a class="toclink lvl3" href="#doc0--阶段-1-业务发现" data-text="阶段 1 · 业务发现">阶段 1 · 业务发现</a><a class="toclink lvl3" href="#doc0--阶段-2-产品决策-最关键" data-text="阶段 2 · 产品决策（最关键）">阶段 2 · 产品决策（最关键）</a><a class="toclink lvl3" href="#doc0--阶段-3-产品建模" data-text="阶段 3 · 产品建模">阶段 3 · 产品建模</a><a class="toclink lvl3" href="#doc0--阶段-4-PRD-与方案" data-text="阶段 4 · PRD 与方案">阶段 4 · PRD 与方案</a><a class="toclink lvl3" href="#doc0--阶段-5-原型" data-text="阶段 5 · 原型">阶段 5 · 原型</a><a class="toclink lvl3" href="#doc0--阶段-6-测试-事故密度最高的阶段" data-text="阶段 6 · 测试（事故密度最高的阶段）">阶段 6 · 测试（事故密度最高的阶段）</a><a class="toclink lvl3" href="#doc0--阶段-7-9-真后端-合规-上线" data-text="阶段 7–9 · 真后端 / 合规 / 上线">阶段 7–9 · 真后端 / 合规 / 上线</a><a class="toclink lvl3" href="#doc0--补一条-跨阶段的-文档漂移-本项目-2026-10-03-刚修" data-text="补一条：跨阶段的「文档漂移」（本项目 2026-10-03 刚修）">补一条：跨阶段的「文档漂移」（本项目 2026-10-03 刚修）</a><a class="toclink lvl2" href="#doc0--四-GitHub-作品化-怎么整理-怎么上传-怎么展示" data-text="四、GitHub 作品化：怎么整理、怎么上传、怎么展示">四、GitHub 作品化：怎么整理、怎么上传、怎么展示</a><a class="toclink lvl3" href="#doc0--4-1-三条整理原则" data-text="4.1 三条整理原则">4.1 三条整理原则</a><a class="toclink lvl3" href="#doc0--4-2-仓库结构-本项目实际结构-可直接套用" data-text="4.2 仓库结构（本项目实际结构，可直接套用）">4.2 仓库结构（本项目实际结构，可直接套用）</a><a class="toclink lvl3" href="#doc0--4-3-文档分三层-别把-20-篇-md-平铺给面试官" data-text="4.3 文档分三层（别把 20 篇 md 平铺给面试官）">4.3 文档分三层（别把 20 篇 md 平铺给面试官）</a><a class="toclink lvl3" href="#doc0--4-4-README-首屏该有哪-6-样-照这个顺序排" data-text="4.4 README 首屏该有哪 6 样（照这个顺序排）">4.4 README 首屏该有哪 6 样（照这个顺序排）</a><a class="toclink lvl3" href="#doc0--4-5-五个展示重点-答辩时按这个顺序讲" data-text="4.5 五个展示重点（答辩时按这个顺序讲）">4.5 五个展示重点（答辩时按这个顺序讲）</a><a class="toclink lvl3" href="#doc0--4-6-上传步骤-本项目实际执行过的路径" data-text="4.6 上传步骤（本项目实际执行过的路径）">4.6 上传步骤（本项目实际执行过的路径）</a><a class="toclink lvl3" href="#doc0--4-7-面试前-10-分钟自检清单" data-text="4.7 面试前 10 分钟自检清单">4.7 面试前 10 分钟自检清单</a><a class="toclink lvl2" href="#doc0--五-如果重做-我会改这四件事" data-text="五、如果重做，我会改这四件事">五、如果重做，我会改这四件事</a><a class="toclink lvl2" href="#doc0--附-术语与口径速查" data-text="附 · 术语与口径速查">附 · 术语与口径速查</a></div></aside>
+  <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">19_从0到1全流程与风险台账.md</div><h1 id="doc0--19-平台从-0-到-1-全流程与风险台账">19 · 平台从 0 到 1 全流程与风险台账</h1>
+<blockquote><strong>本文回答两个问题</strong>： ① 一个平台从 0 到 1 该怎么走 —— 每个阶段的关键节点、出口判据、以及<strong>在这个阶段必然出现的问题</strong>； ② 怎么把成果整理成一份<strong>经得起交叉核对的面试作品</strong>并传到 GitHub。 <strong>写法</strong>：不是通用方法论清单，而是<strong>拿本项目（HR-Agent OS）当样本</strong> —— 每条风险都标注了它在本仓库里 是「已实证发生过」「已提前规避」还是「仍未解决」。凡结论都可在仓库里定位到文件。 通用方法论谁都能说；<strong>能说出「我们当时真栽在这条上、后来在哪个文件里修掉」才有说服力</strong>。 <strong>事实纪律</strong>：沿用本项目既有口径 —— <strong>① 已实现</strong>（有代码、有实测、可当场复现）／ <strong>② 设计目标</strong>（有设计未实测，明确标注）／<strong>③ 尚未具备</strong>（诚实列出）。数字以 <code>node tools/check_docs.js</code> 为准。</blockquote>
+<hr class="sep">
+<h2 id="doc0--〇-一页速览">〇、一页速览</h2>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>结论</th></tr></thead><tbody><tr><td>全流程</td><td><strong>9 个阶段</strong>：立项 → 调研 → 决策 → 建模 → PRD → 原型 → 真后端 → 合规 → 上线运营（+ 贯穿全程的「评测与自省」）</td></tr><tr><td>最容易死人的三步</td><td><strong>立项不写非目标</strong>（什么都做）· <strong>决策不划 AI 边界</strong>（为 AI 而 AI）· <strong>测试没断言</strong>（假绿）</td></tr><tr><td>本项目的真实事故</td><td>文档数字漂移（5 篇现状类文档残留 14 处旧页面数）· 空断言（看起来在检查、其实观测不到）· 测试测的是旧产物</td></tr><tr><td>风险台账规模</td><td><strong>39 条</strong>，按阶段分为产品 / 技术 / 协作 / 合规四类，每条给「触发信号 → 对策」</td></tr><tr><td>作品化</td><td>仓库结构 / 文档三层 / README 首屏 / 5 个展示重点 / 上传与发布步骤 见第四部分</td></tr><tr><td>一句话</td><td>0→1 的胜负不在「功能做得多」，在<strong>每个阶段有没有一个能被验证的出口判据</strong> —— 没有判据的阶段必然返工</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--一-全流程一张图">一、全流程一张图</h2>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>0 立项判断 ──▶ 1 业务发现 ──▶ 2 产品决策 ──▶ 3 产品建模 ──▶ 4 PRD 方案
+   │              │              │              │              │
+ 要不要做       痛在哪         谁来做        对象是什么      怎么讲清楚
+ 出口：非目标   出口：可证伪   出口：四边界  出口：表结构    出口：非技术读者读懂
+                                                              │
+                                                              ▼
+9 上线运营 ◀── 8 合规安全 ◀── 7 真后端 ◀── 6 测试 ◀────────── 5 原型
+   │              │              │            │
+ 出口：         出口：         出口：        出口：
+ preflight 0    红线在代码     真库/真拦/    断言全绿 +
+ + 可回滚       不在提示词     真留痕        能反向验证</code></pre></div>
+<p><strong>贯穿全程的一条横线：评测与自省</strong> —— 每个阶段都要能回答「我凭什么说这个阶段做完了」。</p>
+<p>本项目里它落成了 <code>tools/check_docs.js</code>（文档与代码一致）+ <code>tools/golden/</code>（筛选质量）+ <code>tools/run_all.js</code>（回归）。</p>
+<hr class="sep">
+<h2 id="doc0--二-阶段表-关键节点-出口判据">二、阶段表：关键节点 + 出口判据</h2>
+<blockquote>出口判据 = <strong>Go 的条件</strong>。写不出判据的阶段，等于没定义「做完」。</blockquote>
+<div class="tablewrap"><table><thead><tr><th>阶段</th><th>关键节点</th><th>必须产出的物</th><th>出口判据（Go 条件）</th></tr></thead><tbody><tr><td><strong>0 立项</strong></td><td>写非目标 · 划客群 · 定北极星</td><td>一句话定位 / 目标客群 / Non-goals</td><td>能说清<strong>不做什么</strong>及理由</td></tr><tr><td><strong>1 调研</strong></td><td>看场景不抄需求 · 给痛点标耗时 · 归纳病根</td><td>As-Is 现状表 / 病根 / KPI 树（含护栏指标）</td><td>病根一句话能概括，且指向可量化指标</td></tr><tr><td><strong>2 决策</strong></td><td>四边界划分 · 能用规则不用模型 · 网关可降级</td><td>Agent / Workflow / Rules / Human 边界表</td><td>每个模块能回答「为什么必须是它」</td></tr><tr><td><strong>3 建模</strong></td><td>先定对象再画页面 · 权限与状态先画</td><td>对象关系 / 表结构 / 权限矩阵 / 状态机</td><td>表按<strong>对象</strong>建，不按页面建</td></tr><tr><td><strong>4 PRD</strong></td><td>先统一语言 · 写假设与开放问题 · 写自我挑战</td><td>七部分 PRD + 术语表 + 假设清单</td><td>非技术读者一次读懂；假设可被证伪</td></tr><tr><td><strong>5 原型</strong></td><td>判断类问题用可点原型 · 零依赖交付 · 离线不说假话</td><td>单文件原型（本项目 <strong>24 页 / 537,842 bytes</strong>）</td><td>全页可点、关键链路可走通、离线结论与真实同源</td></tr><tr><td><strong>6 测试</strong></td><td>断言即功能 · 反向验证 · 隔离实例回归</td><td>套件（本项目 <strong>12 套件</strong>）+ 黄金集</td><td><strong>全绿 + 破坏态必红 + 没跑的套件不许算通过</strong></td></tr><tr><td><strong>7 真后端</strong></td><td>零依赖选型 · 迁移不重建 · 真写/真拦/真留痕</td><td>可运行全栈（HTTP + SQLite + 引擎）</td><td>打分真进库、闸门真拦、越权真 403 且留痕</td></tr><tr><td><strong>8 合规安全</strong></td><td>红线写成代码 · 物理剔除字段 · 高风险进人工闸门</td><td>规则表（歧视 11 + 违法 9）+ 审计链 + 权限矩阵</td><td>命中即阻断；每条规则带法条依据</td></tr><tr><td><strong>9 上线运营</strong></td><td>preflight 只读自检 · 备份可验可恢复 · 回滚演练</td><td>上线手册 + 备份脚本 + 发布路径</td><td><code>npm run preflight</code> 退出码 0 才可以把链接发出去</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--三-风险台账-39-条">三、风险台账（39 条）</h2>
+<blockquote>读法：<strong>触发信号</strong>是「怎么知道自己正在踩这个坑」——比风险本身更有用。</blockquote>
+<h3 id="doc0--阶段-0-立项">阶段 0 · 立项</h3>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>风险 / 常见问题</th><th>触发信号</th><th>对策与规避</th><th>本项目处置</th></tr></thead><tbody><tr><td>1</td><td><strong>什么都想做</strong>：功能清单越写越长</td><td>PRD 里没有一节叫「不做」</td><td>先写 Non-goals，再写功能；每个「不做」必须给理由</td><td>✅ 立项先否掉完整 HRIS / 自动发 Offer / 简历爬虫 / 视频面试分析</td></tr><tr><td>2</td><td><strong>拿行业报告当需求</strong></td><td>说不清「谁的一天变短了」</td><td>需求必须落到「谁的哪个动作」</td><td>✅ As-Is 表按 HR 的一天写，每条标耗时</td></tr><tr><td>3</td><td><strong>定位靠形容词</strong>（赋能、提效）</td><td>上线后无法验收</td><td>定位必须是可计数的数字</td><td>✅ 价值主张改成三个数字（人效 / 逾期率 / 报表时长），并标注为<strong>设计目标未实测</strong></td></tr><tr><td>4</td><td><strong>只写增长 KPI 不写护栏</strong></td><td>KPI 树里没有「必须为 0」的项</td><td>护栏指标与增长指标同树</td><td>✅ 越权次数 / 敏感信息外泄 / 未审批执行数 = 0</td></tr><tr><td>5</td><td>立项文档只有结论没有假设</td><td>评审时无人可攻击</td><td>立项即列「可能错在哪」</td><td>⚠️ 立项阶段未列，到 PRD 阶段才补（见 #16）</td></tr></tbody></table></div>
+<h3 id="doc0--阶段-1-业务发现">阶段 1 · 业务发现</h3>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>风险 / 常见问题</th><th>触发信号</th><th>对策与规避</th><th>本项目处置</th></tr></thead><tbody><tr><td>6</td><td><strong>痛点不可证伪</strong>（「效率低」）</td><td>无法量化、无法复测</td><td>每个痛点配耗时 + 病根</td><td>✅ 「3~4 小时 / 病根：判断标准在脑子里」</td></tr><tr><td>7</td><td>只访谈不观察</td><td>说的和做的对不上</td><td>交叉验证：访谈 + 看实际工具 + 看数据</td><td>⚠️ 无真实客户访谈，属<strong>③ 尚未具备</strong>（合成简历、无 pilot）</td></tr><tr><td>8</td><td>把「用户要什么」直接当需求</td><td>PRD 里全是用户原话</td><td>追问到「他要解决的那件事」</td><td>✅ 用户说「为什么总是 Java」，落到「三层硬编码」这一根因</td></tr></tbody></table></div>
+<h3 id="doc0--阶段-2-产品决策-最关键">阶段 2 · 产品决策（最关键）</h3>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>风险 / 常见问题</th><th>触发信号</th><th>对策与规避</th><th>本项目处置</th></tr></thead><tbody><tr><td>9</td><td><strong>为 AI 而 AI</strong>：所有模块都塞模型</td><td>讲不出「这里为什么必须用模型」</td><td>四边界表，逐模块问「该谁来干」</td><td>✅ 入转调离 80% 用 Workflow；报表模型只翻译不算数</td></tr><tr><td>10</td><td>分数不可复现</td><td>同一输入两次跑出两个分</td><td>判断类用规则，措辞类才用模型</td><td>✅ 分数与档位 100% 规则算（0 token）；模型只写措辞</td></tr><tr><td>11</td><td><strong>模型挂了产品就挂</strong></td><td>断网/限流即白屏</td><td>可插拔网关 + 失败降级</td><td>✅ 未配 <code>LLM_API_URL</code> 时走规则模式，全流程可跑</td></tr><tr><td>12</td><td>高风险动作自动化率优先</td><td>有人问「错一次谁负责」</td><td>高风险必进人工闸门（HITL）</td><td>✅ 审批队列 + 驳回必填原因（服务端 400 硬校验）</td></tr><tr><td>13</td><td>边界只在会上口头讨论</td><td>会后无人记得</td><td>边界做成表，写进 PRD</td><td>✅ 四边界表进 <code>docs/01</code>，另有 <code>docs/04</code> 20 条决策速查</td></tr></tbody></table></div>
+<h3 id="doc0--阶段-3-产品建模">阶段 3 · 产品建模</h3>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>风险 / 常见问题</th><th>触发信号</th><th>对策与规避</th><th>本项目处置</th></tr></thead><tbody><tr><td>14</td><td><strong>先画页面再定对象</strong></td><td>开发问「这张表为什么有这些列」</td><td>对象 → 关系 → 表 → 规则 → 状态机 → 权限 → 页面</td><td>✅ 按此顺序执行，顺序写进 <code>docs/04</code> 阶段 3</td></tr><tr><td>15</td><td>权限等到开发来问</td><td>权限散落在各接口的 if 里</td><td>建模期出权限矩阵（角色 × 资源 × 动作 × 范围）</td><td>✅ 24 能力 × 7 角色 + 行级 <code>all/dept/self</code> + 字段脱敏，<strong>服务端出数据之前生效</strong></td></tr><tr><td>16</td><td>删数据的后果没想清</td><td>删完发现审计断链</td><td>区分「关闭」与「删除」</td><td>✅ 有候选人的岗位只能转「已关闭」，不物理删除</td></tr><tr><td>17</td><td>状态机有多份实现</td><td>前后端推动状态不一致</td><td>状态机只留一份</td><td>✅ <code>server/hiring.js</code> 是唯一状态机；Offer 合规代码级红线（违反 422 不落库）</td></tr></tbody></table></div>
+<h3 id="doc0--阶段-4-PRD-与方案">阶段 4 · PRD 与方案</h3>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>风险 / 常见问题</th><th>触发信号</th><th>对策与规避</th><th>本项目处置</th></tr></thead><tbody><tr><td>18</td><td>术语不统一，评审各说各话</td><td>会上反复澄清定义</td><td>PRD 第 0 部分先出通俗术语表</td><td>✅ 术语表前置</td></tr><tr><td>19</td><td><strong>假设不写下来</strong></td><td>上线后才发现某前提是错的</td><td>明确列「待验证假设」+「开放问题」</td><td>✅ 6.4 关键假设 + 附录 A/B</td></tr><tr><td>20</td><td>风险只口头讨论</td><td>出事无人认账</td><td>写「我可能错在哪」进正文</td><td>✅ 2.6 架构自我挑战</td></tr><tr><td>21</td><td>把模型能力写成产品能力</td><td>客户一问「它凭什么是 Agent」就崩</td><td>底座能力列表化（缺一项就退化）</td><td>✅ 规划 / 工具调用 / 记忆 / 权限 / 脱敏 / HITL 六项齐</td></tr></tbody></table></div>
+<h3 id="doc0--阶段-5-原型">阶段 5 · 原型</h3>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>风险 / 常见问题</th><th>触发信号</th><th>对策与规避</th><th>本项目处置</th></tr></thead><tbody><tr><td>22</td><td><strong>判断类问题用 PPT 讨论</strong></td><td>会开三小时，结论还在飘</td><td>判断类争议用可点原型收敛</td><td>✅ 零依赖单文件原型，双击即开</td></tr><tr><td>23</td><td>演示现场环境失败</td><td>「装个环境再演示」</td><td>零依赖交付，删掉一切安装步骤</td><td>✅ 全仓库 <code>dependencies</code> 为空</td></tr><tr><td>24</td><td><strong>演示态说假话</strong></td><td>用户改了输入，结论不变</td><td>离线端也真扫描，结论与真实态同源</td><td>✅ 离线端实现同源规则表（曾写死「命中 3 处」，已修）</td></tr><tr><td>25</td><td>原型与后端两套结论</td><td>同一份简历离线/在线档位不同</td><td>打分口径<strong>单一源</strong>，两侧共用</td><td>✅ 引擎与离线端共用 <code>LADDER</code>/词库；前端一改必须 <code>npm run build</code>（否则测的是旧产物，见 #28）</td></tr></tbody></table></div>
+<h3 id="doc0--阶段-6-测试-事故密度最高的阶段">阶段 6 · 测试（事故密度最高的阶段）</h3>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>风险 / 常见问题</th><th>触发信号</th><th>对策与规避</th><th>本项目处置</th></tr></thead><tbody><tr><td>26</td><td><strong>没有断言的功能等于没有功能</strong></td><td>「我点过了，没问题」</td><td>每个能力配断言 + <strong>反向验证</strong>（放回 bug 确认变红）</td><td>✅ 铁律 20；黄金集、门槛、归因均有断言</td></tr><tr><td>27</td><td><strong>假绿：没跑过的套件算通过</strong></td><td>输出「全部通过」，但某套件未运行</td><td>运行器统计「未运行」并给出非 0 退出码</td><td>✅ <code>run_all.js</code> 缺套件时打印「结论不完整」并退出码 4</td></tr><tr><td>28</td><td><strong>测的是旧产物</strong></td><td>改了源码，套件仍绿</td><td>生成物必须先构建再测</td><td>✅ 离线套件渲染 <code>平台原型/index.html</code>，破坏 <code>src/</code> 后<strong>必须 <code>npm run build</code></strong> 才会红（曾因此得到一次假绿）</td></tr><tr><td>29</td><td><strong>空断言</strong>：看起来在检查、其实观测不到</td><td>破坏源码，套件仍然绿</td><td>先量一遍再下结论；观测值要按请求打标记</td><td>✅ 实测两种形态：惰性访问器赋值静默失败、并发请求覆盖观测值</td></tr><tr><td>30</td><td>测试之间互相污染</td><td>单独跑绿、全量跑红</td><td>隔离实例 + 临时库；不插在改共享状态的中间</td><td>✅ <code>run_all.js</code> 起 <code>127.0.0.1:8799</code> + 临时库，不碰演示库</td></tr><tr><td>31</td><td><strong>评测集自己给自己出题</strong></td><td>拿规则输出当人工标签</td><td>标签必须<strong>独立标注</strong>，且说明口径</td><td>✅ 30 例由人工独立标注；一致率 96.7%、漏筛 0%、误筛 8.3%（Wilson 95% CI [83.3%, 99.4%]）</td></tr><tr><td>32</td><td><strong>指标只报点估计</strong></td><td>一句「一致率 90%」被追问样本量</td><td>报区间（Wilson）+ 说明分母</td><td>✅ 报 CI；并明确 30 例的区间下沿撑不住结论式表述，下一步扩到 90 例</td></tr></tbody></table></div>
+<h3 id="doc0--阶段-7-9-真后端-合规-上线">阶段 7–9 · 真后端 / 合规 / 上线</h3>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>风险 / 常见问题</th><th>触发信号</th><th>对策与规避</th><th>本项目处置</th></tr></thead><tbody><tr><td>33</td><td>老库升级靠删库重建</td><td>「重置」把演示数据清空、文件被进程锁</td><td>版本化迁移（<code>ALTER TABLE ADD COLUMN</code>），不删库</td><td>✅ <code>schema_migrations</code> v1–v9，空库自动建到最新</td></tr><tr><td>34</td><td>权限只在前端做</td><td>抓包就能越权</td><td>前端只做体验层，<strong>拦截永远在服务端</strong></td><td>✅ 员工身份导出全公司 = 真 403 + 写审计</td></tr><tr><td>35</td><td>审计可被改</td><td>出事时记录「不见了」</td><td>应用层只插不改 + 数据库触发器物理拒绝</td><td>✅ <code>BEFORE UPDATE/DELETE</code> 触发器 <code>RAISE(ABORT)</code></td></tr><tr><td>36</td><td><strong>合规写成提示词</strong></td><td>法务问「你怎么证明它没看性别」</td><td>受保护字段从数据访问层<strong>物理剔除</strong></td><td>✅ <code>gender</code>/<code>birth_date</code> 不进任何打分查询</td></tr><tr><td>37</td><td>上限前没自检就发链接</td><td>「我先发出去再说」</td><td>只读自检脚本 + 退出码作为发布闸门</td><td>✅ <code>npm run preflight</code> 检查口令强度 / <code>COOKIE_SECURE</code> 与协议配对 / 备份新鲜度</td></tr><tr><td>38</td><td>备份没验证过</td><td>真出事才发现备份是坏的</td><td>备份带 <code>integrity_check</code> + SHA-256 清单 + 恢复演练</td><td>✅ <code>VACUUM INTO</code> 在线快照；<strong>服务在跑时拒绝恢复</strong></td></tr><tr><td>39</td><td>部署与鉴权配置打架</td><td>HTTPS 下「一直登不上」</td><td>安全 Cookie 必须与 HTTPS 成对，配置冲突<strong>拒启</strong></td><td>✅ 生产模式强制 <code>COOKIE_SECURE=1</code>，不满足不启动</td></tr></tbody></table></div>
+<blockquote><strong>台账里最该记住的一条</strong>：39 条里真正造成过事故的是 <strong>26 / 28 / 29 三条（都是测试）</strong>， 以及下面这条「文档漂移」—— 它们都不是「技术难题」，是<strong>纪律问题</strong>。</blockquote>
+<h3 id="doc0--补一条-跨阶段的-文档漂移-本项目-2026-10-03-刚修">补一条：跨阶段的「文档漂移」（本项目 2026-10-03 刚修）</h3>
+<div class="tablewrap"><table><thead><tr><th>表现</th><th>触发信号</th><th>影响</th><th>已采取的对策</th></tr></thead><tbody><tr><td>同一事实在多个文档里各写一个值</td><td>交叉核对时两个数字对不上</td><td><strong>面试官会因此怀疑全部材料</strong></td><td>① <code>check_docs.js</code> 正向锚点：现状句必须与代码一致，写错会指名道姓告诉你该改成什么；② <strong>新增负向锚点</strong>：旧值不得在现状类文档里复活；③ 评测数字以 <code>tools/golden/baseline.json</code> 为<strong>唯一源</strong></td></tr></tbody></table></div>
+<p>实测规模：页面数 23 → 24 之后，<strong>5 篇现状类文档残留 14 处旧值</strong>，而正向锚点当年只钉住了其中 2 句（另有 22 处落在历史类文档里，按口径豁免）。</p>
+<p>补上负向锚点后，验收方式变成「破坏 → 必红（并给出 <code>文件:行号</code>）→ 还原 → 必绿」。</p>
+<p>历史类文档（CHANGELOG / 项目计划书 / 架构设计 / 验收报告的实跑记录 / 时点评估快照）<strong>豁免不改</strong> ——</p>
+<p>它们保存的是「当时是多少」的证据，改掉才是篡改。</p>
+<hr class="sep">
+<h2 id="doc0--四-GitHub-作品化-怎么整理-怎么上传-怎么展示">四、GitHub 作品化：怎么整理、怎么上传、怎么展示</h2>
+<blockquote>前提认知：<strong>面试官平均只会花 90 秒看你的仓库</strong>。前 30 秒看 README 首屏，后 60 秒决定点不点第二个文件。 所以作品化的目标不是「资料多」，是<strong>让价值在最前面被看见，且经得起抽查</strong>。</blockquote>
+<h3 id="doc0--4-1-三条整理原则">4.1 三条整理原则</h3>
+<div class="tablewrap"><table><thead><tr><th>原则</th><th>反例（会扣分）</th><th>本案做法</th></tr></thead><tbody><tr><td><strong>根目录只留门面</strong></td><td>根目录躺着 20 个 md、几个 <code>.log</code>、一份 <code>备份.db</code></td><td>根目录只有 README / LICENSE / CHANGELOG / CONTRIBUTING / SECURITY + 目录</td></tr><tr><td><strong>一份事实只有一个源</strong></td><td>页面数在 4 篇文档里 4 个值</td><td>数字由代码算出，文档守卫校验；指标由基线文件唯一提供</td></tr><tr><td><strong>生成物与源码分开</strong></td><td>手改打包产物，改完两边不一致</td><td><code>平台原型/index.html</code>、<code>docs/html/*</code> 全部标记 <code>linguist-generated</code>，GitHub 自动折叠 diff</td></tr></tbody></table></div>
+<h3 id="doc0--4-2-仓库结构-本项目实际结构-可直接套用">4.2 仓库结构（本项目实际结构，可直接套用）</h3>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>.
+├── README.md                  ← 首屏：一句话定位 + 在线 demo + 截图 + 能力表 + 实测数字
+├── LICENSE  CHANGELOG.md  CONTRIBUTING.md  SECURITY.md
+├── .github/workflows/         ← test.yml（Node 22/24 矩阵）+ pages.yml（零安装 demo）
+├── server/                    ← 真后端（16 个模块，L0–L5 分层）
+├── shared/                    ← 前后端共用的单一数据源（词库 / 打分归因 / 枚举）
+├── 平台原型/                   ← 单文件原型 + src/ 源码 + build.js
+├── tools/                     ← 测试套件 / 黄金集 / 上线自检 / 备份 / 文档守卫
+├── docs/                      ← 源文档（21 篇 md）
+│   ├── html/                  ← 暗色单文件阅读版（生成物，不要在 GitHub 上读 md）
+│   ├── archive/               ← 历史口径说明
+│   └── 样例/                   ← JD 样例
+└── docs/assets/               ← README 截图（真跑一遍流程后拍）</code></pre></div>
+<p><strong>软链接/目录名用中文会不会有问题？</strong> 本项目实测不会，但要在 README 的目录说明里点明；</p>
+<p>若面向纯英文团队，建议把 <code>平台原型/</code> 改 <code>prototype/</code>、<code>分享包/</code> 改 <code>dist/</code>。</p>
+<h3 id="doc0--4-3-文档分三层-别把-20-篇-md-平铺给面试官">4.3 文档分三层（别把 20 篇 md 平铺给面试官）</h3>
+<div class="tablewrap"><table><thead><tr><th>层</th><th>文档</th><th>面试官会看吗</th></tr></thead><tbody><tr><td><strong>第 1 层 · 首屏</strong></td><td><code>README.md</code>（能力表 + 实测数字 + 5 分钟演示路径）</td><td><strong>一定会看</strong>，90 秒就在这层</td></tr><tr><td><strong>第 2 层 · 三份必读</strong></td><td><code>docs/05</code> 离企业级差什么（不回避）· <code>docs/09</code> 凭什么说做完了 · <code>docs/16</code> 规则与模型分工证据</td><td>有经验的人会点</td></tr><tr><td><strong>第 3 层 · 全量材料</strong></td><td>PRD / 架构 / 计划书 / 上线手册 / 复盘 / 本文档 …</td><td>只在他想深挖时看</td></tr></tbody></table></div>
+<p><code>README</code> 里那句「这个仓库最值得看的三份文档」就是<strong>主动替他做筛选</strong> —— 面试官不必自己判断哪篇有价值。</p>
+<h3 id="doc0--4-4-README-首屏该有哪-6-样-照这个顺序排">4.4 README 首屏该有哪 6 样（照这个顺序排）</h3>
+<ol>
+<li><strong>一句话定位 + 最强的差异化事实</strong>（本项目：「运行时零依赖，<code>dependencies</code> 为空 —— clone 下来一条命令就能起」）</li>
+<li><strong>零安装在线 demo 链接</strong>（访客 10 秒内能看到东西）</li>
+<li><strong>2–4 张真跑截图</strong>（不是摆拍；本项目截图由 Playwright 真登录、真跑 Agent、真生成一份带违规词的 JD 后拍）</li>
+<li><strong>能力表：每条能力配「为什么它是真的」</strong>（拿证据替代形容词）</li>
+<li><strong>实测数字表</strong>（一致率 / 漏筛率 / 误筛率 + 置信区间 + 性能分位）</li>
+<li><strong>5 分钟演示路径</strong>（编号步骤，让他能自己走一遍）</li>
+</ol>
+<h3 id="doc0--4-5-五个展示重点-答辩时按这个顺序讲">4.5 五个展示重点（答辩时按这个顺序讲）</h3>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>展示重点</th><th>一句话讲法</th><th>证据位置</th></tr></thead><tbody><tr><td>1</td><td><strong>可解释</strong></td><td>「每个分数都能回答『为什么是这个分』——逐维算式 + 决定性因素 + 还差几分进下一档」</td><td>界面归因块 / <code>shared/score-why.js</code></td></tr><tr><td>2</td><td><strong>规则与模型分工</strong></td><td>「分档 100% 由规则算出（0 token、可复现、可签字），模型只写措辞」</td><td><code>docs/16</code> 双模式对照 + Wilson 区间</td></tr><tr><td>3</td><td><strong>权限在服务端</strong></td><td>「24 能力 × 7 角色 + 行级范围，全部在出数据之前生效；前端隐显只是体验层」</td><td><code>server/rbac.js</code> / 越权真 403 用例</td></tr><tr><td>4</td><td><strong>合规是代码不是提示词</strong></td><td>「受保护字段从打分查询里物理剔除 —— 不是承诺不看，是根本拿不到」</td><td><code>server/engine.js</code> 查询构造</td></tr><tr><td>5</td><td><strong>评测闭环</strong></td><td>「30 例人工独立标注黄金集；指标报区间不报点估计；分歧逐条归因到具体简化」</td><td><code>tools/golden/</code> + README 质量表</td></tr></tbody></table></div>
+<p><strong>反面清单（这几个动作会立刻掉分）</strong>：README 只有功能列表没有证据 · 上传了数据库/密钥/候选人信息 ·</p>
+<p>文档之间数字互相矛盾 · 只有一个 <code>main</code> 分支且从无失败记录 · 截图是 PS 或空壳界面。</p>
+<h3 id="doc0--4-6-上传步骤-本项目实际执行过的路径">4.6 上传步骤（本项目实际执行过的路径）</h3>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code># ① 先做「可上传」体检：确认没有 PII / 密钥 / 大文件混进来
+cat .gitignore                      # 库文件、.env、密钥、备份、日志、临时脚本必须都在里面
+git status --short                  # 未跟踪文件逐个确认
+git grep -nIE 'C:[\\/]Users|密码|api[_-]?key|sk-[A-Za-z0-9]{16,}'  # 本机路径与凭证零命中
+
+# ② 提交（提交信息写"改了什么 + 为什么"，别写 "update"）
+git add -A &amp;&amp; git commit -F _msg.txt
+
+# ③ 推送
+git push -u origin main
+
+# ④ 打开 GitHub Pages（零安装 demo）
+#    Settings → Pages → Source = GitHub Actions（或直接 POST /repos/{owner}/{repo}/pages）</code></pre></div>
+<p><strong>受限网络下的三条通道</strong>（本项目踩过 5 次，结论已写成技能 <code>github-upload-restricted-network</code>）：</p>
+<p>① <strong>先量代理是否整体挂掉</strong>（<code>env | grep -i proxy</code> + <code>git ls-remote</code> 双向测），别把「单次失败」当「通道不通」；</p>
+<p>② 代理不可用时 <code>env -u https_proxy -u http_proxy … git push</code> 直连反而通；</p>
+<p>③ <code>git credential fill</code> 在网络不可达时会<strong>挂起而不是报错</strong>（表现为脚本卡死、日志空白），</p>
+<p>改从系统凭据管理器直读令牌（<code>references/read-gcm-token.ps1</code>），用 <code>GIT_CONFIG_*</code> 环境变量传鉴权头（不进 argv）。</p>
+<h3 id="doc0--4-7-面试前-10-分钟自检清单">4.7 面试前 10 分钟自检清单</h3>
+<ul>
+<li>[ ] README 首屏的每个数字都能在仓库里指出出处</li>
+<li>[ ] 在线 demo 能打开，且页面顶部明确标注「离线预览」（不假装连着后端）</li>
+<li>[ ] <code>npm test</code> 一条命令能跑，且<strong>失败会真的红</strong>（能当场演示反向验证更好）</li>
+<li>[ ] 能说出 3 个「我否掉的方案」及理由（比说做了多少功能更能证明是你做的）</li>
+<li>[ ] 已知边界表能主动背出来（不等对方问）</li>
+<li>[ ] 承认没有的东西：真实客户数据 / pilot / 大规模评测集</li>
+</ul>
+<hr class="sep">
+<h2 id="doc0--五-如果重做-我会改这四件事">五、如果重做，我会改这四件事</h2>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>现在的问题</th><th>重做会怎么做</th></tr></thead><tbody><tr><td>1</td><td>评测集 30 例 / 3 岗位，区间下沿只有 83.3%</td><td><strong>一开始就按 90 例、9 个职能族建集</strong>，并把阈值写进 CI 阻断（样本量决定结论能不能说出口）</td></tr><tr><td>2</td><td>文档间数字漂移，靠事后加守卫才发现</td><td><strong>第一天就把「事实源」写进 CI</strong> —— 数字一律由代码算出，禁止手写</td></tr><tr><td>3</td><td>测试的「假绿」形态踩了三次（空断言 / 测到旧产物 / 未运行算通过）</td><td><strong>新断言写完必须做一次反向验证</strong>，写进 CONTRIBUTING 的硬约束（现在是铁律，但发现得晚）</td></tr><tr><td>4</td><td>没有真实简历入口，说服力停在合成数据</td><td>更早接真实 PDF/DOCX 解析，哪怕先做「粘贴简历」这一条最小链路</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--附-术语与口径速查">附 · 术语与口径速查</h2>
+<div class="tablewrap"><table><thead><tr><th>术语</th><th>口径</th></tr></thead><tbody><tr><td>四边界</td><td>Agent 决策 / Workflow 执行 / Rules 约束 / Human 治理</td></tr><tr><td>漏筛率</td><td>人工认为该通过（strong/ok）却被 AI 判 no 的比例 —— <strong>安全红线，必须为 0</strong></td></tr><tr><td>误筛率</td><td>人工认为该淘汰（no）却被 AI 判 strong/ok 的比例 —— 成本问题（多进一轮人工）</td></tr><tr><td>Wilson 区间</td><td>小样本比例的正确置信区间；30 例下 96.7% 的 95% CI 是 [83.3%, 99.4%]</td></tr><tr><td>空断言</td><td>断言存在但没有真正观测到目标行为（破坏源码仍绿）—— <strong>比没有断言更危险</strong></td></tr><tr><td>反向验证</td><td>故意把 bug 放回去，确认断言变红；不红说明这条断言没有判别力</td></tr><tr><td>preflight</td><td>只读上线自检，退出码 0 才允许把链接发出去</td></tr></tbody></table></div>
+<hr class="sep">
+<p>*配套阅读：<code>docs/04_产品复盘_从0到1怎么做出来的.md</code>（同一段经历的第一人称述职版 + 20 条决策速查表 + 口播稿）、</p>
+<p><code>docs/05_从PoC到企业级的差距清单.md</code>（离企业级还差什么）、<code>docs/09_实现说明与验收报告.md</code>（凭什么说做完了）、</p>
+<p><code>docs/16_规则与LLM双模式对照评测.md</code>（规则与模型的分工证据）。*</p></article></main>
+</div>
+<footer>生成时间：2026-10-03 18:17（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<script>
+const docs = [{"key": "doc0", "name": "19 · 平台从 0 到 1 全流程与风险台账"}];
+
+function copyCode(btn) {
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1400);
+  });
+}
+
+function showDoc(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.doc === key));
+  document.querySelectorAll('article.doc').forEach(a => a.style.display = (a.dataset.doc === key ? '' : 'none'));
+  document.querySelectorAll('.tocgroup').forEach(g => g.style.display = (g.dataset.doc === key ? '' : 'none'));
+  resetHighlight();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showDoc(t.dataset.doc));
+
+// 滚动高亮目录
+const links = () => Array.from(document.querySelectorAll('.tocgroup:not([style*="none"]) .toclink'));
+window.addEventListener('scroll', () => {
+  const actives = links();
+  let cur = null;
+  for (const a of actives) {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el && el.getBoundingClientRect().top < 180) cur = a;
+  }
+  actives.forEach(a => a.style.color = '');
+  if (cur) { cur.style.color = 'var(--ac2)'; }
+});
+
+// 全文搜索 + 高亮
+let marks = [];
+function resetHighlight() {
+  document.querySelectorAll('mark').forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  marks = [];
+  document.getElementById('hint').textContent = '全文搜索';
+  document.getElementById('hint').style.color = 'var(--tx3)';
+}
+document.getElementById('q').addEventListener('input', e => {
+  const kw = e.target.value.trim();
+  resetHighlight();
+  if (kw.length < 2) return;
+  const activeArt = document.querySelector('article.doc:not([style*="none"])') || document.body;
+  let count = 0, first = null;
+  const walker = document.createTreeWalker(activeArt, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.trim().length > 1 && !/^(SCRIPT|STYLE|MARK)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const low = node.nodeValue.toLowerCase(), k = kw.toLowerCase();
+    if (low.indexOf(k) === -1) return;
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    while (true) {
+      const idx = rest.toLowerCase().indexOf(k); if (idx === -1) break;
+      frag.appendChild(document.createTextNode(rest.slice(0, idx)));
+      const m = document.createElement('mark'); m.textContent = rest.slice(idx, idx + kw.length);
+      frag.appendChild(m); marks.push(m); count++;
+      rest = rest.slice(idx + kw.length);
+    }
+    frag.appendChild(document.createTextNode(rest));
+    node.parentNode.replaceChild(frag, node);
+  });
+  const h = document.getElementById('hint');
+  h.textContent = count ? `命中 ${count} 处` : '无匹配';
+  h.style.color = count ? 'var(--grn)' : 'var(--red)';
+  if (count) { first = marks[0]; first.scrollIntoView({behavior:'smooth', block:'center'}); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.id !== 'q') { e.preventDefault(); document.getElementById('q').focus(); }
+  if (e.key === 'Escape') { document.getElementById('q').value = ''; resetHighlight(); }
+});
+</script>
+</body>
+</html>
