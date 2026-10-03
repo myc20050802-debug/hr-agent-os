@@ -316,6 +316,8 @@ node test_live.js                                    # 真后端：24 页渲染 
 > 运行前端无头测试需要 `jsdom`：`NODE_PATH=<你的 workspace>/node_modules node test_live.js`（本项目自身不依赖任何 npm 包）。
 > 硬验证：删掉 `server/hr_agent.db` 后重启，空库自动跑到 `schemaVersion: 9`（20 张业务表 / 2 个触发器 / 23 个索引），无需人工干预。
 
+> CI 在 **Node 22 与 24** 上各跑一遍（`fail-fast: false`）。只测一个版本，就看不见「上游 Node 升级后本仓库悄悄坏掉」这类问题 —— 本项目真踩过一次（Node ≥24 的 undici 会拒收跨 realm 的 `AbortSignal`），详见 `CHANGELOG.md`。
+
 ---
 
 ## 质量与性能实测（数字都是跑出来的）

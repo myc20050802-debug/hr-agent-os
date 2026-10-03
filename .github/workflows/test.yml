@@ -12,14 +12,22 @@ permissions:
 jobs:
   # 一键回归：run_all.js 自带「隔离实例 127.0.0.1:8799 + 临时库」，不会碰演示库
   regression:
-    name: 回归（12 套件 + 文档守卫 + 双模式评测）
+    name: 回归（Node ${{ matrix.node }} · 12 套件 + 文档守卫 + 双模式评测）
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 只测一个版本，会漏掉「上游 Node 升级后本仓库悄悄坏掉」这一类问题。
+        # 真实教训：Node >=24 的 undici 开始校验 AbortSignal 的 realm，
+        # 测试桩把 jsdom 的 signal 透传过去后页面静默降级成离线态、断言假红。
+        # 22 是 README 声明的下限，24 代表当前主流新版本。
+        node: ['22', '24']
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ matrix.node }}
 
       # 运行时零依赖，只有测试用的 jsdom 需要装
       - name: 安装测试依赖

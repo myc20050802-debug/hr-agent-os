@@ -26,6 +26,24 @@ const api = (url, opts = {}) => {
 };
 async function apiJson(url, opts) { const r = await api(url, opts); return r.json(); }
 
+/* ---------- jsdom realm 的 AbortSignal 不能直接喂给 Node 的 fetch ----------
+   页面代码（平台原型/src/app.js 的 probeHealth）在 jsdom 里 new AbortController()，
+   那个 signal 属于 **jsdom 的 realm**，不是 Node 的。Node >=24 的 undici 会做同 realm 校验：
+
+     TypeError: RequestInit: Expected signal ("AbortSignal {}") to be an instance of AbortSignal.
+
+   这条错误会被 probeHealth() 的 catch 静默吞掉（它本来就是「探不到就返回 null」的语义），
+   于是页面降级成「离线演示态」—— 断言「同源在线不该显示连接状态条」在 Node 26 上假红。
+   **产品代码没问题，是这里把信号原样透传坏了**；Node 22 的 undici 还不校验，所以一直没暴露。
+   翻译成原生 signal 而不是直接删掉：前端那个 1200ms 超时断言在测试里依然真实生效。 */
+function toNativeSignal(sig) {
+  if (sig instanceof AbortSignal) return sig;
+  const ac = new AbortController();
+  if (sig.aborted) ac.abort();
+  else if (typeof sig.addEventListener === 'function') sig.addEventListener('abort', () => ac.abort());
+  return ac.signal;
+}
+
 const vc = new VirtualConsole();
 vc.on('jsdomError', e => errors.push('[jsdomError] ' + (e.stack || e.message)));
 vc.on('error', (...a) => errors.push('[console.error] ' + a.join(' ')));
@@ -47,6 +65,7 @@ const html = fs.readFileSync(file, 'utf8');
           const o = Object.assign({}, opts || {});
           o.headers = Object.assign({}, (opts && opts.headers) || {});
           if (TOKEN && !o.headers.Authorization) o.headers.Authorization = 'Bearer ' + TOKEN;
+          if (o.signal) o.signal = toNativeSignal(o.signal);   /* 见文件上方说明：跨 realm 信号会被 Node >=24 拒收 */
           return fetch(new URL(url, BASE).toString(), o);
         };
       }
@@ -57,6 +76,52 @@ const html = fs.readFileSync(file, 'utf8');
   const { window } = dom;
   const $ = s => window.document.querySelector(s);
   const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  /* 自检：桩必须把跨 realm 的 signal 换成原生的。
+     观测点刻意选在「真正到达 Node fetch 的那个 signal」，这样在 Node 22 上也能锁住这条回归
+     —— 只靠行为差异的话，这个坑只有 Node >=24 会红，而 CI 恰好只跑 Node 22，
+       这正是它能潜伏至今的原因。
+
+     ⚠️ 两个细节必须守住，否则这条断言会退化成「空断言」（比没有断言更危险）：
+     ① Node 的 `globalThis.fetch` 是**惰性访问器**，`globalThis.fetch = fn` 在 sloppy 模式下
+        **静默失败**（不抛错、也不生效）。挂探针必须用 `Object.defineProperty`。
+        这条断言的第一版就是这么写错的：探针从没被调用，它却一路绿灯。
+     ② 还要显式断言「确实观测到了**我们这一次**调用」（called），并且只认打标记的那一次请求：
+        页面并发的请求会把「最后一次调用」覆盖掉，第二版就是栽在这个上。
+        否则将来桩改成不经过全局 fetch 时，这条断言又会悄悄退化成一个永远为真的检查。 */
+  await (async () => {
+    const desc = Object.getOwnPropertyDescriptor(globalThis, 'fetch');
+    const gfetch = globalThis.fetch;
+    /* 只认「我们这一次」的请求 —— 用查询串打标记。
+       用「最后一次调用」当观测值的写法会空转：页面自己启动时并发发出的请求不带 signal，
+       它们会在 await 期间把观测值覆盖成 undefined（这条自检的第二个版本就是这么失效的：
+       called=true、seen 却是 undefined，于是它又一次一路绿灯）。 */
+    const MARK = '/api/health?selfcheck=1';
+    let seen, called = false;
+    Object.defineProperty(globalThis, 'fetch', {
+      configurable: true, writable: true,
+      value: (u, o) => {
+        if (String(u).indexOf(MARK) !== -1) { called = true; seen = o && o.signal; }
+        return gfetch(u, o);
+      }
+    });
+    try {
+      await window.fetch(BASE + MARK, { signal: new window.AbortController().signal });
+    } catch (e) {
+      log('❌ fetch 桩自检请求失败: ' + (e && e.message));
+      process.exit(1);
+    } finally {
+      Object.defineProperty(globalThis, 'fetch', desc);
+    }
+    if (!called) {
+      log('❌ 自检没观测到任何 fetch 调用 —— 这条断言形同虚设，先修好它再谈通过');
+      process.exit(1);
+    }
+    if (seen && !(seen instanceof AbortSignal)) {
+      log('❌ fetch 桩把跨 realm 的 AbortSignal 透传给了 Node（Node >=24 会抛错，页面会静默降级成离线态）');
+      process.exit(1);
+    }
+  })();
   await wait(1500);
 
   const app = window.__app;
