@@ -115,7 +115,7 @@ Windows 双击 `server/start.bat` 即可（自动开浏览器）。
 
 | 文件 | 是什么 |
 |---|---|
-| `平台原型/index.html` | **可点击平台原型**，单文件 **535,804 bytes（约 523KB）**，24 个页面，双击即开（探测到本机后端会自动切到在线） |
+| `平台原型/index.html` | **可点击平台原型**，单文件 **536,491 bytes（约 524KB）**，24 个页面，双击即开（探测到本机后端会自动切到在线） |
 | `server/` | **真实后端**：Node 原生 HTTP + SQLite + Agent 引擎，零依赖；**16 个模块按 L0–L5 分层** |
 | `shared/` | **前后端共用的单一数据源**：`req-lib.js`（职能族词库）/ `override-codes.js`（推翻原因枚举）/ `score-why.js`（打分归因与系数阶梯）。只改这里，离线端与后端同时生效 |
 | `.workbuddy/settings.json` | **项目级 hook**：SessionStart → `tools/dev-up.sh`，每次打开项目把后端幂等拉起 |
@@ -333,7 +333,7 @@ node test_live.js                                    # 真后端：24 页渲染 
 
 3 例分歧全部同向（AI 过宽），且都是**故意埋的边界探针**：前端技术负责人（`JavaScript` 含「Java」字样被误命中）、资深算法工程师（业务/加分标签堆叠抬高分数）、资深销售（沟通类标签全中但无交付经验）。这三条直接对应 `override_code` 枚举里的 `keyword_fuzzy` / `biz_overrated`——**评测不只是打分，它给出了改进清单**。
 
-**打分口径：关键词必须跟着岗位走**（词库在 `shared/req-lib.js`，版本号 `REQ_LIB_VER` 在 `server/engine.js`，当前 **14**）
+**打分口径：关键词必须跟着岗位走**（词库在 `shared/req-lib.js`，版本号 `REQ_LIB_VER` 在 `server/engine.js`，当前 **15**）
 
 原型里有个更隐蔽的同类问题：`scoreResume` 曾**写死一份 Java 技术词表**（java/spring/kafka/mysql…），岗位要求只拿来判学历与年限两个闸门。于是任何非 Java 岗位都必然技能匹配 0/40 —— 把一份正文写着 `LLM`、`RAG`、`Agent` 的 AI 产品经理简历，拿去评「了解LLM RAG」的岗位，得到 **16 分 / 不合适**。已改为**关键词一律从岗位硬性要求抽**，四个维度的映射口径与后端 `scoreOne` 对齐，界面并把抽到的关键词显示出来（分数可解释）。
 

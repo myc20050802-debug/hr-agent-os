@@ -46,7 +46,7 @@ const T = 'T-001';
    为『…者优先』句式」（见 shared/req-lib.js 第八节）。口经变了，老 JD 必须重算 ——
    否则库里会同时流通「懂点技术能和工程对话」与「了解基础技术、能与研发、工程团队
    顺畅沟通者优先」两代表述，看起来像没改。 */
-const REQ_LIB_VER = 14;
+const REQ_LIB_VER = 15;
 const now = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 19).replace('T', ' ');
 
 /* ---------- 工具函数 ---------- */
@@ -256,7 +256,14 @@ async function runScreening(db, { jobId = 'J-118', initiatorId = 'U-001' } = {})
 
 /* ---------- 打分：跨行业通用（关键词来自岗位，不再写死 Java） ---------- */
 const norm = s => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '');
-/* 简历标签 与 岗位关键词 的匹配：包含关系 + 前 4 字软匹配（应对「Spring Cloud / Spring Boot」这类近似词） */
+/* 简历标签 与 岗位关键词 的匹配：包含关系 + 共享词头软匹配
+   （应对「Spring Cloud / Spring Boot」「高并发 / 高并发、大流量系统实战经验」这类措辞差异） */
+const RE_HAN = /[\u4e00-\u9fa5]/;
+/* 软匹配所需的最短共享词头长度。含中文时 4 —— 中文没有词边界，短语可以自由追加，
+   4 个字已经是有效证据；纯拉丁时 6 —— 约一个完整词干（spring*）。
+   纯拉丁用 4 位太短：JavaScript 与 Java、reactive 与 React、nodejs 与 Node
+   都会共享前 4 位，却是不同的技术（v15 修 G-J09 探针误判时定的口径）。 */
+const softHeadLen = (a, b) => (RE_HAN.test(a) || RE_HAN.test(b) ? 4 : 6);
 function kwHit(list, kws) {
   const out = [];
   for (const s of list) {
@@ -265,11 +272,12 @@ function kwHit(list, kws) {
     if (kws.some(k => {
       const b = norm(k);
       if (!b) return false;
-      /* 配对判定统一走 ReqLib.kwContains（短英文词要求词边界）：
-         a ⊂ b 或 b ⊂ a 任一成立即算命中，再加「前 4 字相同」容忍措辞差异
-         （如「高并发」与「高并发、大流量系统实战经验」）。 */
-      return ReqLib.kwContains(a, b) || ReqLib.kwContains(b, a)
-        || (a.length >= 4 && b.length >= 4 && a.slice(0, 4) === b.slice(0, 4));
+      /* ① 包含关系统一走 ReqLib.kwContains（纯拉丁词要求词边界）：
+         a ⊂ b 或 b ⊂ a 任一成立即算命中。 */
+      if (ReqLib.kwContains(a, b) || ReqLib.kwContains(b, a)) return true;
+      /* ② 共享词头软匹配：只在词头足够长时才算同一个词族 */
+      const h = softHeadLen(a, b);
+      return a.length >= h && b.length >= h && a.slice(0, h) === b.slice(0, h);
     })) out.push(s);
   }
   return out;

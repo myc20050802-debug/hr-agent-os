@@ -186,6 +186,33 @@ function runGoldenSet() {
     bad.map(x => x.id + ':' + x.label + '→' + x.ai).join('、'));
   eq('硬性门槛拦截例数符合预期（3 例：年限 ×2 / 学历 ×1）', metrics.gateBlocked, 3);
 
+  /* v15 · 匹配层口径：跨岗近似词不得靠「前 4 字同头」混进命中。
+     G-J09（前端负责人）原先 1/6 命中完全是 JavaScript 借了 Java 的前 4 个字。
+     断言写成「与完全不沾边的基准相等 / 与真命中的基准相等」，不写死系数阶梯的数值 ——
+     阶梯将来调档时这几条不该跟着红。既锁「不许误命中」，也锁「不许过度收紧」：
+     把同词族措辞差异一起杀掉会让匹配层从过宽翻到过窄，那是另一种缺陷。 */
+  const skillScoreOf = (skills, kws) => {
+    const cand = { id: 'T', name: 'T', years_exp: 3, edu_rank: 2,
+      skills: JSON.stringify(skills), business_tags: '[]', plus_tags: '[]', parse_ok: 1 };
+    const job = { id: 'T', title: 'T', industry: '互联网', must_years: 3, must_edu_rank: 2,
+      keywords: JSON.stringify(kws), must_have: '[]', nice_have: '[]', rubric: '{}' };
+    const terms = engine.evaluateCandidate(cand, job).why.terms;
+    return (terms.find(t => t.dim === '技能匹配') || {}).score;
+  };
+  const S_HIT = skillScoreOf(['Java'], ['Java']);     /* 真命中：技能维度拿到的分 */
+  const S_MISS = skillScoreOf(['Python'], ['Java']);  /* 完全不沾边：只能拿底分 */
+  section('A2 · 岗位关键词匹配口径（v15）');
+  ok('前置校验：真命中的技能分必须高于不沾边（否则下面几条失去判别力）',
+    S_HIT > S_MISS, S_HIT + ' vs ' + S_MISS);
+  eq('JavaScript 不再借「前 4 字同头」拿到 Java 的技能分', skillScoreOf(['JavaScript'], ['Java']), S_MISS);
+  eq('React 不再借「前 4 字同头」拿到 Reactive 的技能分', skillScoreOf(['React'], ['Reactive']), S_MISS);
+  eq('community 不再命中 Unity（左边界）', skillScoreOf(['community'], ['Unity']), S_MISS);
+  eq('同词族拉丁前缀仍算命中（Spring Cloud ↔ Spring Boot）', skillScoreOf(['Spring Cloud'], ['Spring Boot']), S_HIT);
+  eq('英文复数仍算命中（agents → agent）', skillScoreOf(['agents'], ['agent']), S_HIT);
+  eq('粘连写法仍算命中（nodejs → node）', skillScoreOf(['nodejs'], ['node']), S_HIT);
+  eq('中文短语差异仍算命中（「高并发」↔「高并发、大流量…」）',
+    skillScoreOf(['高并发、大流量系统实战经验'], ['高并发']), S_HIT);
+
   /* 把评测结果落盘，供 README / 文档引用（同一份数字，不手抄） */
   const report = {
     generatedAt: new Date(Date.now() + 8 * 3600e3).toISOString().replace('T', ' ').slice(0, 19) + ' (UTC+8)',

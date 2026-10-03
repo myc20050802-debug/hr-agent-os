@@ -528,22 +528,30 @@ textarea.i{resize:vertical;line-height:1.6}
      为什么不能直接用 indexOf：抽词补了「拉丁技术名词兜底」之后，关键词里会出现
      AI / Go / HR 这类两字母词。朴素子串匹配会误命中 —— 'email' 含 'ai'、
      'Django' 含 'go'、'share' 含 'hr'。
-     规则：纯拉丁且长度 ≤3 的关键词，要求左右都不是字母/数字（即词边界）；
-     更长的词与中文词仍走子串匹配（中文无分词歧义，要求边界反而会漏）。
+     但只给 ≤3 字母词加边界是不够的（v15 修）：长词同样是别的词的前缀或后缀 ——
+     JavaScript 命中 Java、community 命中 Unity、archive 命中 Hive、Preact 命中 React。
+     所以**纯拉丁关键词一律走边界判定**；中文词与含空格/中文的短语仍走子串匹配
+     （中文无分词歧义，要求边界反而会漏）。
+       左边界：前一个字符不得是字母/数字 —— 挡掉「关键字是某个更长单词的后半截」。
+       右边界：后一个字符不得是字母，但**允许数字**（MySQL8.0 / C++11 / Unity3D）
+               与屈折/粘连后缀 s|es|ed|ing|js（agents / prompting / nodejs）。
+       后缀只对 ≥4 字母的词放行 —— 2~3 字母词放行 's' 会让 goes 命中 Go。
 
      边界判定**必须用 normSoft（分隔符换成空格）而不是 norm（分隔符直接删掉）**：
      norm 会把「Agent、RAG、微调」压成「agentrag微调」，'rag' 左边成了 't'，
      于是「了解 LLM、RAG」这种最常见的写法反而判不出 RAG。
      换成空格后是「agent rag 微调」，'rag' 左右都是空格 → 正常命中。 */
   const RE_LATIN_KW = /^[a-z0-9+#.]+$/;
+  const LATIN_TAIL = '(?:s|es|ed|ing|js)?';
   const normSoft = s => String(s == null ? '' : s).toLowerCase().replace(/[\s·\-_/（）()：:、,，]/g, ' ');
   function kwContains(hay, needle) {
     const k = norm(needle);
     if (!k) return false;
-    if (RE_LATIN_KW.test(k) && k.length <= 3) {
+    if (RE_LATIN_KW.test(k)) {
       const t = normSoft(hay);
-      const re = new RegExp('(^|[^a-z0-9])' + k.replace(/[.+#]/g, '\\$&') + '($|[^a-z0-9])');
-      return re.test(t);
+      const esc = k.replace(/[.+#]/g, '\\$&');
+      const tail = k.length >= 4 ? LATIN_TAIL : '';
+      return new RegExp('(^|[^a-z0-9])' + esc + '(?=' + tail + '($|[^a-z]))').test(t);
     }
     return norm(hay).indexOf(k) >= 0;
   }
@@ -7312,7 +7320,7 @@ document.getElementById('collapseBtn').addEventListener('click', function () {
   this.setAttribute('aria-expanded', app.classList.contains('collapsed') ? 'false' : 'true');
 });
 // 原型说明：检测到 server/ 启动后自动切换为真实后端（SQLite + Agent 引擎），否则使用内置演示数据。
-console.log('%cHR-Agent OS 原型', 'color:#7aa9ff;font-weight:700', '构建时间 2026-10-02 10:01 · 无后端依赖，双击可用');
+console.log('%cHR-Agent OS 原型', 'color:#7aa9ff;font-weight:700', '构建时间 2026-10-03 16:28 · 无后端依赖，双击可用');
 </script>
 </body>
 </html>

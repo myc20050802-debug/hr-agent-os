@@ -498,14 +498,21 @@ JSDOM.fromFile(file, { runScripts: 'dangerously', pretendToBeVisual: true, virtu
         .dims.find(d => d.dim === '稳定性');
       if (/2018/.test(years.ev)) throw new Error('把毕业年份当成了工作年限：' + years.ev);
 
-      /* ⑦ 短英文关键词要词边界：email 不能命中 AI、Django 不能命中 Go */
+      /* ⑦ 纯拉丁关键词一律要词边界：短词 email↛AI / Django↛Go；
+         长词同理 JavaScript↛Java / community↛Unity（v15：此前长词走裸子串匹配） */
       const RL = window.ReqLib;
       if (!RL || typeof RL.kwContains !== 'function') throw new Error('缺少 ReqLib.kwContains');
       if (RL.kwContains('email 邮箱', 'AI')) throw new Error('短英文关键词边界失效：email 命中了 AI');
       if (RL.kwContains('Django 后端开发', 'Go')) throw new Error('短英文关键词边界失效：Django 命中了 Go');
-      /* 反过来：真实命中不能被边界规则误杀（顿号分隔是常见写法） */
+      if (RL.kwContains('JavaScript 开发', 'Java')) throw new Error('长英文关键词边界失效：JavaScript 命中了 Java');
+      if (RL.kwContains('community 社区', 'Unity')) throw new Error('左边界失效：community 命中了 Unity');
+      if (RL.kwContains('archive 归档', 'Hive')) throw new Error('左边界失效：archive 命中了 Hive');
+      /* 反过来：真实命中不能被边界规则误杀（顿号分隔、复数、粘连、版本后缀都算命中） */
       if (!RL.kwContains('了解 LLM、RAG、Agent', 'RAG')) throw new Error('顿号分隔的 RAG 被判成无边界，漏命中');
       if (!RL.kwContains('熟练 Go 语言', 'Go')) throw new Error('独立的 Go 被判成无边界，漏命中');
+      if (!RL.kwContains('nodejs 服务', 'Node')) throw new Error('粘连写法被误杀：nodejs 未命中 Node');
+      if (!RL.kwContains('AI Agents 编排', 'Agent')) throw new Error('英文复数被误杀：Agents 未命中 Agent');
+      if (!RL.kwContains('C++11 新特性', 'C++')) throw new Error('版本号后缀被误杀：C++11 未命中 C++');
     });
 
     /* 打分归因：把「解释不许和分数打架」这条锁住。
