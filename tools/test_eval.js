@@ -75,6 +75,57 @@ function runGoldenSet() {
   const G = JSON.parse(fs.readFileSync(file, 'utf8'));
   const cases = G.cases;
 
+  /* ---- A5 · 黄金集口径与配额（rubric v1，源：docs/20） ----
+     口径文档是 docs/20；这里只做**能机器校验的部分**：结构完整性 / 枚举合法性 /
+     引用有效性 / 分布配额。
+     为什么必须有这一段：扩样到 60+ 例时，最大的风险不是「标错一例」，而是
+     「标歪了分布」—— 60 例里 50 个 no，指标会好看但毫无判别力。配额底线写在这里，
+     扩样时它盯着你别把分布标歪。
+     ⚠ 为什么放在**回放之前**：如果 jobId 指向不存在的岗位，下面的回放会直接
+     `G.jobs[c.jobId].id` 抛异常崩掉 —— 断言根本没机会跑（这正是
+     「看起来在检查、其实观测不到」）。所以校验必须先于消费：结构不过 → 早退不回放。
+     诚实说明：difficulty 是新增的分层轴，现有 30 例**尚未回填**，故只校验
+     「已声明的取值合法」并打印覆盖率，不硬性要求 30 例全具备（流程规则在 docs/20，
+     不做假断言）。 */
+  section('A5 · 黄金集口径与配额（rubric v1，源：docs/20）');
+  ok('rubricVersion 已声明（口径已冻结）',
+    Number.isInteger(G.rubricVersion) && G.rubricVersion >= 1, String(G.rubricVersion));
+  ok('rubricDoc 指向人类可读快照且文件存在',
+    typeof G.rubricDoc === 'string' && fs.existsSync(path.join(ROOT, G.rubricDoc)), String(G.rubricDoc));
+  eq('difficultyLegend 三层齐全', Object.keys(G.difficultyLegend || {}).sort().join(','), 'borderline,clear,trap');
+  eq('gradeThresholds 三档齐全', Object.keys(G.gradeThresholds || {}).sort().join(','), 'no,ok,strong');
+  const shapeBad = cases.filter(c => !(c.id && c.jobId && c.label && typeof c.labelNote === 'string' && c.labelNote.length > 3));
+  ok('每例都带 id / jobId / label / labelNote', shapeBad.length === 0, shapeBad.map(c => c.id || '?').join(','));
+  const labelBad = cases.filter(c => !['strong', 'ok', 'no'].includes(c.label));
+  ok('label 取值合法（strong / ok / no）', labelBad.length === 0, labelBad.map(c => c.id + ':' + c.label).join(','));
+  eq('case id 唯一（无重号）', new Set(cases.map(c => c.id)).size, cases.length);
+  const refBad = cases.filter(c => !G.jobs[c.jobId]);
+  ok('jobId 无悬空引用（都在 jobs 里）', refBad.length === 0, refBad.map(c => c.id + '→' + c.jobId).join(','));
+  ok('声明了 difficulty 的案例取值合法',
+    cases.filter(c => c.difficulty).every(c => Object.keys(G.difficultyLegend).includes(c.difficulty)),
+    cases.filter(c => c.difficulty && !Object.keys(G.difficultyLegend).includes(c.difficulty)).map(c => c.id).join(','));
+  /* ---- 结构错误 ⇒ 早退：回放前必须先有合法的集合 ---- */
+  if (shapeBad.length || labelBad.length || refBad.length) {
+    console.log('\n  ⚠ 黄金集结构有误（上列 ✗），跳过回放 —— 先修 golden_set.json 再看指标。');
+    return null;
+  }
+  const byJob = {};
+  cases.forEach(c => { byJob[c.jobId] = (byJob[c.jobId] || 0) + 1; });
+  ok('每岗位例数 ≥ 10（扩样后目标 20）',
+    Object.keys(G.jobs).every(j => (byJob[j] || 0) >= 10),
+    Object.keys(G.jobs).map(j => j + ':' + (byJob[j] || 0)).join(' '));
+  ok('每岗位至少 1 例陷阱探针（probe）',
+    Object.keys(G.jobs).every(j => cases.some(c => c.jobId === j && c.probe)),
+    Object.keys(G.jobs).map(j => j + ':' + cases.filter(c => c.jobId === j && c.probe).length).join(' '));
+  const shareOf = k => cases.filter(c => c.label === k).length / cases.length;
+  ok('三档占比均在 [20%, 50%]（分布不极端，指标才有判别力）',
+    ['strong', 'ok', 'no'].every(k => shareOf(k) >= 0.2 && shareOf(k) <= 0.5),
+    ['strong', 'ok', 'no'].map(k => k + ':' + pct(shareOf(k))).join(' '));
+  /* 配额进度（信息性，非致命）：difficulty 覆盖 + 距 60 例目标的差距 */
+  console.log('  配额进度（信息性）：difficulty 已回填 ' + cases.filter(c => c.difficulty).length + '/' + cases.length
+    + ' · 距 60 例目标还需 ' + Math.max(0, 60 - cases.length) + ' 例'
+    + ' · 工作表 tools/golden/labeling_worksheet.csv');
+
   /* 关键：把黄金集还原成**与数据库行同样的形状**（数组 → JSON 字符串），
      否则 engine 里的 J()（JSON.parse）拿不到数组，评测会因为喂错输入而失真。 */
   const rows = cases.map(c => {
@@ -481,6 +532,8 @@ async function runApiSuite() {
 
   /* --write-baseline 只跑黄金集就退出：B 需要起后端，与本开关无关 */
   if (WRITE_BASELINE) {
+    /* 结构有误时 runGoldenSet 早退返回 null —— 绝不拿一个坏集合去覆盖基线 */
+    if (!m) { console.log('\n黄金集结构有误，已跳过写基线（先修 golden_set.json）'); process.exit(1); }
     console.log('\n基线刷新完成：一致率 ' + pct(m.exactAgreement) + ' / 漏筛 ' + pct(m.missRate)
       + ' / 误筛 ' + pct(m.falsePassRate));
     console.log('下一步：node tools/check_docs.js  （确认文档里的指标行跟着更新）');

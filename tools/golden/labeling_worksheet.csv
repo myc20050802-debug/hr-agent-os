@@ -1,0 +1,34 @@
+﻿case_id,job_id,difficulty,skills,business_tags,plus_tags,years_exp,edu_rank,label,label_note,probe,labeled_at,rubric_version
+G-J01,G-JAVA,clear,Java|Spring Boot|MySQL|Redis|微服务|高并发,电商|订单系统|支付|高并发,开源贡献|技术博客|985,5,2,strong,六项硬技能全覆盖 + 四段对口业务 + 满分加分 无明显短板,,2026-09-24,1
+G-J04,G-JAVA,borderline,Java|Spring Boot|MySQL,电商|后台系统,本科双一流,3,2,ok,刚够年限 技能覆盖基础项 缺分布式经验 可作备选,,2026-09-24,1
+G-J09,G-JAVA,trap,JavaScript|TypeScript|Vue|React|Node.js,前端|架构设计|C端|性能优化,开源项目|技术分享|专利,8,2,no,前端技术负责人 JavaScript 含 Java 字样易误命中 真实背景与后端岗不符,true,2026-09-24,1
+G-J11,G-JAVA,,,,,,,,,,,1
+G-J12,G-JAVA,,,,,,,,,,,1
+G-J13,G-JAVA,,,,,,,,,,,1
+G-J14,G-JAVA,,,,,,,,,,,1
+G-J15,G-JAVA,,,,,,,,,,,1
+G-J16,G-JAVA,,,,,,,,,,,1
+G-J17,G-JAVA,,,,,,,,,,,1
+G-J18,G-JAVA,,,,,,,,,,,1
+G-J19,G-JAVA,,,,,,,,,,,1
+G-J20,G-JAVA,,,,,,,,,,,1
+G-P11,G-PM,,,,,,,,,,,1
+G-P12,G-PM,,,,,,,,,,,1
+G-P13,G-PM,,,,,,,,,,,1
+G-P14,G-PM,,,,,,,,,,,1
+G-P15,G-PM,,,,,,,,,,,1
+G-P16,G-PM,,,,,,,,,,,1
+G-P17,G-PM,,,,,,,,,,,1
+G-P18,G-PM,,,,,,,,,,,1
+G-P19,G-PM,,,,,,,,,,,1
+G-P20,G-PM,,,,,,,,,,,1
+G-M11,G-MTP,,,,,,,,,,,1
+G-M12,G-MTP,,,,,,,,,,,1
+G-M13,G-MTP,,,,,,,,,,,1
+G-M14,G-MTP,,,,,,,,,,,1
+G-M15,G-MTP,,,,,,,,,,,1
+G-M16,G-MTP,,,,,,,,,,,1
+G-M17,G-MTP,,,,,,,,,,,1
+G-M18,G-MTP,,,,,,,,,,,1
+G-M19,G-MTP,,,,,,,,,,,1
+G-M20,G-MTP,,,,,,,,,,,1

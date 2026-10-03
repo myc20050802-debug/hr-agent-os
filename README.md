@@ -128,7 +128,7 @@ Windows 双击 `server/start.bat` 即可（自动开浏览器）。
 | `tools/preflight.js` | **上线前自检**（`npm run preflight`，只读）：口令强度 / `COOKIE_SECURE` 与访问协议是否配对 / `ALLOW_RESET` / 库路径 / 备份新鲜度 —— 退出码 0 才可以把链接发出去 |
 | `tools/backup.js` | **在线备份与恢复**（`npm run backup`）：SQLite `VACUUM INTO` 只读快照，不停服、不阻塞写者；带 `integrity_check`、SHA-256 清单、保留策略，恢复前强制停服 |
 | `tools/test_ops.js` | **运维面回归**（48 项）：静态资源 gzip/ETag/源码隔离/目录穿越、CORS 预检头对齐、重置开关、口令治理、备份恢复与保留策略 |
-| `docs/` | **21 篇源文档**（PRD / 架构 / 项目计划 / 复盘 / 上线手册 / 评测 / 口径修复说明 …）。其中 [`docs/19`](docs/19_从0到1全流程与风险台账.md) 是**全流程与风险台账**（9 阶段 + 39 条风险 + GitHub 作品化指南）；完整清单：`python tools/build_docs_html.py --list` |
+| `docs/` | **22 篇源文档**（PRD / 架构 / 项目计划 / 复盘 / 上线手册 / 评测 / 标注口径 …）。其中 [`docs/19`](docs/19_从0到1全流程与风险台账.md) 是**全流程与风险台账**（9 阶段 + 39 条风险 + GitHub 作品化指南），[`docs/20`](docs/20_黄金集标注口径与扩样方案.md) 是**黄金集标注口径 SOP**（rubric v1 / 7 个决策 / 60+ 例扩样方案）；完整清单：`python tools/build_docs_html.py --list` |
 | `docs/01_产品需求草稿PRD.md` | 七部分 PRD 草稿（定位 / 架构 / 模块 / 底座 / 合规 / MVP / 菜单） |
 | `docs/02_搭建实操教程.md` | 8 阶段落地教程（含建表 SQL、工具注册中心、闸门代码） |
 | `docs/03_本地全栈版运行说明.md` | 眼前这套代码怎么启动、怎么验证、怎么接模型、已知边界 |

@@ -64,6 +64,10 @@ function realFacts() {
 
   const htmlBytes = fs.statSync(path.join(ROOT, '平台原型/index.html')).size;
 
+  /* docs/ 顶层的源文档数（README 的「N 篇源文档」锚点用）。
+     只数顶层 .md —— docs/html|archive|样例 下是生成物，不算「源文档」。 */
+  const docMd = fs.readdirSync(path.join(ROOT, 'docs')).filter(n => n.endsWith('.md')).length;
+
   /* 导航项数 = 页面数 + 目录节点数。
      目录节点是「招聘 Agent」那个可折叠目录头：它自己是 .navitem 但没有对应 PAGES
      （子页面才对应）。结构由 tools/test_nav.js 的「flatNav 与 PAGES 一一对应」守住。
@@ -109,6 +113,7 @@ function realFacts() {
     navItems: pages.length + NAV_CATALOG_NODES,
     htmlBytes,
     htmlKb: Math.round(htmlBytes / 1024),
+    docMd,
     apiCount: api.length,
     suites,
     schemaVer,
@@ -240,6 +245,11 @@ const ANCHORS = [
     why: '误筛率的口径解释句（曾与上表自相矛盾：表里 8.3%、正文仍写 25%）',
     must: f => `不回避 **${pctOf(f.evalM.falsePassRate)}** 的误筛率`,
   },
+  {
+    file: 'README.md', count: 1,
+    why: 'docs/ 顶层的源文档数（一直靠手数；加 docs/20 时确实漂过 21→22）',
+    must: f => `**${f.docMd} 篇源文档**`,
+  },
 ];
 
 /* ===========================================================
@@ -270,6 +280,7 @@ function staleStrings(f) {
   return [
     { s: (f.pages - 1) + ' 页', note: '旧页面数（现为 ' + f.pages + ' 页）' },
     { s: '25% 的误筛', note: '旧误筛率（现为 ' + pctOf(f.evalM.falsePassRate) + '）' },
+    { s: (f.docMd - 1) + ' 篇源文档', note: '旧源文档数（现为 ' + f.docMd + ' 篇）' },
   ];
 }
 
