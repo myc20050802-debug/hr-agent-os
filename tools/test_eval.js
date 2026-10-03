@@ -178,40 +178,108 @@ function runGoldenSet() {
   eq('漏筛率 = 0（没有任何「该通过」被 AI 判 no）', metrics.missRate, 0);
   ok('误筛率 ≤ 30%（错误方向都在安全侧：多进一轮人工，而非漏掉人）',
     metrics.falsePassRate <= 0.3, pct(metrics.falsePassRate));
-  /* 探针命中：三个岗位各 1 例「标签命中但背景不对口」，应当全部落在误筛里 */
+  /* 探针：三个岗位各 1 例「背景不对口」，人工都标 no。
+     v16 前 3 例全部被抬进 ok；加了「技能零命中」相关性门槛后，
+     G-J09（前端投 Java，技能 0/6）/ G-P09（算法投产品，技能 0/6）被判 no，
+     只剩 G-M09（销售投实施，技能 2/6 —— 客户沟通、培训确实对得上）。
+     相关性门槛按设计不触发 M09，它靠业务维度拿满 30 分（保险/直销/地推/团队管理 4 条）
+     停在 ok。**这是已知简化**：业务维度数的是「简历声明的业务语境条数」，
+     不与该岗位的业务做匹配（见 engine.js:scoreOne 的 bizN）。
+     把「剩下的那一个分歧」钉死，防止它悄悄变成更多 —— 也防止有人以为已经全对。 */
   const probeBad = bad.filter(x => x.probe);
-  eq('边界探针全部被识别为分歧（3 例）', probeBad.length, 3);
+  eq('探针分歧从 3 例降至 1 例', probeBad.length, 1);
+  eq('仅存的分歧是 G-M09（业务标签全在销售域，业务维度仍给满分 → 已知简化）',
+    probeBad.length ? probeBad[0].id : '(无)', 'G-M09');
   ok('所有分歧方向一致：均为 AI 过宽（no→ok），没有 AI 过严',
     bad.every(x => x.label === 'no' && (x.ai === 'strong' || x.ai === 'ok')),
     bad.map(x => x.id + ':' + x.label + '→' + x.ai).join('、'));
-  eq('硬性门槛拦截例数符合预期（3 例：年限 ×2 / 学历 ×1）', metrics.gateBlocked, 3);
+  /* 门槛构成：只断言总数太脆（换了哪一类构成看不出来）。分开三条钉住 ——
+     技能零命中 6 例里只有 2 例（G-J09/G-P09）原先判错，另外 4 例本来就是 no，
+     这道闸只是把它们的分数从「底分堆出来的 43~59」改成诚实的 0。 */
+  const gateByKind = { 年限: 0, 学历: 0, 技能: 0 };
+  out.filter(x => x.gate).forEach(x => {
+    const r = x.gateReason || '';
+    if (/年限/.test(r)) gateByKind.年限++;
+    else if (/学历/.test(r)) gateByKind.学历++;
+    else if (/未命中/.test(r)) gateByKind.技能++;
+  });
+  eq('门槛拦截例数 = 9（年限 ×2 / 学历 ×1 / 技能零命中 ×6）', metrics.gateBlocked, 9);
+  eq('门槛构成：年限 ×2', gateByKind.年限, 2);
+  eq('门槛构成：学历 ×1', gateByKind.学历, 1);
+  eq('门槛构成：技能零命中 ×6', gateByKind.技能, 6);
 
   /* v15 · 匹配层口径：跨岗近似词不得靠「前 4 字同头」混进命中。
      G-J09（前端负责人）原先 1/6 命中完全是 JavaScript 借了 Java 的前 4 个字。
      断言写成「与完全不沾边的基准相等 / 与真命中的基准相等」，不写死系数阶梯的数值 ——
      阶梯将来调档时这几条不该跟着红。既锁「不许误命中」，也锁「不许过度收紧」：
      把同词族措辞差异一起杀掉会让匹配层从过宽翻到过窄，那是另一种缺陷。 */
-  const skillScoreOf = (skills, kws) => {
+  const evalFor = (skills, kws) => {
     const cand = { id: 'T', name: 'T', years_exp: 3, edu_rank: 2,
       skills: JSON.stringify(skills), business_tags: '[]', plus_tags: '[]', parse_ok: 1 };
     const job = { id: 'T', title: 'T', industry: '互联网', must_years: 3, must_edu_rank: 2,
       keywords: JSON.stringify(kws), must_have: '[]', nice_have: '[]', rubric: '{}' };
-    const terms = engine.evaluateCandidate(cand, job).why.terms;
-    return (terms.find(t => t.dim === '技能匹配') || {}).score;
+    return engine.evaluateCandidate(cand, job);
   };
-  const S_HIT = skillScoreOf(['Java'], ['Java']);     /* 真命中：技能维度拿到的分 */
-  const S_MISS = skillScoreOf(['Python'], ['Java']);  /* 完全不沾边：只能拿底分 */
+  const skillScoreOf = (skills, kws) => {
+    const r = evalFor(skills, kws);
+    /* v16 起「零命中」会被相关性门槛拦下（why 为 null）。A2 要测的是**匹配层**，
+       所以每条都额外带一个「必命中锚点」把门槛让开 —— 否则断言会因为「出了门槛」
+       而不是因为「匹配层判对了」而变绿，那就成了一条测不到东西的断言。 */
+    if (!r.why) return -1;
+    return ((r.why.terms || []).find(t => t.dim === '技能匹配') || {}).score;
+  };
+  const ANCHOR = 'MySQL';                       /* 必命中锚点：只为让开 v16 相关性门槛 */
+  const sS = (subject, target) => skillScoreOf([subject, ANCHOR], [target, ANCHOR]);
+  const S_HIT = sS('Java', 'Java');              /* 与目标真命中：2/2 */
+  const S_MISS = sS('Python', 'Java');           /* 与目标完全不沾边：1/2 */
   section('A2 · 岗位关键词匹配口径（v15）');
   ok('前置校验：真命中的技能分必须高于不沾边（否则下面几条失去判别力）',
     S_HIT > S_MISS, S_HIT + ' vs ' + S_MISS);
-  eq('JavaScript 不再借「前 4 字同头」拿到 Java 的技能分', skillScoreOf(['JavaScript'], ['Java']), S_MISS);
-  eq('React 不再借「前 4 字同头」拿到 Reactive 的技能分', skillScoreOf(['React'], ['Reactive']), S_MISS);
-  eq('community 不再命中 Unity（左边界）', skillScoreOf(['community'], ['Unity']), S_MISS);
-  eq('同词族拉丁前缀仍算命中（Spring Cloud ↔ Spring Boot）', skillScoreOf(['Spring Cloud'], ['Spring Boot']), S_HIT);
-  eq('英文复数仍算命中（agents → agent）', skillScoreOf(['agents'], ['agent']), S_HIT);
-  eq('粘连写法仍算命中（nodejs → node）', skillScoreOf(['nodejs'], ['node']), S_HIT);
+  eq('JavaScript 不再借「前 4 字同头」拿到 Java 的技能分', sS('JavaScript', 'Java'), S_MISS);
+  eq('React 不再借「前 4 字同头」拿到 Reactive 的技能分', sS('React', 'Reactive'), S_MISS);
+  eq('community 不再命中 Unity（左边界）', sS('community', 'Unity'), S_MISS);
+  eq('同词族拉丁前缀仍算命中（Spring Cloud ↔ Spring Boot）', sS('Spring Cloud', 'Spring Boot'), S_HIT);
+  eq('英文复数仍算命中（agents → agent）', sS('agents', 'agent'), S_HIT);
+  eq('粘连写法仍算命中（nodejs → node）', sS('nodejs', 'node'), S_HIT);
   eq('中文短语差异仍算命中（「高并发」↔「高并发、大流量…」）',
-    skillScoreOf(['高并发、大流量系统实战经验'], ['高并发']), S_HIT);
+    sS('高并发、大流量系统实战经验', '高并发'), S_HIT);
+
+  /* ---- A3 · 相关性门槛（v16） ----
+     这道闸的意义：四维都有底分，一份完全不对口的简历靠「业务 30 + 稳定 15 + 加分 15」
+     就能顶到 70+。底分机制本身没错（四维全触底 50 分仍在 no 档），
+     错的是「技能一个都没命中」这件事没有任何地方表达出来。
+     下面既锁「该拦的要拦」，也锁「不该拦的别拦」—— 后者同样重要：
+     把「岗位没抽出关键词」或「简历没列技能」当成不匹配，会让整批候选人静默出局。 */
+  const gateCand = (skills, extra) => Object.assign({
+    id: 'T', name: 'T', years_exp: 5, edu_rank: 3,
+    skills: JSON.stringify(skills),
+    business_tags: JSON.stringify(['电商', '订单', '支付', '高并发']),
+    plus_tags: JSON.stringify(['开源', '专利', '大厂']), parse_ok: 1 }, extra || {});
+  const JAVA_KWS = ['Java', 'Spring Boot', 'MySQL', 'Redis', '微服务', '高并发'];
+  const gateJob = (kws) => ({ id: 'T', title: '高级 Java 工程师', industry: '互联网',
+    must_years: 3, must_edu_rank: 2, keywords: JSON.stringify(kws || JAVA_KWS),
+    must_have: '[]', nice_have: '[]', rubric: '{}' });
+
+  section('A3 · 相关性门槛（v16）：技能零命中即出局');
+  const gFull = engine.evaluateCandidate(gateCand(JAVA_KWS), gateJob());
+  ok('前置校验：技能全命中时该候选人为强档（说明非技能三维确实足以撑到 ok 以上）',
+    !gFull.gate && gFull.grade === 'strong', gFull.grade + ' / ' + gFull.score);
+  const gZero = engine.evaluateCandidate(gateCand(['JavaScript', 'TypeScript', 'Vue', 'React', 'Node.js']), gateJob());
+  eq('技能零命中 ⇒ 档位判 no（原先靠 业务+稳定+加分 顶进 ok）', gZero.grade, 'no');
+  eq('技能零命中 ⇒ 走相关性门槛（gate = true）', gZero.gate, true);
+  ok('门槛原因写明「一个都未命中」', /未命中/.test(gZero.gateReason || ''), gZero.gateReason || '(空)');
+  ok('被拦下的例子里 reasons 标明维度为「相关性门槛」',
+    (gZero.reasons || []).some(x => x.dim === '相关性门槛'),
+    JSON.stringify((gZero.reasons || []).map(x => x.dim)));
+  ok('被拦下时 why 为 null（不给一个「0 分却有完整归因」的假解释）', gZero.why === null);
+  /* 反向约束：保守边界 */
+  const gOne = engine.evaluateCandidate(gateCand(['Java', 'Android', 'Kotlin']), gateJob());
+  ok('命中 1 项就不触发门槛（宁可多聊一轮，不可误杀）', !gOne.gate && gOne.grade !== 'no',
+    'gate=' + gOne.gate + ' grade=' + gOne.grade + ' score=' + gOne.score);
+  const gNoKw = engine.evaluateCandidate(gateCand(['JavaScript', 'Vue']), gateJob([]));
+  ok('岗位没抽出关键词时门槛不触发（不把「判不了」当成「不匹配」）', !gNoKw.gate, 'gate=' + gNoKw.gate);
+  const gNoSkill = engine.evaluateCandidate(gateCand([]), gateJob());
+  ok('简历没列技能时门槛不触发（不把「没解析出技能」当成「零命中」）', !gNoSkill.gate, 'gate=' + gNoSkill.gate);
 
   /* 把评测结果落盘，供 README / 文档引用（同一份数字，不手抄） */
   const report = {

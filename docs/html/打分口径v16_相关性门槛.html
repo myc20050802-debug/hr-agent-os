@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>打分口径 v16 · 相关性门槛（技能零命中即出局）</title>
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+  --line:#262c39; --line2:#323a4b;
+  --tx:#e7eaf1; --tx2:#a8b1c2; --tx3:#6f7a8d;
+  --ac:#4c8dff; --ac2:#7aa9ff; --grn:#3ddc97; --yel:#f5b942; --red:#ff6b6b; --pur:#a78bfa;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:15px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+header{position:sticky;top:0;z-index:50;background:rgba(13,15,20,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:14px 26px 0}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1.brand{font-size:17px;margin:0;letter-spacing:.3px}
+.sub{color:var(--tx3);font-size:12.5px}
+.searchbox{margin-left:auto;display:flex;align-items:center;gap:8px}
+input#q{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:9px;
+  padding:8px 12px;width:240px;font-size:13px;outline:none}
+input#q:focus{border-color:var(--ac)}
+.hint{font-size:12px;color:var(--tx3)}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx2);
+  padding:9px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac2);border-bottom-color:var(--ac);font-weight:600}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1560px;margin:0 auto}
+aside{position:sticky;top:112px;align-self:start;height:calc(100vh - 112px);overflow-y:auto;
+  padding:22px 14px 60px 26px;border-right:1px solid var(--line)}
+.tocgroup{display:flex;flex-direction:column;gap:1px}
+.toclink{display:block;color:var(--tx2);text-decoration:none;font-size:13px;padding:5px 9px;
+  border-radius:7px;line-height:1.45}
+.toclink:hover{background:var(--panel2);color:var(--tx)}
+.toclink.lvl2{padding-left:20px}
+.toclink.lvl3{padding-left:32px;font-size:12.5px;color:var(--tx3)}
+main{padding:26px 34px 120px;min-width:0}
+.docmeta{font:12px var(--mono);color:var(--tx3);margin-bottom:18px;
+  border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;display:inline-block}
+article h1{font-size:27px;margin:26px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+article h2{font-size:21px;margin:38px 0 14px;padding:9px 0 9px 13px;border-left:3px solid var(--ac);
+  background:linear-gradient(90deg,rgba(76,141,255,.09),transparent);border-radius:0 8px 8px 0}
+article h3{font-size:17px;margin:28px 0 10px;color:var(--ac2)}
+article h4{font-size:15px;margin:20px 0 8px;color:var(--tx2)}
+p{margin:9px 0}
+a{color:var(--ac2)}
+strong{color:#fff;font-weight:650}
+em{color:var(--yel);font-style:normal}
+code{font:12.6px var(--mono);background:var(--panel2);border:1px solid var(--line);
+  padding:1.5px 5px;border-radius:5px;color:#ffd479}
+.codeblock{margin:14px 0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0a0c11}
+.codetop{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);font:11.5px var(--mono);color:var(--tx3)}
+.copybtn{background:var(--panel2);border:1px solid var(--line2);color:var(--tx2);font-size:11.5px;
+  padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.copybtn:hover{color:var(--tx);border-color:var(--ac)}
+pre{margin:0;padding:14px 16px;overflow-x:auto}
+pre code{background:none;border:none;padding:0;color:#cfd8e6;font-size:12.6px;line-height:1.62}
+blockquote{margin:14px 0;padding:13px 16px;background:linear-gradient(90deg,rgba(167,139,250,.10),rgba(167,139,250,.02));
+  border-left:3px solid var(--pur);border-radius:0 10px 10px 0;color:#d9def0}
+blockquote p{margin:4px 0}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+th{background:var(--panel);text-align:left;padding:10px 12px;font-weight:640;color:var(--ac2);
+  border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(76,141,255,.05);color:var(--tx)}
+ul,ol{margin:9px 0;padding-left:24px}
+li{margin:5px 0;color:var(--tx2)}
+li strong{color:var(--tx)}
+hr.sep{border:none;border-top:1px solid var(--line);margin:26px 0}
+mark{background:rgba(245,185,66,.34);color:#fff;border-radius:3px;padding:0 2px}
+.hidden{display:none !important}
+footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-size:12.5px;text-align:center}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}aside{display:none}main{padding:20px 16px 90px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 class="brand">打分口径 v16 · 相关性门槛（技能零命中即出局）</h1>
+    <span class="sub">HR-Agent OS · 5 个候选方案的实测对照 · 为什么改判定链条而不是改业务维度计数</span>
+    <div class="searchbox">
+      <span class="hint" id="hint">全文搜索</span>
+      <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs"><button class="tab active" data-doc="doc0">打分口径 v16 · 相关性门槛（技能零命中即出局）</button></div>
+</header>
+<div class="wrap">
+  <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--打分口径-v16-相关性门槛-技能零命中即出局" data-text="打分口径 v16 · 相关性门槛（技能零命中即出局）">打分口径 v16 · 相关性门槛（技能零命中即出局）</a><a class="toclink lvl2" href="#doc0--一-问题-3-个探针例的同一个签名" data-text="一、问题：3 个探针例的同一个签名">一、问题：3 个探针例的同一个签名</a><a class="toclink lvl2" href="#doc0--二-候选方案与实测对照" data-text="二、候选方案与实测对照">二、候选方案与实测对照</a><a class="toclink lvl2" href="#doc0--三-结论-加相关性门槛-不动业务维度的计数" data-text="三、结论：加相关性门槛，不动业务维度的计数">三、结论：加相关性门槛，不动业务维度的计数</a><a class="toclink lvl2" href="#doc0--四-改了什么-清单" data-text="四、改了什么（清单）">四、改了什么（清单）</a><a class="toclink lvl2" href="#doc0--五-实测效果-跑出来的" data-text="五、实测效果（跑出来的）">五、实测效果（跑出来的）</a><a class="toclink lvl2" href="#doc0--六-已知剩余-没有-解决的" data-text="六、已知剩余（没有解决的）">六、已知剩余（没有解决的）</a><a class="toclink lvl2" href="#doc0--七-反向验证-断言真的会红" data-text="七、反向验证（断言真的会红）">七、反向验证（断言真的会红）</a><a class="toclink lvl2" href="#doc0--八-怎么撤销" data-text="八、怎么撤销">八、怎么撤销</a><a class="toclink lvl2" href="#doc0--九-复现" data-text="九、复现">九、复现</a></div></aside>
+  <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">18_打分口径v16_相关性门槛.md</div><h1 id="doc0--打分口径-v16-相关性门槛-技能零命中即出局">打分口径 v16 · 相关性门槛（技能零命中即出局）</h1>
+<blockquote>起因：黄金集里 3 个探针例（人工都标 <code>no</code>）被规则判成 <code>ok</code>。追下去发现根因不是「词库少了一个词」， 而是<strong>「岗位需要的硬技能一个都没命中」这件事在打分里没有任何地方表达出来</strong>。 本文记录候选方案、实测对照与最终取舍 —— 结论是「加一道相关性门槛」，而不是「改业务维度的计数」。 相关代码：<code>server/engine.js:skillGate</code> · <code>平台原型/src/agent.js</code>（离线镜像）· <code>shared/score-why.js</code>（归因文案） 验证：<code>tools/test_eval.js</code> A / A2 / A3 段 · <code>平台原型/test_prototype.js</code>「相关性门槛（离线镜像）」</blockquote>
+<hr class="sep">
+<h2 id="doc0--一-问题-3-个探针例的同一个签名">一、问题：3 个探针例的同一个签名</h2>
+<p>黄金集 30 例（3 岗位 × 10）里，人工标注 <code>no</code> 却被判 <code>ok</code> 的有 3 例：</p>
+<div class="tablewrap"><table><thead><tr><th>例号</th><th>岗位</th><th>简历</th><th>人工</th><th>v16 前 AI</th></tr></thead><tbody><tr><td>G-J09</td><td>高级 Java 工程师</td><td>前端负责人（JavaScript / TypeScript / Vue / React / Node.js）</td><td>no</td><td><strong>74 → ok</strong></td></tr><tr><td>G-P09</td><td>AI 产品经理</td><td>资深算法工程师（算法 / Python / TensorFlow）</td><td>no</td><td><strong>74 → ok</strong></td></tr><tr><td>G-M09</td><td>软件实施管培生</td><td>资深销售（客户沟通 / 培训；保险 / 直销 / 地推）</td><td>no</td><td><strong>77 → ok</strong></td></tr></tbody></table></div>
+<p>三个人的分数构成是<strong>同一个签名</strong>：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>技能匹配 14（底分） + 业务匹配 30（满） + 稳定性 15（满） + 加分项 15（满） ≈ 70~77 → ok</code></pre></div>
+<p>四维都设了底分（这是有意设计，见 <code>shared/score-why.js:notesOf</code>），所以一份<strong>完全不相干</strong>的简历保底能拿 50 分 —— 50 仍在 <code>no</code> 档，底分机制本身没问题。真正的问题是：<strong>技能一个都没命中，只被记成「触底系数 0.35」，在总分里与「命中 1 项」几乎没有区别</strong>，而另外三维的满分足以把它抬过 60。</p>
+<hr class="sep">
+<h2 id="doc0--二-候选方案与实测对照">二、候选方案与实测对照</h2>
+<p>只比较「改业务维度」是不对的 —— 先跑了对照再决定。所有方案都在同一份黄金集上实跑/精确重算（业务维度按系数阶梯替换，其余维度沿用实跑结果）：</p>
+<div class="tablewrap"><table><thead><tr><th>方案</th><th>档位一致率</th><th>漏筛率（红线）</th><th>误筛率</th><th>失败例</th></tr></thead><tbody><tr><td><strong>V0 现状</strong>（<code>bizN = 简历业务标签条数</code>）</td><td>90.0%（27/30）</td><td>0.0%</td><td>25.0%</td><td>G-J09 / G-P09 / G-M09 误判 ok</td></tr><tr><td>V1 业务维度改为「与职能族业务词表求交」</td><td>73.3%（22/30）</td><td><strong>22.2%</strong> ❌</td><td>16.7%</td><td>+ G-J04 / G-J05 / G-J06 / G-P06 漏筛</td></tr><tr><td>V2 业务维度改为「与（职能族 ∪ 行业）词表求交」</td><td>80.0%（24/30）</td><td><strong>16.7%</strong> ❌</td><td>16.7%</td><td>+ G-J05 / G-J06 / G-P06 漏筛</td></tr><tr><td><strong>V3 V0 + 相关性门槛（技能零命中 ⇒ 出局）</strong></td><td><strong>96.7%（29/30）</strong></td><td><strong>0.0%</strong> ✅</td><td><strong>8.3%</strong></td><td>仅 G-M09</td></tr></tbody></table></div>
+<p><strong>为什么 V1/V2 会被否</strong>：Java 岗的职能族业务词表是<strong>架构术语</strong>（高并发 / 分布式 / 微服务 / 云原生 / 中台 / To B 系统 / C 端产品），而真实 Java 候选人的业务标签是<strong>业务领域</strong>（金融 / 风控 / 交易系统 / 企业服务 / CRM / 政务 / 外包）。求交之后，<code>G-J04</code>（电商 + 后台系统）、<code>G-J05</code>（企业服务 + CRM）、<code>G-J06</code>（外包 + 政务）这些<strong>人工标 <code>ok</code> 的正常候选人业务分从 22 掉到 6，直接掉出 ok</strong> —— 把「该通过的漏掉」从 0% 打到 22%，<strong>这是安全红线，不是可以商量的取舍</strong>。</p>
+<blockquote>顺带说明：<code>server/db.js</code> 的 <code>INDUSTRY_SKILLS[*].biz</code> 用的正是<strong>业务领域</strong>词（互联网 → 电商 / 交易 / 订单 / 支付 / 内容 / 社交 / SaaS）， 与 <code>shared/req-lib.js</code> 的职能族 <code>biz</code>（架构术语）<strong>是两套不同的词表</strong>。这也解释了为什么 G-J01 的业务标签 （电商 / 订单系统 / 支付 / 高并发）看着「既像又不像」词表里的词。<strong>这份词表要不要统一，是另一个未决问题</strong>（见第六节）。</blockquote>
+<hr class="sep">
+<h2 id="doc0--三-结论-加相关性门槛-不动业务维度的计数">三、结论：加相关性门槛，不动业务维度的计数</h2>
+<p>改的是<strong>判定链条</strong>，不是系数：</p>
+<div class="codeblock"><div class="codetop"><span class="lang">text</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code>evaluateCandidate = ruleGate（年限 / 学历）
+                  → skillGate（v16 新增：相关性门槛）
+                  → scoreOne（四维加权打分）</code></pre></div>
+<p><strong><code>skillGate</code> 的判据（刻意保守，两个前置条件都必须满足才可能触发）</strong>：</p>
+<ol>
+<li>岗位<strong>识别出了</strong>关键词（<code>kws.length &gt; 0</code>）—— 否则「判不了」，放行；</li>
+<li>简历<strong>列了</strong>技能（<code>skills.length &gt; 0</code>）—— 否则「没解析出技能」，放行；</li>
+<li>在上述前提下，关键词命中数为 <strong>0</strong> → 出局（<code>gate: true</code>，<code>score: 0</code>，<code>grade: 'no'</code>）。</li>
+</ol>
+<p>为什么是「出局」而不是「扣分」：项目有一条硬约束 —— <strong>分数与档位必须同源</strong>（<code>why</code> 的算式必须逐位等于总分，</p>
+<p>见 <code>shared/score-why.js</code> 文件头）。如果只封顶档位不动分数，就会出现「74 分却不合适」这种自相矛盾的展示。</p>
+<p>走 <code>gate</code> 与年限/学历拦截<strong>同一条路径</strong>（score 0 / grade no / <code>reasons</code> 里写明原因），展示与语义都自洽。</p>
+<p>顺带修掉一处<strong>归因文案与算法不一致</strong>（<code>shared/score-why.js:dimReason</code>）：</p>
+<p>业务维度数的是「简历声明的业务语境条数」（后端 <code>bizN = biz.length</code>），</p>
+<p>旧文案却写成「命中 N 个<strong>{职能族}</strong>业务标签」—— 把「简历里写了什么」说成「跟岗位对上了什么」。</p>
+<p>G-J09 会把「前端 / 性能优化」说成「技术研发类业务标签命中」。<strong>解释与分数没打架，但它描述了一件没发生的事。</strong></p>
+<p>现在改成「简历体现 N 条业务语境：…（{族}岗位参考语境：… 等）」；职能族词表只在「往哪补」的建议里出现（<code>liftText</code>），那里它确实是候选来源。</p>
+<hr class="sep">
+<h2 id="doc0--四-改了什么-清单">四、改了什么（清单）</h2>
+<div class="tablewrap"><table><thead><tr><th>文件</th><th>改动</th></tr></thead><tbody><tr><td><code>server/engine.js</code></td><td>新增 <code>skillGate()</code>；<code>evaluateCandidate</code> 组合为 <code>ruleGate → skillGate → scoreOne</code>；业务维度 <code>ev</code> 文案纠正；<code>REQ_LIB_VER</code> 15 → 16</td></tr><tr><td><code>平台原型/src/agent.js</code></td><td>离线端镜像同一门槛（两个入口口径必须一致，否则同一份简历在离线演示与在线筛选下档位不同）</td></tr><tr><td><code>shared/score-why.js</code></td><td><code>LADDERS.biz.unit</code> 改为「条业务语境」；<code>dimReason</code> 业务维度文案纠正；<code>liftText</code> 措辞对齐</td></tr><tr><td><code>tools/test_eval.js</code></td><td>探针分歧断言 3 → 1（并钉住仅存的 G-M09）；门槛例数 3 → 9 且按构成分开断言；A2 段加「必命中锚点」让开新门槛；新增 A3 段 9 条</td></tr><tr><td><code>平台原型/test_prototype.js</code></td><td>③/⑤/⑥ 兼容「门槛出局」；新增「相关性门槛（离线镜像）」断言</td></tr><tr><td><code>README.md</code> / <code>docs/03</code></td><td>基线数字与原型字节数同步</td></tr></tbody></table></div>
+<p><code>REQ_LIB_VER</code> 递增的理由：它管的是「岗位 JD / 关键词的懒重算」，口径变了若不递增，重启后端不会重算（只在 <code>GET /api/bootstrap</code> 比对）。</p>
+<hr class="sep">
+<h2 id="doc0--五-实测效果-跑出来的">五、实测效果（跑出来的）</h2>
+<div class="tablewrap"><table><thead><tr><th>指标</th><th>v16 前</th><th>v16 后</th></tr></thead><tbody><tr><td>档位一致率</td><td>90.0%（27/30）</td><td><strong>96.7%（29/30）</strong></td></tr><tr><td>Wilson 95% 置信区间</td><td>[74.4%, 96.5%]（宽 22.2pp）</td><td><strong>[83.3%, 99.4%]（宽 16.1pp）</strong></td></tr><tr><td>±1 档一致率</td><td>100.0%</td><td><strong>100.0%</strong></td></tr><tr><td>漏筛率（安全红线）</td><td>0.0%（0/18）</td><td><strong>0.0%（0/18）</strong></td></tr><tr><td>误筛率</td><td>25.0%（3/12）</td><td><strong>8.3%（1/12）</strong></td></tr><tr><td>门槛拦截例数</td><td>3（年限 ×2 / 学历 ×1）</td><td><strong>9（年限 ×2 / 学历 ×1 / 技能零命中 ×6）</strong></td></tr></tbody></table></div>
+<p><strong>关于区间</strong>：点估计上升、区间收窄（22.2pp → 16.1pp），但这<strong>不是</strong>「一致率已达 96.7%」的证明 ——</p>
+<p>30 例的样本量下，区间下沿 83.3% 才是可以对外说的数。要收窄只能扩样本（当前 3 岗 × 10 例，词库覆盖 30 个职能族）。</p>
+<p><strong>误筛率 25% → 8.3% 是这次更值得说的改善</strong>：它是 B 端客户真正在意的方向。</p>
+<p><strong>新增的 6 例门槛里只有 2 例（G-J09 / G-P09）原先判错</strong>，另外 4 例（G-J10 测试 / G-P10 文案投放 / G-M08 Java 转实施 / G-M10 硬件维修）本来就是 <code>no</code> ——</p>
+<p>这道闸只是把它们的分数从「底分堆出来的 43~59」改成诚实的 0，档位不变。<strong>没有任何人工标 <code>strong</code>/<code>ok</code> 的样本被这道闸碰到</strong>，所以漏筛守住 0%。</p>
+<hr class="sep">
+<h2 id="doc0--六-已知剩余-没有-解决的">六、已知剩余（<strong>没有</strong>解决的）</h2>
+<p><strong>G-M09 仍然是 <code>ok</code>（77 分）而人工是 <code>no</code>。</strong> 它的技能命中 2/6（<code>客户沟通</code>、<code>培训</code> 确实对得上实施岗），</p>
+<p>相关性门槛按设计不触发；它靠业务维度拿满 30 分（保险 / 直销 / 地推 / 团队管理 4 条标签）停在 <code>ok</code>。</p>
+<p>这暴露的是<strong>业务维度的一个已知简化</strong>：它数的是「简历声明了几条业务语境」，<strong>不与该岗位的业务做匹配</strong>。</p>
+<p>要修它会牵动全部岗位的口径，且上文 V1/V2 已经实测证明「直接求交会破安全红线」。</p>
+<p>正确的修法是<strong>先把职能族业务词表与行业业务词表统一/补齐</strong>（<code>shared/req-lib.js</code> 的 <code>FUNCTIONS[*].biz</code></p>
+<p>与 <code>server/db.js</code> 的 <code>INDUSTRY_SKILLS[*].biz</code> 当前是两套词），<strong>那是独立的一轮工作，不混在本次改</strong>。</p>
+<p><code>tools/test_eval.js</code> 里有一条断言专门钉住「仅存的分歧是 G-M09」，防止它悄悄变成更多，也防止有人误以为已经全对。</p>
+<hr class="sep">
+<h2 id="doc0--七-反向验证-断言真的会红">七、反向验证（断言真的会红）</h2>
+<p><code>tools/_rev_v16.py break|restore</code> —— 拆掉门槛（两处：引擎 + 离线镜像），确认断言变红：</p>
+<div class="tablewrap"><table><thead><tr><th>破坏态结果</th><th>说明</th></tr></thead><tbody><tr><td><code>test_eval.js</code>：A 段 4 条红 + A3 段 6 条红</td><td>探针分歧 3≠1、门槛例数 3≠9、技能零命中构成 0≠6、A3 的 6 条全红</td></tr><tr><td><code>test_prototype.js</code>（<strong>需先 <code>npm run build</code></strong>）：1 条红</td><td>「零命中未被门槛拦下：档位 no 分数 48」</td></tr></tbody></table></div>
+<blockquote>⚠️ <strong>踩过的坑</strong>：离线套件渲染的是<strong>打包产物</strong> <code>平台原型/index.html</code>。只破坏 <code>平台原型/src/agent.js</code> 而不重建，破坏态<strong>照样通过</strong> —— 断言看起来在检查、其实测的是旧产物。 反向验证前端改动时，<code>npm run build</code> 是前置步骤，不是可选项。</blockquote>
+<p>A2 段的断言在破坏态<strong>保持绿色是正确的</strong>：它测的是匹配层（<code>kwContains</code> / <code>kwHit</code>），与这道闸无关 ——</p>
+<p>所以 A2 每条都带一个「必命中锚点」让开门槛，否则零命中的用例会先被门槛拦下（<code>why</code> 为 <code>null</code>），</p>
+<p>断言会因为「出了门槛」而不是因为「匹配层判对了」变绿。</p>
+<hr class="sep">
+<h2 id="doc0--八-怎么撤销">八、怎么撤销</h2>
+<p>门槛集中在<strong>两处</strong>，都以「返回 <code>null</code> 即放行」的形式存在：</p>
+<ul>
+<li><code>server/engine.js:skillGate</code> —— 把 <code>if (kwHit(skills, kws).length) return null;</code> 之后加一行 <code>return null;</code></li>
+<li><code>平台原型/src/agent.js</code> —— 把 <code>if (kws.length &amp;&amp; !kHit.length)</code> 改成 <code>if (false &amp;&amp; kws.length &amp;&amp; !kHit.length)</code></li>
+</ul>
+<p>（<code>tools/_rev_v16.py break</code> 做的正是这两处。）改完记得 <code>npm run build</code> 并 <strong>把 <code>REQ_LIB_VER</code> 再加一</strong>。</p>
+<hr class="sep">
+<h2 id="doc0--九-复现">九、复现</h2>
+<div class="codeblock"><div class="codetop"><span class="lang">bash</span><button class="copybtn" onclick="copyCode(this)">复制</button></div><pre><code># 黄金集评测（含 A / A2 / A3 段断言）
+node --experimental-sqlite tools/test_eval.js
+
+# 方案对照（V0~V5 表，业务维度精确重算）
+node --experimental-sqlite tools/_probe_options.js
+
+# 离线前端套件（渲染打包产物，改 src 后必须先 build）
+node 平台原型/build.js &amp;&amp; node 平台原型/test_prototype.js
+
+# 反向验证
+python tools/_rev_v16.py break | restore</code></pre></div>
+<blockquote>注：<code>tools/_probe_options.js</code> / <code>_rev_v16.py</code> / <code>_probe_biz.js</code> 以下划线开头，属分析脚本（<code>.gitignore</code> 已覆盖）， 随工作区保留、不随仓库发布。</blockquote></article></main>
+</div>
+<footer>生成时间：2026-10-03 17:10（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<script>
+const docs = [{"key": "doc0", "name": "打分口径 v16 · 相关性门槛（技能零命中即出局）"}];
+
+function copyCode(btn) {
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1400);
+  });
+}
+
+function showDoc(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.doc === key));
+  document.querySelectorAll('article.doc').forEach(a => a.style.display = (a.dataset.doc === key ? '' : 'none'));
+  document.querySelectorAll('.tocgroup').forEach(g => g.style.display = (g.dataset.doc === key ? '' : 'none'));
+  resetHighlight();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showDoc(t.dataset.doc));
+
+// 滚动高亮目录
+const links = () => Array.from(document.querySelectorAll('.tocgroup:not([style*="none"]) .toclink'));
+window.addEventListener('scroll', () => {
+  const actives = links();
+  let cur = null;
+  for (const a of actives) {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el && el.getBoundingClientRect().top < 180) cur = a;
+  }
+  actives.forEach(a => a.style.color = '');
+  if (cur) { cur.style.color = 'var(--ac2)'; }
+});
+
+// 全文搜索 + 高亮
+let marks = [];
+function resetHighlight() {
+  document.querySelectorAll('mark').forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  marks = [];
+  document.getElementById('hint').textContent = '全文搜索';
+  document.getElementById('hint').style.color = 'var(--tx3)';
+}
+document.getElementById('q').addEventListener('input', e => {
+  const kw = e.target.value.trim();
+  resetHighlight();
+  if (kw.length < 2) return;
+  const activeArt = document.querySelector('article.doc:not([style*="none"])') || document.body;
+  let count = 0, first = null;
+  const walker = document.createTreeWalker(activeArt, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.trim().length > 1 && !/^(SCRIPT|STYLE|MARK)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const low = node.nodeValue.toLowerCase(), k = kw.toLowerCase();
+    if (low.indexOf(k) === -1) return;
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    while (true) {
+      const idx = rest.toLowerCase().indexOf(k); if (idx === -1) break;
+      frag.appendChild(document.createTextNode(rest.slice(0, idx)));
+      const m = document.createElement('mark'); m.textContent = rest.slice(idx, idx + kw.length);
+      frag.appendChild(m); marks.push(m); count++;
+      rest = rest.slice(idx + kw.length);
+    }
+    frag.appendChild(document.createTextNode(rest));
+    node.parentNode.replaceChild(frag, node);
+  });
+  const h = document.getElementById('hint');
+  h.textContent = count ? `命中 ${count} 处` : '无匹配';
+  h.style.color = count ? 'var(--grn)' : 'var(--red)';
+  if (count) { first = marks[0]; first.scrollIntoView({behavior:'smooth', block:'center'}); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.id !== 'q') { e.preventDefault(); document.getElementById('q').focus(); }
+  if (e.key === 'Escape') { document.getElementById('q').value = ''; resetHighlight(); }
+});
+</script>
+</body>
+</html>

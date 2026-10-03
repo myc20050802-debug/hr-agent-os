@@ -35,9 +35,9 @@ const GRADES = ['strong', 'ok', 'no'];
 const pct = x => (x === null || x === undefined) ? '—' : (x * 100).toFixed(1) + '%';
 
 /* Wilson 95% 置信区间。
-   为什么这个报告必须带它：30 例样本上的「90.0%」是个点估计，
-   它的 95% 区间宽到 [74%, 97%] —— 也就是说这 30 例**无法区分**「90%」和「80%」。
-   只写 90.0% 而不写区间，等于用一个精确的数字表达了不精确的事实。 */
+   为什么这个报告必须带它：30 例样本上的点估计（无论它多漂亮）都撑不起结论式表述 ——
+   区间宽度有十几到二十几个百分点，也就是说这 30 例**分不开相邻的两个十位档**。
+   只写点估计而不写区间，等于用一个精确的数字表达了不精确的事实。 */
 function wilson(k, n, z = 1.96) {
   if (!n) return null;
   const p = k / n;
@@ -319,6 +319,7 @@ function buildMarkdown(A, B, llmOn) {
   P('| 环节 | 谁在做 | 代码位置 | 换模型会变吗 |');
   P('|---|---|---|---|');
   P('| 硬性门槛拦截（年限/学历） | 规则 | `server/engine.js` `ruleGate()` | 不会 |');
+  P('| 相关性门槛（岗位关键词零命中） | 规则 | `server/engine.js` `skillGate()`（v16） | 不会 |');
   P('| 分数与档位（strong/ok/no） | 规则 `scoreOne()` | `server/engine.js:180-182` 注释明确「分数与维度固定由 scoreOne() 算」 | **不会** |');
   P('| 维度归因（为什么给这个分） | 规则 | `shared/score-why.js` 的 `LADDERS` | 不会 |');
   P('| 推荐理由**措辞** | 模型（可插拔） | `server/engine.js:191` 只在 `useModel` 时调用，且只把 `r.dims` 喂过去 | 会 |');
@@ -335,13 +336,13 @@ function buildMarkdown(A, B, llmOn) {
   P('');
   P('| 指标 | 结果 | 口径 |');
   P('|---|---|---|');
-  P('| 样本数 | ' + A.m.n + ' | 30 例人工标注 |');
+  P('| 样本数 | ' + A.m.n + ' | ' + A.m.n + ' 例人工标注 |');
   P('| 档位一致率 | **' + pct(A.m.exact) + '** | 完全同档（' + A.m.same + '/' + A.m.n + '） |');
   P('| 　└ 95% 置信区间 | ' + ci(A.m.same, A.m.n) + ' | Wilson 区间，样本 ' + A.m.n + ' 例 |');
   P('| ±1 档一致率 | **' + pct(A.m.within1) + '** | 档位距离 ≤ 1（' + A.m.near + '/' + A.m.n + '） |');
   P('| 漏筛率 | **' + pct(A.m.miss) + '** | 人工说该通过却被判 no（' + A.m.missN + '/' + A.m.passBase + '）← 安全红线 |');
   P('| 误筛率 | **' + pct(A.m.falsePass) + '** | 人工说该淘汰却被放行（' + A.m.fpN + '/' + A.m.rejectBase + '）← 成本问题 |');
-  P('| 硬门槛拦截 | ' + A.m.gateBlocked + ' 例 | 规则前置拦截，不进入打分 |');
+  P('| 门槛拦截 | ' + A.m.gateBlocked + ' 例 | 规则前置拦截，不进入打分（年限 / 学历 / **技能零命中**） |');
   P('');
   P('档位分布（AI）：strong ' + A.m.dist_pred.strong + ' / ok ' + A.m.dist_pred.ok + ' / no ' + A.m.dist_pred.no);
   P('');
@@ -351,10 +352,14 @@ function buildMarkdown(A, B, llmOn) {
   P('±1 档一致率 ' + pct(A.m.within1) + ' 的含义是「没有跨两档的硬错」——');
   P('相邻档判错（strong↔ok）在招聘里通常只意味着多聊一轮，不构成事故。');
   P('');
+  /* 区间宽度按实测算 —— 不要把「宽 22 个百分点」之类的数字写死在模板里。 */
+  const wCI = wilson(A.m.same, A.m.n);
+  const wPP = wCI ? ((wCI.hi - wCI.lo) * 100).toFixed(1) : '—';
   P('**区间比点估计更重要**：' + A.m.n + ' 例上的 ' + pct(A.m.exact) + '，Wilson 95% 区间是 '
-    + ci(A.m.same, A.m.n) + '。也就是说这批样本**尚不足以区分 80% 与 90%**。');
+    + ci(A.m.same, A.m.n) + '，**宽度 ' + wPP + ' 个百分点** —— '
+    + '样本量给的上限就在这里，点估计再漂亮也压不住它。');
   P('诚实的写法是「一致率约 ' + pct(A.m.exact) + '（' + A.m.n + ' 例，95% CI '
-    + ci(A.m.same, A.m.n) + '）」，而不是「一致率 90%」当作结论用。');
+    + ci(A.m.same, A.m.n) + '）」，而不是把点估计当结论用。');
   P('');
   P('要收窄区间只有一条路：**扩样本**。当前黄金集是 3 个岗位 × 10 例，而词库覆盖 30 个职能族 ——');
   P('把每个职能族至少补 2 例（≈60 例新样本）是性价比最高的一步。');

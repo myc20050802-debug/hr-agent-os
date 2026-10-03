@@ -629,6 +629,13 @@ window.Agent = (function () {
     if (eduRank && needEdu && eduRank < needEdu)
       return { gate: true, reason: `学历不满足硬性要求（要求 ${needEdu === 2 ? '本科' : '大专'}及以上，规则判定）`, score: 0, grade: 'no', dims: [], hits: { kws, kHit, bizHits, plusHits } };
 
+    /* 相关性门槛（v16）：岗位抽出了关键词，但简历一个都没命中 → 出局。
+       与后端 server/engine.js:skillGate 同一口径 —— 两边必须一起改，否则同一份简历
+       在离线演示与在线筛选下会得到不同档位。离线端只能看简历原文，所以
+       「简历有没有列技能」由关键词抽取侧保证；条件同样保守：kws 为空时不触发。 */
+    if (kws.length && !kHit.length)
+      return { gate: true, reason: `岗位要求的 ${kws.length} 个关键词（${kws.slice(0, 4).join('、')}）在简历中一个都未命中（规则判定，未调用模型）`, score: 0, grade: 'no', dims: [], hits: { kws, kHit, bizHits, plusHits } };
+
     const total = Math.min(100, s1 + s2 + s3 + s4);
     const 在读 = /在读|应届|在校|实习|202\d\s*[/\-．.]\s*\d+\s*[-–—]\s*202\d/.test(t);
     const dims = [

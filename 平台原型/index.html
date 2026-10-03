@@ -2306,7 +2306,7 @@ textarea.i{resize:vertical;line-height:1.6}
       ],
     },
     biz: {
-      dim: '业务匹配', max: 30, metric: 'hits', unit: '个业务标签',
+      dim: '业务匹配', max: 30, metric: 'hits', unit: '条业务语境',
       steps: [
         { at: 0, coef: 0.2 }, { at: 1, coef: 0.55 }, { at: 2, coef: 0.72 },
         { at: 3, coef: 0.9 }, { at: 4, coef: 1 },
@@ -2370,11 +2370,17 @@ textarea.i{resize:vertical;line-height:1.6}
       return `命中 ${kh.length}/${kws.length} 个岗位关键词${miss.length ? `；未命中 ${miss.slice(0, 4).join('、')}` : '（全部命中）'}`;
     }
     if (dim === '业务匹配') {
+      /* ⚠️ 口径纠正（v16）：这一维数的是**简历声明的业务语境条数**
+         （后端 `scoreOne`: bizN = biz.length），不是「与职能族标签池的交集」。
+         旧文案写「命中 N 个{族}业务标签」，把「简历里写了什么」说成「跟岗位对上了什么」——
+         解释与分数没打架，但它描述了一件没发生的事（G-J09 会把「前端 / 性能优化」
+         说成「技术研发类业务标签命中」）。职能族标签池只在「往哪补」的建议里出现
+         （见 liftText），那里它确实是候选来源，写出来是诚实的。 */
       const h = ctx.bizHits || [], pool = ctx.bizPool || [];
       const who = ctx.fnName ? ctx.fnName + '类' : '';
-      if (h.length) return `命中 ${h.length} 个${who}业务标签：${h.join('、')}`;
-      if (ctx.noBizPool) return `${who || '该'}岗位没有业务标签口径 → 触底系数`;
-      return `未命中任何${who}业务标签${pool.length ? `（该族可用标签：${pool.slice(0, 3).join('、')}）` : ''} → 触底系数`;
+      const ref = (pool.length && !ctx.noBizPool) ? `（${who}岗位参考语境：${pool.slice(0, 3).join('、')} 等）` : '';
+      if (h.length) return `简历体现 ${h.length} 条业务语境：${h.join('、')}${ref}`;
+      return `简历未体现业务语境 → 触底系数${ref}`;
     }
     if (dim === '稳定性') {
       const n = ctx.needYears || 0;
@@ -2399,7 +2405,7 @@ textarea.i{resize:vertical;line-height:1.6}
     const who = ctx.fnName ? ctx.fnName + '类' : '';
     if (key === 'biz') {
       const miss = (ctx.bizPool || []).filter(w => (ctx.bizHits || []).indexOf(w) < 0);
-      return `简历里补 ${n} 个${who}业务标签${miss.length ? `（如 ${miss.slice(0, 3).join('、')}）` : ''}`;
+      return `简历里补 ${n} 条${who}岗位相关的业务语境${miss.length ? `（如 ${miss.slice(0, 3).join('、')}）` : ''}`;
     }
     if (key === 'plus') {
       const miss = (ctx.plusPool || []).filter(w => (ctx.plusHits || []).indexOf(w) < 0);
@@ -3775,6 +3781,13 @@ window.Agent = (function () {
       return { gate: true, reason: `工作年限 ${years} 年 < 岗位要求 ${needMust} 年（规则判定，未调用模型）`, score: 0, grade: 'no', dims: [], hits: { kws, kHit, bizHits, plusHits } };
     if (eduRank && needEdu && eduRank < needEdu)
       return { gate: true, reason: `学历不满足硬性要求（要求 ${needEdu === 2 ? '本科' : '大专'}及以上，规则判定）`, score: 0, grade: 'no', dims: [], hits: { kws, kHit, bizHits, plusHits } };
+
+    /* 相关性门槛（v16）：岗位抽出了关键词，但简历一个都没命中 → 出局。
+       与后端 server/engine.js:skillGate 同一口径 —— 两边必须一起改，否则同一份简历
+       在离线演示与在线筛选下会得到不同档位。离线端只能看简历原文，所以
+       「简历有没有列技能」由关键词抽取侧保证；条件同样保守：kws 为空时不触发。 */
+    if (kws.length && !kHit.length)
+      return { gate: true, reason: `岗位要求的 ${kws.length} 个关键词（${kws.slice(0, 4).join('、')}）在简历中一个都未命中（规则判定，未调用模型）`, score: 0, grade: 'no', dims: [], hits: { kws, kHit, bizHits, plusHits } };
 
     const total = Math.min(100, s1 + s2 + s3 + s4);
     const 在读 = /在读|应届|在校|实习|202\d\s*[/\-．.]\s*\d+\s*[-–—]\s*202\d/.test(t);
@@ -7320,7 +7333,7 @@ document.getElementById('collapseBtn').addEventListener('click', function () {
   this.setAttribute('aria-expanded', app.classList.contains('collapsed') ? 'false' : 'true');
 });
 // 原型说明：检测到 server/ 启动后自动切换为真实后端（SQLite + Agent 引擎），否则使用内置演示数据。
-console.log('%cHR-Agent OS 原型', 'color:#7aa9ff;font-weight:700', '构建时间 2026-10-03 16:28 · 无后端依赖，双击可用');
+console.log('%cHR-Agent OS 原型', 'color:#7aa9ff;font-weight:700', '构建时间 2026-10-03 17:07 · 无后端依赖，双击可用');
 </script>
 </body>
 </html>

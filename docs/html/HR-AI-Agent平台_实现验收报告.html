@@ -479,6 +479,7 @@ fnKey = null（职能识别不出）→ 走行业兜底
 <li>关键结构保证：评测调用的 <code>evaluateCandidate</code> 与线上筛选<strong>是同一个函数</strong>（本轮把硬性门槛抽成 <code>ruleGate</code>、合成判定抽成 <code>evaluateCandidate</code>），避免「评测一套、线上另一套」。</li>
 <li>3 例分歧全部同向（AI 过宽），且都是<strong>有意埋的边界探针</strong>（前端技术负责人 / 资深算法工程师 / 资深销售）。它们不是「评测没过」，而是本轮 <code>override_code</code> 枚举的设计输入。</li>
 </ul>
+<blockquote><strong>后续口径变更（数年后回看请注意）</strong>：v15 修掉匹配层的跨词族误命中，v16 新增<strong>相关性门槛</strong>（岗位抽出关键词、简历也列了技能、但零命中 ⇒ 出局）。当前数字：一致率 <strong>96.7%</strong>（29/30）、漏筛 <strong>0.0%</strong>、误筛 <strong>8.3%</strong>，探针分歧 3 → 1。<strong>上面这段数字保留为当轮记录</strong>，现状见 <code>README.md</code> 与 <code>docs/18_打分口径v16_相关性门槛.md</code>。</blockquote>
 <p><strong>② 「进入优化数据集」从承诺变成数据（迁移 v6 + <code>shared/override-codes.js</code> + <code>GET /api/metrics/agreement</code>）</strong></p>
 <ul>
 <li>原状：<code>override_reason</code> 是自由文本，存得下、<strong>统计不了</strong>，所以那句承诺是空的。</li>
@@ -506,7 +507,7 @@ fnKey = null（职能识别不出）→ 走行业兜底
 <hr class="sep">
 <p><em>配套阅读：<code>docs/07_项目计划书.md</code>（里程碑与决策）、<code>docs/08_架构设计文档.md</code>（L0–L5 与 ADR）、<code>docs/05_从PoC到企业级的差距清单.md</code>（本轮的立项依据）。凡本报告与代码冲突，<strong>以代码实测为准</strong>。</em></p></article></main>
 </div>
-<footer>生成时间：2026-10-02 10:55（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-03 17:10（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "09 · M1 实现说明与验收报告（可信底座）"}];
 

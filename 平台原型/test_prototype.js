@@ -471,11 +471,20 @@ JSDOM.fromFile(file, { runScripts: 'dangerously', pretendToBeVisual: true, virtu
       if (!skill || skill.score <= 0) throw new Error('技能匹配为 0：AI 简历评 AI 岗位不应该 0 分');
       if (!/LLM/.test(skill.ev) || !/RAG/.test(skill.ev)) throw new Error('技能匹配依据未追溯到命中的关键词：' + skill.ev);
 
-      /* ③ 换岗位要求 → 同一份简历的分数必须变（这条是「跟着岗位走」的判据） */
+      /* ③ 换岗位要求 → 同一份简历的判定必须变（这条是「跟着岗位走」的判据）。
+         v16 起，零命中会被**相关性门槛**直接出局（dims 为空、gate=true、档位 no）——
+         这比「技能分掉下来」更彻底，两种结果都算「尺子跟着岗位走了」，
+         所以判据写成「掉了分 **或** 被门槛拦下」，否则会把一次加强误报成回归。 */
       const javaReq = A2.scoreResume(AI_RESUME, '3 年以上 Java 开发经验，熟悉 Spring 与 MySQL');
       const javaSkill = javaReq.dims.find(d => d.dim === '技能匹配');
-      if (!javaSkill || javaSkill.score >= skill.score) {
-        throw new Error('同一份简历评 Java 岗没有掉分（关键词没跟着岗位走）：' + (javaSkill && javaSkill.score) + ' vs ' + skill.score);
+      const dropped = javaSkill ? javaSkill.score < skill.score : javaReq.gate === true;
+      if (!dropped) {
+        throw new Error('同一份简历评 Java 岗既没掉分也没被门槛拦下（关键词没跟着岗位走）：'
+          + (javaSkill ? javaSkill.score : 'dims 为空但 gate=' + javaReq.gate) + ' vs ' + skill.score);
+      }
+      if (javaReq.gate) {
+        if (javaReq.grade !== 'no' || javaReq.score !== 0) throw new Error('门槛例应为 no/0，实得 ' + javaReq.grade + '/' + javaReq.score);
+        if (!/未命中/.test(javaReq.reason || '')) throw new Error('相关性门槛的原因没说清零命中：' + javaReq.reason);
       }
 
       /* ④ 依据文案不能与得分自相矛盾。
@@ -486,15 +495,21 @@ JSDOM.fromFile(file, { runScripts: 'dangerously', pretendToBeVisual: true, virtu
         }
       });
 
-      /* ⑤ 命中 0 项时必须如实说明是底分，而不是含糊说「未体现」却给分 */
+      /* ⑤ 命中 0 项必须如实处置：v16 起由相关性门槛判 no/0；
+         若将来门槛被拿掉，则至少要如实说明「按底分计」而不是含糊说「未体现」却给分。 */
       const zero = A2.scoreResume('某某，大专，行政助理，负责会议安排与文件归档', '了解LLM RAG');
       const zeroSkill = zero.dims.find(d => d.dim === '技能匹配');
-      if (zeroSkill.score !== 0 && !/底分/.test(zeroSkill.ev)) {
-        throw new Error('零命中却给了 ' + zeroSkill.score + ' 分，且未说明按底分计：' + zeroSkill.ev);
+      if (zero.gate) {
+        if (zero.grade !== 'no' || zero.score !== 0) throw new Error('零命中门槛例应为 no/0，实得 ' + zero.grade + '/' + zero.score);
+        if (!/未命中/.test(zero.reason || '')) throw new Error('零命中门槛原因未说明：' + zero.reason);
+      } else if (!zeroSkill || (zeroSkill.score !== 0 && !/底分/.test(zeroSkill.ev))) {
+        throw new Error('零命中却给了 ' + (zeroSkill && zeroSkill.score) + ' 分，且未说明按底分计：' + (zeroSkill && zeroSkill.ev));
       }
 
       /* ⑥ 「2018 年毕业」是**年份**，不能被读成 2018 年工作经验 */
-      const years = A2.scoreResume('2018 年毕业，本科，参与过订单系统开发', '了解LLM RAG')
+      /* 注意：这条要测的是「稳定性维度怎么读年限」，所以正文里补一个能命中的关键词（LLM），
+         否则会被 v16 的相关性门槛在整个维度之前就截走，断言测不到东西。 */
+      const years = A2.scoreResume('2018 年毕业，本科，参与过订单系统开发，了解 LLM', '了解LLM RAG')
         .dims.find(d => d.dim === '稳定性');
       if (/2018/.test(years.ev)) throw new Error('把毕业年份当成了工作年限：' + years.ev);
 
@@ -513,6 +528,27 @@ JSDOM.fromFile(file, { runScripts: 'dangerously', pretendToBeVisual: true, virtu
       if (!RL.kwContains('nodejs 服务', 'Node')) throw new Error('粘连写法被误杀：nodejs 未命中 Node');
       if (!RL.kwContains('AI Agents 编排', 'Agent')) throw new Error('英文复数被误杀：Agents 未命中 Agent');
       if (!RL.kwContains('C++11 新特性', 'C++')) throw new Error('版本号后缀被误杀：C++11 未命中 C++');
+    });
+
+    /* 相关性门槛 · 离线镜像（v16）：与后端 server/engine.js:skillGate 同一口径。
+       为什么离线端也必须有断言：两边口径一旦分叉，同一份简历在「离线演示」与
+       「在线筛选」下会给出不同档位 —— 而两个入口各自看都「像是对的」，
+       这类 bug 靠人眼复核几乎发现不了（同类问题见铁律 16 的写死页面清单）。 */
+    await tryAsync('相关性门槛（离线镜像）：零命中出局，且不误伤边界情形', async () => {
+      const A2 = window.Agent;
+      /* 前端负责人投 Java 岗：一个岗位关键词都不命中 → 出局 */
+      const ZERO = A2.scoreResume('某某，本科，8 年经验，精通前端与性能优化，有开源项目与专利',
+        '3 年以上 Java 开发经验，熟悉 Spring 与 MySQL');
+      if (!ZERO.gate) throw new Error('零命中未被门槛拦下：档位 ' + ZERO.grade + ' 分数 ' + ZERO.score);
+      if (ZERO.grade !== 'no' || ZERO.score !== 0) throw new Error('门槛例应为 no/0，实得 ' + ZERO.grade + '/' + ZERO.score);
+      if (!/未命中/.test(ZERO.reason || '')) throw new Error('门槛原因未说明零命中：' + ZERO.reason);
+      if (ZERO.dims.length) throw new Error('门槛例不该返回四维明细（会渲染成「0 分却有完整归因」）');
+      /* 命中 1 项不许拦（保守：宁可多聊一轮，不可误杀） */
+      const ONE = A2.scoreResume('本科，5 年经验，做过 Java 后端开发', '3 年以上 Java 开发经验，熟悉 Spring 与 MySQL');
+      if (ONE.gate) throw new Error('只命中 1 项就被拦下，过于激进：' + ONE.reason);
+      /* 岗位没抽出关键词时不许拦（不把「判不了」当成「不匹配」） */
+      const NOKW = A2.scoreResume('前端工程师，8 年经验', '');
+      if (NOKW.gate) throw new Error('岗位要求为空时仍触发门槛：' + NOKW.reason);
     });
 
     /* 打分归因：把「解释不许和分数打架」这条锁住。

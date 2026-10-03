@@ -45,7 +45,7 @@
       ],
     },
     biz: {
-      dim: '业务匹配', max: 30, metric: 'hits', unit: '个业务标签',
+      dim: '业务匹配', max: 30, metric: 'hits', unit: '条业务语境',
       steps: [
         { at: 0, coef: 0.2 }, { at: 1, coef: 0.55 }, { at: 2, coef: 0.72 },
         { at: 3, coef: 0.9 }, { at: 4, coef: 1 },
@@ -109,11 +109,17 @@
       return `命中 ${kh.length}/${kws.length} 个岗位关键词${miss.length ? `；未命中 ${miss.slice(0, 4).join('、')}` : '（全部命中）'}`;
     }
     if (dim === '业务匹配') {
+      /* ⚠️ 口径纠正（v16）：这一维数的是**简历声明的业务语境条数**
+         （后端 `scoreOne`: bizN = biz.length），不是「与职能族标签池的交集」。
+         旧文案写「命中 N 个{族}业务标签」，把「简历里写了什么」说成「跟岗位对上了什么」——
+         解释与分数没打架，但它描述了一件没发生的事（G-J09 会把「前端 / 性能优化」
+         说成「技术研发类业务标签命中」）。职能族标签池只在「往哪补」的建议里出现
+         （见 liftText），那里它确实是候选来源，写出来是诚实的。 */
       const h = ctx.bizHits || [], pool = ctx.bizPool || [];
       const who = ctx.fnName ? ctx.fnName + '类' : '';
-      if (h.length) return `命中 ${h.length} 个${who}业务标签：${h.join('、')}`;
-      if (ctx.noBizPool) return `${who || '该'}岗位没有业务标签口径 → 触底系数`;
-      return `未命中任何${who}业务标签${pool.length ? `（该族可用标签：${pool.slice(0, 3).join('、')}）` : ''} → 触底系数`;
+      const ref = (pool.length && !ctx.noBizPool) ? `（${who}岗位参考语境：${pool.slice(0, 3).join('、')} 等）` : '';
+      if (h.length) return `简历体现 ${h.length} 条业务语境：${h.join('、')}${ref}`;
+      return `简历未体现业务语境 → 触底系数${ref}`;
     }
     if (dim === '稳定性') {
       const n = ctx.needYears || 0;
@@ -138,7 +144,7 @@
     const who = ctx.fnName ? ctx.fnName + '类' : '';
     if (key === 'biz') {
       const miss = (ctx.bizPool || []).filter(w => (ctx.bizHits || []).indexOf(w) < 0);
-      return `简历里补 ${n} 个${who}业务标签${miss.length ? `（如 ${miss.slice(0, 3).join('、')}）` : ''}`;
+      return `简历里补 ${n} 条${who}岗位相关的业务语境${miss.length ? `（如 ${miss.slice(0, 3).join('、')}）` : ''}`;
     }
     if (key === 'plus') {
       const miss = (ctx.plusPool || []).filter(w => (ctx.plusHits || []).indexOf(w) < 0);

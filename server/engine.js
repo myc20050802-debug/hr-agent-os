@@ -46,7 +46,7 @@ const T = 'T-001';
    为『…者优先』句式」（见 shared/req-lib.js 第八节）。口经变了，老 JD 必须重算 ——
    否则库里会同时流通「懂点技术能和工程对话」与「了解基础技术、能与研发、工程团队
    顺畅沟通者优先」两代表述，看起来像没改。 */
-const REQ_LIB_VER = 15;
+const REQ_LIB_VER = 16;
 const now = () => new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 19).replace('T', ' ');
 
 /* ---------- 工具函数 ---------- */
@@ -316,7 +316,7 @@ function scoreOne(c, job) {
   const score = Math.min(100, s1 + s2 + s3 + s4);
   const dims = [
     { dim: '技能匹配', score: s1, max: wx, coef: r1, ev: `命中岗位关键词 ${skillHit.length}/${kws.length} 项：${(skillHit.slice(0, 5).join('、') || '无')}` },
-    { dim: '业务匹配', score: s2, max: wy, coef: r2, ev: biz.length ? `业务经验：${biz.join('、')}` : '简历未体现相关业务经验' },
+    { dim: '业务匹配', score: s2, max: wy, coef: r2, ev: biz.length ? `简历体现 ${biz.length} 条业务语境：${biz.join('、')}` : '简历未体现任何业务语境' },
     { dim: '稳定性', score: s3, max: wz, coef: r3, ev: `总工作年限 ${yr} 年（岗位要求 ${mustYears} 年）` },
     { dim: '加分项', score: s4, max: wu, coef: r4, ev: plus.length ? plus.join('、') : '无加分项' }
   ];
@@ -379,12 +379,41 @@ function ruleGate(c, job) {
 }
 
 /**
- * 完整规则判定：硬门槛 → 四维打分。
+ * 相关性门槛：岗位识别出了关键词、简历里也列了技能，但**一个都没命中**。
+ *
+ * 为什么必须单列（v16）：
+ *   四维都设了底分，所以一份完全不对口的简历靠「业务 30 + 稳定 15 + 加分 15」就能顶到 70+，
+ *   落进 ok。底分机制本身没问题 —— 四维全触底只有 50 分，仍在 no 档；
+ *   有问题的是「技能零命中」这件事没有任何地方表达出来（技能维度只把它记成「触底系数」，
+ *   在总分里与「命中 1 项」几乎无差别）。
+ *   实测：黄金集里 3 个探针例（前端投 Java 岗 / 算法投产品岗 / 销售投实施岗）
+ *   全部因此被抬进 ok；加上这道闸后一致率 90.0% → 96.7%、误筛 25.0% → 8.3%，漏筛仍为 0。
+ *
+ * 与 ruleGate 的区别：年限/学历是**客观硬条件**，这里是**相关性推断** ——
+ * 所以单独一个函数、单独的 dim 名，不与硬性门槛混在一起。
+ *
+ * 条件刻意保守（避免把「判不了」当成「不匹配」）：
+ *   ① 简历没列技能  → 无从判断，放行给打分
+ *   ② 岗位没抽出关键词 → 无从判断，放行给打分
+ */
+function skillGate(c, job) {
+  const skills = J(c.skills);
+  if (!skills.length) return null;
+  const kws = J(job.keywords).length ? J(job.keywords) : extractKeywords([...J(job.must_have), ...J(job.nice_have)]);
+  if (!kws.length) return null;
+  if (kwHit(skills, kws).length) return null;
+  return `岗位要求的 ${kws.length} 个关键词（${kws.slice(0, 4).join('、')}）在简历技能里一个都未命中`;
+}
+
+/**
+ * 完整规则判定：硬门槛 → 相关性门槛 → 四维打分。
  * @returns {{gate:boolean, score:number, grade:'strong'|'ok'|'no', reasons:Array, why:object|null, gateReason?:string}}
  */
 function evaluateCandidate(c, job) {
   const reason = ruleGate(c, job);
   if (reason) return { gate: true, score: 0, grade: 'no', reasons: [{ dim: '硬性门槛', score: 0, max: 0, ev: reason }], why: null, gateReason: reason };
+  const rel = skillGate(c, job);
+  if (rel) return { gate: true, score: 0, grade: 'no', reasons: [{ dim: '相关性门槛', score: 0, max: 0, ev: rel }], why: null, gateReason: rel };
   const r = scoreOne(c, job);
   return { gate: false, score: r.score, grade: r.grade, reasons: r.dims, why: r.why };
 }

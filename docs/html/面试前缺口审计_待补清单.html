@@ -328,7 +328,7 @@ try { db.exec('PRAGMA busy_timeout = 5000;'); } catch { ... }</code></pre></div>
 <h2 id="doc0--附-本次审计的原始证据-可复查">附：本次审计的原始证据（可复查）</h2>
 <div class="tablewrap"><table><thead><tr><th>结论</th><th>复查命令</th></tr></thead><tbody><tr><td>无 git / 无 .gitignore</td><td><code>ls -d .git .gitignore</code></td></tr><tr><td>敏感文件在源码树</td><td>`ls -la server/ \</td><td>grep -E 'db\</td><td>secret'<code> → </code>-wal` 4.2 MB</td></tr><tr><td>筛选链路 0 次模型调用</td><td>取 <code>runScreening</code> 函数体 grep <code>llm(</code> → 0 命中</td></tr><tr><td>虚报 token</td><td><code>grep -n 'tokens += 160' server/engine.js</code></td></tr><tr><td>UI 翻牌逻辑</td><td><code>grep -n "rule: !(opt &amp;&amp; opt.tokens)" 平台原型/src/app.js</code></td></tr><tr><td>显示成本</td><td><code>grep -n 'cost = (tokens' 平台原型/src/app.js</code></td></tr><tr><td>优化数据集不存在</td><td>`grep -rn 'dataset\</td><td>eval_set' server/` → 空</td></tr><tr><td>死按钮</td><td>括号匹配解析 <code>ACT</code> 表 → 57 键 vs 50 动作，缺 <code>resetJobScores</code></td></tr><tr><td>无障碍为 0</td><td>`grep -c 'aria-\</td><td>role=' 平台原型/src/app.js` → 0</td></tr><tr><td>WAL 无 checkpoint</td><td><code>grep -n 'PRAGMA' server/db.js</code> → 仅 journal_mode / busy_timeout</td></tr></tbody></table></div></article></main>
 </div>
-<footer>生成时间：2026-10-02 10:55（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-03 17:10（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "HR-Agent OS · 面试前缺口审计"}];
 
