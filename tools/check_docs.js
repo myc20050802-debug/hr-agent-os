@@ -388,8 +388,29 @@ const unmarkedHtml = collectHtml(ROOT, []).filter(f => !attrPats.some(r => r.tes
 
 console.log('\n===== 结构不变量 =====');
 const staleHits = facts.evalM ? scanStale(facts) : ['（跳过：评测基线缺失）'];
+
+/* 「加粗符号紧贴网址」扫描：`**https://…**` 这种写法，在源码视图复制时会把 `**`
+   一起带进地址栏 → 线上 404。实战踩过：README 的 demo 链接被面试官一点就 404。
+   markdown 链接语法 `[文字](网址)` 才安全（网址两侧是 `(` 与 `)`，不与 `**` 相邻）。 */
+function hasGluedUrl(file) {
+  let txt; try { txt = read(file); } catch { return false; }
+  let fence = false;
+  for (const line of txt.split(/\r?\n/)) {
+    if (/^\s*```/.test(line)) { fence = !fence; continue; }
+    if (fence) continue;                       /* 代码块内的示例不算命中 */
+    if (/\*\*https?:\/\//.test(line)) return true;
+  }
+  return false;
+}
+const gluedUrlFiles = ['README.md',
+  ...fs.readdirSync(path.join(ROOT, 'docs')).filter(n => n.endsWith('.md')).map(n => 'docs/' + n)]
+  .filter(hasGluedUrl);
+
 const invariants = [
   ['评测基线存在（tools/golden/baseline.json）', !!facts.evalM],
+  ['「加粗符号紧贴网址」写法为零（否则复制会把 ** 带进地址栏 → 404）'
+    + (gluedUrlFiles.length ? '（命中：' + gluedUrlFiles.join(', ') + '）' : ''),
+    gluedUrlFiles.length === 0],
   ['旧值未在「现状类」文档里复活' + (staleHits.length ? '（命中：' + staleHits.join('、') + '）' : ''),
     staleHits.length === 0],
   ['PAGES 定义无重复', new Set(facts.pageSet).size === facts.pages],
