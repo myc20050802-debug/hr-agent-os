@@ -57,11 +57,8 @@ window.slideDataMap.set(19, `
             </div>
         </div>
 
-        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line2);display:grid;grid-template-columns:1fr 1fr 1fr;gap:34px;">
-            <div>
-                <div class="ed-k" style="color:#5A6A85;">联系方式</div>
-                <div class="ed-p" style="margin-top:7px;font-size:13.5px;">邮箱 / 微信：<span class="ed-warn">（发送前请替换为真实联系方式）</span></div>
-            </div>
+        <!-- 联系方式块已移除：宁缺，不留占位提示 -->
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line2);display:grid;grid-template-columns:1fr 1fr;gap:34px;">
             <div>
                 <div class="ed-k" style="color:#5A6A85;">在线 demo</div>
                 <div class="ed-p ed-cy" style="margin-top:7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all;">myc20050802-debug.github.io/hr-agent-os</div>
