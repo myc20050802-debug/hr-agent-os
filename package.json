@@ -22,6 +22,8 @@
     "eval:dual": "node --experimental-sqlite tools/eval_dual_mode.js --md docs/16_规则与LLM双模式对照评测.md",
     "share": "python tools/build_share_pack.py",
     "build:portfolio": "cd frontend && npm run build -- --outDir dist && cd .. && python tools/build_portfolio_single.py",
+    "build:pdf": "python tools/build_portfolio_pdf.py",
+    "build:pptx": "node frontend/scripts/make-pptx.cjs frontend/public/assets/images/posters/pages docs/pages.json artifacts/HR-Agent-OS_作品集_19页.pptx",
     "verify:portfolio": "python frontend/scripts/verify-single-file.py",
     "test:backend": "node tools/run_all.js --only backend",
     "test:frontend": "node tools/run_all.js --only frontend",

@@ -62,7 +62,9 @@ jobs:
             tools/import_boss_jobs.py \
             tools/build_share_pack.py \
             tools/md2dark_html.py \
-            tools/build_docs_html.py
+            tools/build_docs_html.py \
+            tools/build_portfolio_single.py \
+            tools/build_portfolio_pdf.py
 
       # 文档阅读版是生成物：断言「清单与磁盘自洽」，避免新增文档忘了登记、
       # 或改了 md 却没重生（产物与文档静默不一致，是最难发现的一类过期）。

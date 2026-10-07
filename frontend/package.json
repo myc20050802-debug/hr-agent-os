@@ -7,8 +7,10 @@
     "dev": "vite",
     "build": "vite build --outDir ../artifacts",
     "preview": "vite preview --outDir ../artifacts",
+    "preview:deck": "vite preview --port 5180 --strictPort",
     "build:slides": "rm -rf ./dist-slides && node scripts/build-slides.js",
-    "build:export-pptx": "node ../.codebuddy/skills/ppt-implement/scripts/export/html2pptx.js ./dist-slides/all-slides.html ../artifacts/presentation.pptx && rm -rf ./dist-slides"
+    "shoot:slides": "python scripts/shoot-slides.py --url http://127.0.0.1:5180 -o public/assets/images/posters/pages",
+    "build:pptx": "node scripts/make-pptx.cjs public/assets/images/posters/pages ../docs/pages.json ../artifacts/HR-Agent-OS_作品集_19页.pptx"
   },
   "dependencies": {
     "juice": "^11.1.0",

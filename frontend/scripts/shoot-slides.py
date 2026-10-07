@@ -16,6 +16,7 @@
 import argparse
 import os
 import sys
+import urllib.parse
 
 from playwright.sync_api import sync_playwright
 
@@ -26,6 +27,50 @@ UI_CHROME_CSS = (
 )
 
 WIDTH, HEIGHT = 1440, 810
+
+# 哪些主机算「本机」——命中时禁止 Chromium 走代理，详见 launch_args()
+LOOPBACK_HOSTS = ("127.0.0.1", "localhost", "::1", "0.0.0.0", "[::1]")
+
+
+def launch_args(url):
+    """本机截图必须让 Chromium 直连，否则「连自己的 dev server 都连不上」。
+
+    踩过的坑：开发环境常被注入 HTTP_PROXY（例如 127.0.0.1:13577），而 Chromium
+    默认并不豁免 localhost —— 于是每一步 goto 都经由代理转发，表现为页面永远
+    不 ready、脚本无限挂住（不是报错，是静默卡死，最难排查）。
+
+    只在目标是回环地址时才强制直连，需要真实代理访问外网的场景不受影响。
+    """
+    host = (urllib.parse.urlsplit(url).hostname or "").lower()
+    if host in LOOPBACK_HOSTS or host.endswith(".localhost"):
+        return ["--no-proxy-server"]
+    return []
+
+
+def wait_ready(page, page_no=None):
+    """等到「作品集本体已挂载且这一页已渲染」，而不是等网络静默。
+
+    为什么不用 wait_until="networkidle"：页面里有一张 Google Fonts 样式表，
+    在国内网络下会长时间挂起。挂起的连接会让 networkidle 永远等不到，
+    于是 30s 后抛异常 —— 而这段时间页面其实早就渲染好了。
+    这里断言的是真正的就绪条件：slideDataMap 有内容。
+    """
+    try:
+        page.wait_for_function(
+            "() => window.slideDataMap && window.slideDataMap.size > 0",
+            timeout=20000)
+    except Exception as e:
+        print("WARN: 等待 slideDataMap 超时：%s" % e, file=sys.stderr)
+    # 逐页时确认页码已切到目标页（避免截到上一页）
+    if page_no is not None:
+        try:
+            page.wait_for_function(
+                "n => { const el = document.getElementById('pageIndicator');"
+                " return !!el && el.textContent.replace(/\\s/g,'').startsWith(n + '/'); }",
+                arg=page_no, timeout=8000)
+        except Exception:
+            pass
+    page.wait_for_timeout(500)
 
 
 def detect_total(page, fallback=None):
@@ -56,15 +101,19 @@ def main():
     os.makedirs(args.output, exist_ok=True)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        # 注意别把变量命名成 args —— 会覆盖上面 argparse 的命名空间
+        launch_flags = launch_args(args.url)
+        if launch_flags:
+            print("Chromium 直连（已禁用代理）：%s" % " ".join(launch_flags))
+        browser = p.chromium.launch(headless=True, args=launch_flags)
         context = browser.new_context(
             viewport={"width": WIDTH, "height": HEIGHT},
             device_scale_factor=2,  # 2x 高清
         )
         page = context.new_page()
 
-        page.goto(f"{args.url}?page=1", wait_until="networkidle")
-        page.wait_for_timeout(800)
+        page.goto(f"{args.url}?page=1", wait_until="domcontentloaded", timeout=30000)
+        wait_ready(page)
 
         total = detect_total(page, args.pages)
         if total <= 0:
@@ -74,8 +123,8 @@ def main():
         print(f"Found {total} slides")
 
         for i in range(1, total + 1):
-            page.goto(f"{args.url}?page={i}", wait_until="networkidle")
-            page.wait_for_timeout(450)
+            page.goto(f"{args.url}?page={i}", wait_until="domcontentloaded", timeout=30000)
+            wait_ready(page, page_no=i)
             page.add_style_tag(content=UI_CHROME_CSS)
             page.wait_for_timeout(150)
 
