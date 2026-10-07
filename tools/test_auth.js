@@ -244,7 +244,7 @@ const as = async who => {
   check('JD 正文未混入 Java / Spring（职能族优先仍生效）', !/Java|Spring/i.test(jd.json.jd || ''),
     'jd 前 60 字=' + String(jd.json.jd || '').slice(0, 60).replace(/\n/g, ' '));
   check('JD 含合规扫描结论', !!jd.json.scan, JSON.stringify(jd.json.scan));
-  const scan = await call('POST', '/api/agent/jd/generate', { title: '渠道销售专员', industry: '销售', must: ['限男性，35 岁以下，需本地户籍'] });
+  const scan = await call('POST', '/api/agent/jd/generate', { title: '渠道销售专员', industry: '销售', must: ['35 岁以下，仅限本地户口'] });
   check('歧视性用语被扫描命中', (scan.json.scan.flagged || []).length > 0, JSON.stringify(scan.json.scan.flagged).slice(0, 120));
   eq('命中后阻断直接发布', scan.json.blockPublish, true);
 

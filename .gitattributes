@@ -18,3 +18,7 @@
 docs/html/*.html linguist-generated=true
 docs/archive/*.html linguist-generated=true
 docs/样例/*.html linguist-generated=true
+
+# PPT 作品集（frontend/）：index.html 是框架骨架（占位符由脚本填充）、
+# slide 由 frontend/src/slides/*.js 装配 —— 同样**不要手改产物**
+frontend/*.html linguist-generated=true

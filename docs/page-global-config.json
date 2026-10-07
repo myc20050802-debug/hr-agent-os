@@ -1,0 +1,11 @@
+{
+  "slideStyle": "tech",
+  "colorScheme": "Editorial Dark · 冷结构 + 暖情绪",
+  "primaryColor": "#38BDF8",
+  "accentColor1": "#22D3EE",
+  "accentColor2": "#FBBF24",
+  "neutralColor": "#94A3B8",
+  "background": { "type": "color", "value": "#060910" },
+  "fontTitle": "'Montserrat', 'Noto Sans SC', sans-serif",
+  "fontBody": "'Inter', 'Noto Sans SC', sans-serif"
+}

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HR-Agent OS · 作品集（面试版）</title>
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+  --line:#262c39; --line2:#323a4b;
+  --tx:#e7eaf1; --tx2:#a8b1c2; --tx3:#6f7a8d;
+  --ac:#4c8dff; --ac2:#7aa9ff; --grn:#3ddc97; --yel:#f5b942; --red:#ff6b6b; --pur:#a78bfa;
+  --mono:ui-monospace,SFMono-Regular,"Cascadia Mono","JetBrains Mono",Consolas,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font:15px/1.78 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+header{position:sticky;top:0;z-index:50;background:rgba(13,15,20,.92);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);padding:14px 26px 0}
+.hrow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+h1.brand{font-size:17px;margin:0;letter-spacing:.3px}
+.sub{color:var(--tx3);font-size:12.5px}
+.searchbox{margin-left:auto;display:flex;align-items:center;gap:8px}
+input#q{background:var(--panel2);border:1px solid var(--line2);color:var(--tx);border-radius:9px;
+  padding:8px 12px;width:240px;font-size:13px;outline:none}
+input#q:focus{border-color:var(--ac)}
+.hint{font-size:12px;color:var(--tx3)}
+.tabs{display:flex;gap:6px;margin-top:12px;overflow-x:auto}
+.tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--tx2);
+  padding:9px 14px;font-size:13.5px;cursor:pointer;white-space:nowrap;font-family:inherit}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac2);border-bottom-color:var(--ac);font-weight:600}
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;max-width:1560px;margin:0 auto}
+aside{position:sticky;top:112px;align-self:start;height:calc(100vh - 112px);overflow-y:auto;
+  padding:22px 14px 60px 26px;border-right:1px solid var(--line)}
+.tocgroup{display:flex;flex-direction:column;gap:1px}
+.toclink{display:block;color:var(--tx2);text-decoration:none;font-size:13px;padding:5px 9px;
+  border-radius:7px;line-height:1.45}
+.toclink:hover{background:var(--panel2);color:var(--tx)}
+.toclink.lvl2{padding-left:20px}
+.toclink.lvl3{padding-left:32px;font-size:12.5px;color:var(--tx3)}
+main{padding:26px 34px 120px;min-width:0}
+.docmeta{font:12px var(--mono);color:var(--tx3);margin-bottom:18px;
+  border:1px dashed var(--line2);border-radius:8px;padding:6px 10px;display:inline-block}
+article h1{font-size:27px;margin:26px 0 16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+article h2{font-size:21px;margin:38px 0 14px;padding:9px 0 9px 13px;border-left:3px solid var(--ac);
+  background:linear-gradient(90deg,rgba(76,141,255,.09),transparent);border-radius:0 8px 8px 0}
+article h3{font-size:17px;margin:28px 0 10px;color:var(--ac2)}
+article h4{font-size:15px;margin:20px 0 8px;color:var(--tx2)}
+p{margin:9px 0}
+a{color:var(--ac2)}
+strong{color:#fff;font-weight:650}
+em{color:var(--yel);font-style:normal}
+code{font:12.6px var(--mono);background:var(--panel2);border:1px solid var(--line);
+  padding:1.5px 5px;border-radius:5px;color:#ffd479}
+.codeblock{margin:14px 0;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#0a0c11}
+.codetop{display:flex;justify-content:space-between;align-items:center;padding:6px 12px;
+  background:var(--panel);border-bottom:1px solid var(--line);font:11.5px var(--mono);color:var(--tx3)}
+.copybtn{background:var(--panel2);border:1px solid var(--line2);color:var(--tx2);font-size:11.5px;
+  padding:3px 10px;border-radius:6px;cursor:pointer;font-family:inherit}
+.copybtn:hover{color:var(--tx);border-color:var(--ac)}
+pre{margin:0;padding:14px 16px;overflow-x:auto}
+pre code{background:none;border:none;padding:0;color:#cfd8e6;font-size:12.6px;line-height:1.62}
+blockquote{margin:14px 0;padding:13px 16px;background:linear-gradient(90deg,rgba(167,139,250,.10),rgba(167,139,250,.02));
+  border-left:3px solid var(--pur);border-radius:0 10px 10px 0;color:#d9def0}
+blockquote p{margin:4px 0}
+.tablewrap{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:11px}
+table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:520px}
+th{background:var(--panel);text-align:left;padding:10px 12px;font-weight:640;color:var(--ac2);
+  border-bottom:1px solid var(--line2);white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line);color:var(--tx2);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:rgba(76,141,255,.05);color:var(--tx)}
+ul,ol{margin:9px 0;padding-left:24px}
+li{margin:5px 0;color:var(--tx2)}
+li strong{color:var(--tx)}
+hr.sep{border:none;border-top:1px solid var(--line);margin:26px 0}
+mark{background:rgba(245,185,66,.34);color:#fff;border-radius:3px;padding:0 2px}
+.hidden{display:none !important}
+footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-size:12.5px;text-align:center}
+@media(max-width:1080px){.wrap{grid-template-columns:1fr}aside{display:none}main{padding:20px 16px 90px}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1 class="brand">HR-Agent OS · 作品集（面试版）</h1>
+    <span class="sub">一个能真跑起来的 B 端 HR AI Agent 平台 · 24 页面 / 47 接口 / 一致率 96.7% / 漏筛 0%</span>
+    <div class="searchbox">
+      <span class="hint" id="hint">全文搜索</span>
+      <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs"><button class="tab active" data-doc="doc0">HR-Agent OS · 作品集（面试版）</button></div>
+</header>
+<div class="wrap">
+  <aside><div class="tocgroup" data-doc="doc0"><a class="toclink lvl1" href="#doc0--HR-Agent-OS-作品集-面试版" data-text="HR-Agent OS · 作品集（面试版）">HR-Agent OS · 作品集（面试版）</a><a class="toclink lvl2" href="#doc0--30-秒速览" data-text="30 秒速览">30 秒速览</a><a class="toclink lvl2" href="#doc0--一-我在解决什么问题" data-text="一、我在解决什么问题">一、我在解决什么问题</a><a class="toclink lvl2" href="#doc0--二-产品设计-三个-必须-与三个-不做" data-text="二、产品设计：三个「必须」与三个「不做」">二、产品设计：三个「必须」与三个「不做」</a><a class="toclink lvl2" href="#doc0--三-五个核心能力-每条都写明-为什么它是真的" data-text="三、五个核心能力（每条都写明「为什么它是真的」）">三、五个核心能力（每条都写明「为什么它是真的」）</a><a class="toclink lvl2" href="#doc0--四-怎么证明它有效-一套自己搭的评测" data-text="四、怎么证明它有效：一套自己搭的评测">四、怎么证明它有效：一套自己搭的评测</a><a class="toclink lvl3" href="#doc0--4-1-黄金集与口径" data-text="4.1 黄金集与口径">4.1 黄金集与口径</a><a class="toclink lvl3" href="#doc0--4-2-三个指标-跟着一个红线" data-text="4.2 三个指标（跟着一个红线）">4.2 三个指标（跟着一个红线）</a><a class="toclink lvl3" href="#doc0--4-3-一个真实的迭代" data-text="4.3 一个真实的迭代">4.3 一个真实的迭代</a><a class="toclink lvl2" href="#doc0--五-技术实现概览" data-text="五、技术实现概览">五、技术实现概览</a><a class="toclink lvl2" href="#doc0--六-工程纪律-让-文档-不许撒谎" data-text="六、工程纪律：让「文档」不许撒谎">六、工程纪律：让「文档」不许撒谎</a><a class="toclink lvl2" href="#doc0--七-从-0-到-1-过程与关键决策" data-text="七、从 0 到 1：过程与关键决策">七、从 0 到 1：过程与关键决策</a><a class="toclink lvl3" href="#doc0--7-1-阶段" data-text="7.1 阶段">7.1 阶段</a><a class="toclink lvl3" href="#doc0--7-2-三个真实翻过车的点-都留了回归用例" data-text="7.2 三个真实翻过车的点（都留了回归用例）">7.2 三个真实翻过车的点（都留了回归用例）</a><a class="toclink lvl2" href="#doc0--八-我把自己当面试官-审了一遍自己的项目" data-text="八、我把自己当面试官，审了一遍自己的项目">八、我把自己当面试官，审了一遍自己的项目</a><a class="toclink lvl2" href="#doc0--九-已知边界-不藏着" data-text="九、已知边界（不藏着）">九、已知边界（不藏着）</a><a class="toclink lvl2" href="#doc0--十-关于我" data-text="十、关于我">十、关于我</a><a class="toclink lvl2" href="#doc0--附-面试时我会主动讲的三句话" data-text="附：面试时我会主动讲的三句话">附：面试时我会主动讲的三句话</a></div></aside>
+  <main id="main"><article class="doc" data-doc="doc0"><div class="docmeta">21_作品集_面试版.md</div><h1 id="doc0--HR-Agent-OS-作品集-面试版">HR-Agent OS · 作品集（面试版）</h1>
+<blockquote><strong>一个能真跑起来的 B 端 HR AI Agent 平台。</strong> 界面上的<strong>每一个分数都能回答「为什么是这个分」</strong>，每一次越权都在<strong>服务端</strong>被 403 拦下， 每一份 JD 都会先对着真实在招市场校准、再做一遍用工合规扫描。 最关键的一句：<strong>这些结论全部可复现 —— 不接大模型也能跑通全流程。</strong></blockquote>
+<hr class="sep">
+<h2 id="doc0--30-秒速览">30 秒速览</h2>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>项目</strong></td><td>HR-Agent OS · 招聘全链路 AI Agent 平台（PoC → 可演示档）</td></tr><tr><td><strong>我担任</strong></td><td>产品定义 + 口径设计 + 工程落地 + 自建评测（独立完成）</td></tr><tr><td><strong>在线 demo</strong>（零安装，点开即玩）</td><td><a href="https://myc20050802-debug.github.io/hr-agent-os/" target="_blank" rel="noreferrer">GitHub Pages</a></td></tr><tr><td><strong>备用预览</strong></td><td><a href="https://hr-agent-os.app.workbuddy.host/" target="_blank" rel="noreferrer">沙箱部署</a></td></tr><tr><td><strong>源码 + 完整文档</strong></td><td><a href="https://github.com/myc20050802-debug/hr-agent-os" target="_blank" rel="noreferrer">github.com/myc20050802-debug/hr-agent-os</a></td></tr><tr><td><strong>规模</strong></td><td>24 个页面 · 47 个后端接口 · schema v9 · 12 个回归套件 · 约 19,400 行 JS</td></tr><tr><td><strong>筛选质量</strong></td><td>档位一致率 <strong>96.7%</strong>（29/30）· ±1 档 <strong>100%</strong> · <strong>漏筛 0%</strong> · 误筛 8.3%</td></tr><tr><td><strong>运行时依赖</strong></td><td><strong>0</strong>（Node 22 原生 <code>http</code> + 内置 <code>node:sqlite</code>，<code>dependencies</code> 为空）</td></tr></tbody></table></div>
+<blockquote>一句话看懂它和「长得像 HR 系统的演示原型」的区别： <strong>原型是「点得动」，这个项目是「答得上」。</strong> 答得上分数怎么来的、答得上越权为什么被拒、答得上 JD 为什么这么写。</blockquote>
+<hr class="sep">
+<h2 id="doc0--一-我在解决什么问题">一、我在解决什么问题</h2>
+<p>HR 场景里，AI 落地真正难的不是「接一个大模型」。我把痛点拆成三条，这个项目的每一处设计都对应其中一条：</p>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>真实痛点</th><th>为什么难</th><th>本项目的解法</th></tr></thead><tbody><tr><td>1</td><td><strong>AI 给的结论业务方不敢签字</strong></td><td>分数是黑盒，出了问题无法追溯</td><td>分数与档位 <strong>100% 由确定性规则算出</strong>（可复现、可追溯）；分数下面常驻一栏「为什么是这个分」，逐维算式 + 决定性因素 + 还差几分进下一档</td></tr><tr><td>2</td><td><strong>HR 系统天生处理敏感数据</strong></td><td>权限写在页面上、数据早出了库，等于没权限</td><td>权限<strong>在出数据之前生效</strong>：24 能力 × 7 角色 + 行级数据范围（<code>all/dept/self</code>）+ PII 字段物理脱敏；越权是<strong>真 403</strong>，前端按钮显隐只是体验层</td></tr><tr><td>3</td><td><strong>JD 里一句「35 岁以下」就是法律风险</strong></td><td>写的人不觉得有问题，HR 也未必逐句审</td><td>生成前先检索市场在招同类岗位做「接地」，生成后做合规扫描，命中歧视性表述<strong>直接阻止发布</strong>，每条给法条依据 + 建议改法</td></tr></tbody></table></div>
+<p><strong>目标用户</strong>：中大型企业 HR 部门 / 招聘团队（私有化、数据不出境）。</p>
+<p><strong>Non-goals（明确不做）</strong>：不做通用大模型、不做简历库买卖、不做面向 C 端的求职产品。</p>
+<hr class="sep">
+<h2 id="doc0--二-产品设计-三个-必须-与三个-不做">二、产品设计：三个「必须」与三个「不做」</h2>
+<div class="tablewrap"><table><thead><tr><th>必须</th><th>为什么</th></tr></thead><tbody><tr><td><strong>必须可解释</strong></td><td>每个分数都要能摊开算给业务方看。归因<strong>只读</strong>打分时已算出的系数、不做二次计算，测试里锁死「分项之和 == 总分」</td></tr><tr><td><strong>必须可复现</strong></td><td>同一份简历跑两次结果必须一致，否则不能拿去和业务方对齐</td></tr><tr><td><strong>必须留痕</strong></td><td>应用层只插不改，外加数据库 <code>BEFORE UPDATE</code> / <code>BEFORE DELETE</code> 触发器 <code>RAISE(ABORT)</code> —— 想改审计得先改 schema，而 schema 是版本化迁移管的</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>不做</th><th>为什么</th></tr></thead><tbody><tr><td><strong>不把判断权交给模型</strong></td><td>分数与档位全由确定性规则算出；模型只做三件事：推荐理由的<strong>措辞</strong>、制度问答的语言组织、JD 润色</td></tr><tr><td><strong>不编硬数字</strong></td><td>页面上的成本/用量必须能指出来源。规则模式就是 0 调用、显示 0，不显示一个「看起来合理」的试算值冒充真实用量</td></tr><tr><td><strong>不让 AI 越过人工闸门</strong></td><td>高风险动作（Offer 决策、推翻 AI 结论）必须留人工签批，AI 只负责把它推到闸门前面</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--三-五个核心能力-每条都写明-为什么它是真的">三、五个核心能力（每条都写明「为什么它是真的」）</h2>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>能力</th><th>为什么不是话术</th></tr></thead><tbody><tr><td>1</td><td><strong>分数可解释</strong></td><td>分数下面有一栏「为什么是这个分」：逐维算式（<code>技能匹配 40 × 0.95 = 38</code>）+ 决定性因素 + 还差几分进下一档。测试锁死「分项之和 == 总分」「满分 × 系数 == 该维得分」</td></tr><tr><td>2</td><td><strong>规则与模型分工明确</strong></td><td>分档 <strong>100% 规则</strong>（可复现、可签字）；模型只做措辞与语言组织。「不配大模型也能跑通全流程」不是降级方案，是<strong>设计选择</strong> —— 见双模式对照评测</td></tr><tr><td>3</td><td><strong>权限真的在服务端</strong></td><td>24 能力 × 7 角色 + 行级范围 + PII 脱敏，全部在出数据之前生效。员工身份导出全公司花名册是<strong>真 403</strong>（缺 <code>employee:export</code> 能力）</td></tr><tr><td>4</td><td><strong>审计改不掉</strong></td><td>应用层只插不改 + 数据库触发器 <code>RAISE(ABORT)</code>，审计日志无法被应用层篡改</td></tr><tr><td>5</td><td><strong>JD 接地真实市场 + 合规红线</strong></td><td>生成前按「标题优先」检索市场在招同类岗位（仓库自带 <strong>183 条</strong>抓取快照），拼接前做最长公共子串 + bigram 双去重；命中「35 岁以下」「仅限本地户口」这类表述<strong>直接阻止发布</strong>，每条给法条依据与建议改法</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--四-怎么证明它有效-一套自己搭的评测">四、怎么证明它有效：一套自己搭的评测</h2>
+<p><strong>AI 产品经理岗，面试官问的第一个技术问题通常是「你怎么衡量你的 AI 效果」。</strong> 所以我把评测做成了项目的核心交付物之一。</p>
+<h3 id="doc0--4-1-黄金集与口径">4.1 黄金集与口径</h3>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>规模</td><td><strong>30 例</strong>（3 个岗位 × 各 10 例），<strong>人工标注</strong>、三档标签 <code>strong / ok / no</code></td></tr><tr><td>判定顺序</td><td><strong>先过硬性门槛（年限 / 学历 / 技能相关性），再定档位</strong> —— 顺序反了会把「技能很全但年限不够」标成优秀</td></tr><tr><td>证据来源</td><td>标注时<strong>只看简历原文 + 岗位要求</strong>，禁止偷看算法输出（看一眼 = 把规则抄成答案 = 循环论证）</td></tr><tr><td>口径冻结</td><td><code>rubricVersion = 1</code>，写到代码里可机器校验（枚举合法 / <code>id</code> 唯一 / <code>jobId</code> 无悬空 / 每岗位 ≥10 例 / 每岗 ≥1 陷阱探针 / 三档占比 ∈[20%,50%]）</td></tr><tr><td>扩样方案</td><td>独立成文（含 7 个必须先拍死的决策、三层难度配额、一致性验证），<strong>不拿规则输出当答案</strong></td></tr></tbody></table></div>
+<h3 id="doc0--4-2-三个指标-跟着一个红线">4.2 三个指标（跟着一个红线）</h3>
+<div class="tablewrap"><table><thead><tr><th>指标</th><th>当前值</th><th>说明</th></tr></thead><tbody><tr><td><strong>档位一致率</strong></td><td><strong>96.7%</strong>（29/30）</td><td>严格三档一致</td></tr><tr><td><strong>±1 档一致率</strong></td><td><strong>100%</strong></td><td>从没出现「差两档」的离谱判断</td></tr><tr><td><strong>漏筛率</strong></td><td><strong>0.0%</strong></td><td>← <strong>红线</strong>。HR 场景里「把好简历判死」的代价远高于「把差简历放进面试」，所以这个数必须守 0</td></tr><tr><td>误筛率</td><td><strong>8.3%</strong></td><td>12 个应拒样本里放了 1 个进来（宁可多聊一轮，不可错杀）</td></tr></tbody></table></div>
+<blockquote>样本只有 30 例，所以我不敢只报点估计 —— 同时给出 <strong>Wilson 95% 置信区间 [83.3%, 99.4%]</strong>。 样本量不足是<strong>已知边界</strong>，扩样方案已独立成文，但<strong>不自己给自己标注</strong>（那是自证）。</blockquote>
+<h3 id="doc0--4-3-一个真实的迭代">4.3 一个真实的迭代</h3>
+<p>改「判定链条」而不是改「业务维度计数」，让一致率从 90.0% → <strong>96.7%</strong>、误筛率 25.0% → <strong>8.3%</strong>，同时<strong>保住漏筛 0%</strong>。</p>
+<p>五个候选方案做了实测对照，选中的方案是唯一一个「一致率↑ 且 漏筛不↑」的。<strong>评测驱动的迭代</strong>，不是拍脑袋调阈值。</p>
+<hr class="sep">
+<h2 id="doc0--五-技术实现概览">五、技术实现概览</h2>
+<div class="tablewrap"><table><thead><tr><th>维度</th><th>选择</th><th>为什么</th></tr></thead><tbody><tr><td><strong>运行时</strong></td><td>Node 22 原生 <code>http</code> + 内置 <code>node:sqlite</code></td><td><strong>零依赖</strong>：clone 下来一条命令就能起，不需要装任何 npm 包。PoC 阶段把「环境问题」这个变量彻底消掉</td></tr><tr><td><strong>前端</strong></td><td>单文件 HTML（内联全部 CSS/JS）</td><td><strong>断网可演示</strong>、双击即开。代价我主动说：没法按需加载、没有构建期校验</td></tr><tr><td><strong>分层</strong></td><td>后端 <strong>16 个模块按 L0–L5 分层</strong></td><td>依赖方向单向，改一层不会牵连全栈</td></tr><tr><td><strong>来源单一</strong></td><td><code>shared/</code> 三个文件是前后端共用数据源</td><td>改一处，离线端与后端同时生效，避免两套逻辑漂移</td></tr><tr><td><strong>数据库</strong></td><td>schema <strong>v9</strong>，版本化迁移</td><td>空库自动迁移 + 种子，不提交任何数据文件</td></tr><tr><td><strong>规模</strong></td><td>24 页面 / 47 接口 / 约 19,400 行 JS / 10,300+ 行文档</td><td>全部<strong>由脚本从代码算出</strong>，写进文档的数字有守卫盯着（见第六节）</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--六-工程纪律-让-文档-不许撒谎">六、工程纪律：让「文档」不许撒谎</h2>
+<p>这一节是我认为最能体现工作方式的部分 —— <strong>它不是"我写了文档"，是"我让文档没法骗人"</strong>。</p>
+<div class="tablewrap"><table><thead><tr><th>机制</th><th>做法</th><th>挡住什么</th></tr></thead><tbody><tr><td><strong>回归套件</strong></td><td>12 个套件（后端 4 / 自包含 4 / 前端 4），一条命令全跑</td><td>「改 A 坏 B」</td></tr><tr><td><strong>文档真相守卫</strong></td><td>从<strong>代码</strong>读出 24 页面 / 47 接口 / 537,842 字节 / schema v9 等事实，去比对文档里的「现状句」</td><td>文档与代码不一致（真发生过：四份文档四个页面数）</td></tr><tr><td><strong>负向锚点</strong></td><td>不只钉住「现在是多少」，还禁止<strong>旧值复活</strong></td><td>修了一处、另外四篇还留着旧数字</td></tr><tr><td><strong>评测基线单一源</strong></td><td><code>tools/golden/baseline.json</code> 是评测数字的唯一源，守卫<strong>单向</strong>：质量 ≥ 基线、错误 ≤ 基线</td><td>指标倒退还悄悄过 CI</td></tr><tr><td><strong>生成物单一源</strong></td><td>全部阅读版 HTML 由一条命令从 Markdown 重生，清单在代码里</td><td>「md 改了 HTML 还是旧的」</td></tr><tr><td><strong>CI</strong></td><td>Node 22 / 24 双矩阵 + Python 编译检查 + Pages 构建</td><td>只在某一个 Node 版本上碰巧能跑</td></tr></tbody></table></div>
+<blockquote>一条最典型的教训：我曾把评测基线写成<strong>四舍五入后</strong>的值，而守卫是单向往上比 —— 于是「真值 96.67% vs 基线 96.7%」被判成倒退，<strong>报了一个假红</strong>。 修法是把基线存<strong>原始值</strong>而不是显示值。教训写进了贡献指南。</blockquote>
+<hr class="sep">
+<h2 id="doc0--七-从-0-到-1-过程与关键决策">七、从 0 到 1：过程与关键决策</h2>
+<h3 id="doc0--7-1-阶段">7.1 阶段</h3>
+<div class="tablewrap"><table><thead><tr><th>阶段</th><th>关键节点</th><th>产出</th></tr></thead><tbody><tr><td><strong>立项</strong></td><td>定位 / 目标客户 / KPI 树 / Non-goals</td><td>产品需求草稿</td></tr><tr><td><strong>需求调研</strong></td><td>岗位词库（职能族 / 行业 / 技能尾巴）+ 市场岗位快照</td><td>JD 素材扩充清单、183 条市场岗位</td></tr><tr><td><strong>产品设计</strong></td><td>口径设计：打分维度与权重、判定链条、JD 生成与合规规则</td><td>口径文档（v13 / v14 / v16 各一版修复说明）</td></tr><tr><td><strong>开发</strong></td><td>分层骨架、权限模型、状态机、审计触发器</td><td>24 页面 / 47 接口 / schema v9</td></tr><tr><td><strong>测试</strong></td><td>契约测试 → 质量评测 → 压测 → 文档守卫</td><td>12 套件 + 黄金集 + 基线守卫</td></tr><tr><td><strong>上线</strong></td><td>上线自检、备份恢复、三档可用性路径</td><td>上线手册、部署路径文档</td></tr><tr><td><strong>运营准备</strong></td><td>自审（把自己当面试官翻自己的代码）</td><td>面试前缺口审计</td></tr></tbody></table></div>
+<h3 id="doc0--7-2-三个真实翻过车的点-都留了回归用例">7.2 三个真实翻过车的点（都留了回归用例）</h3>
+<div class="tablewrap"><table><thead><tr><th>翻车</th><th>根因</th><th>修法</th></tr></thead><tbody><tr><td><strong>「测试全绿」其实是假的</strong></td><td>前端套件把页面 id <strong>写死</strong>成数组，新增页面时静默漏测，却照打「全部通过」</td><td>改为从页面注册表<strong>派生</strong>，并由守卫禁止再写死</td></tr><tr><td><strong>离线端与后端两套逻辑漂移</strong></td><td>同一个判定在两处实现，改了一处忘了另一处</td><td>抽 <code>shared/</code> 单一数据源；离线端必须镜像同一份词库与口径，改完跑对应套件</td></tr><tr><td><strong>规则模式下却报了 token 与成本</strong></td><td>想让演示「看起来完整」，于是显示了一个凭空算出的金额</td><td>违背自己定的「不编数字」原则 —— 改成规则模式一律显示 0，成本卡改「试算」并注明来源。<strong>一个 AI 产品如果连自己的成本数字都不可信，业务方不会信它的任何输出</strong></td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--八-我把自己当面试官-审了一遍自己的项目">八、我把自己当面试官，审了一遍自己的项目</h2>
+<p>这一节是我最想给面试官看的。<strong>我假装我是面试官，且我愿意翻代码</strong>，写了一份 12 项的缺口审计，按「面试杀伤力」而不是「修复难度」排序，并逐条记录修复状态。</p>
+<p>被我自己抓出来、并且已经修掉的几条：</p>
+<ul>
+<li><strong>筛选链路虚报模型调用与成本</strong> —— 链路里其实 0 次模型调用，日志却记了模型工具名和 token 数。已修：工具名不撒谎，用量取自真实网关。</li>
+<li><strong>「已进入优化数据集」是一句空话</strong> —— 审计日志这么写，但数据集<strong>不存在</strong>。已修：改成真正可归因的原因码枚举 + 一致率接口。</li>
+<li><strong>一个死按钮</strong>（演示复跑必经路径，点下去毫无反应）—— 已修，并补了后端接口。</li>
+<li><strong>WAL 从不 checkpoint</strong> —— 实测日志文件是主库的 11 倍且只增不减。已修，压测时顺手记录了 P95/P99。</li>
+<li><strong>无障碍为 0</strong> —— 政府采购评标普遍含无障碍要求。已补最小集（弹窗语义 / 焦点管理 / 表格表头 / 减少动效）。</li>
+</ul>
+<p><strong>为什么这一节值钱</strong>：绝大多数候选人展示的是「我做成了什么」。</p>
+<p>我多展示一层 —— <strong>「我知道它哪里还不行、并且我说得出来」</strong>。这恰好是这个岗位最重要的能力。</p>
+<hr class="sep">
+<h2 id="doc0--九-已知边界-不藏着">九、已知边界（不藏着）</h2>
+<div class="tablewrap"><table><thead><tr><th>边界</th><th>现状</th><th>为什么不现在做</th></tr></thead><tbody><tr><td><strong>黄金集 30 例</strong></td><td>置信区间偏宽（[83.3%, 99.4%]）</td><td>扩样必须<strong>独立标注</strong>才有效，不能拿规则输出当答案；口径与方法已独立成文</td></tr><tr><td><strong>单租户</strong></td><td>租户标识写死</td><td>多租户涉及数据隔离模型重设计，属企业级门槛，不在 PoC 范围</td></tr><tr><td><strong>无真实简历入口</strong></td><td>走演示数据</td><td>真实简历涉及个人信息合规，需先定数据来源与授权链路</td></tr><tr><td><strong>模型未接入默认链路</strong></td><td>规则模式跑全流程</td><td><strong>这是设计选择</strong>（可复现、可签字）；接模型是替换一个函数，不改架构</td></tr><tr><td><strong>并发天花板未压到极限</strong></td><td>已测到 20 并发 0 错误</td><td>SQLite 单写者，需在真实部署形态下再压</td></tr><tr><td><strong>无障碍仅最小集</strong></td><td>已补语义与焦点</td><td>完整 WCAG 审计未做，不能当合规</td></tr></tbody></table></div>
+<hr class="sep">
+<h2 id="doc0--十-关于我">十、关于我</h2>
+<ul>
+<li><strong>马云冲</strong>，北京。</li>
+<li>执业法律背景，现在做 AI 产品方向 —— 我对上面这三条痛点的敏感度不是推演出来的：<strong>一份 JD 或 Offer 里哪句话碰不得，我是从法条那一侧知道的。</strong></li>
+<li>工作方式：<strong>让 AI 写代码，但我必须能解释每一行为什么这么写</strong> —— 所以我把每个踩过的坑都写成了回归用例。</li>
+<li>联系方式：_（补一句：邮箱 / 微信，发送前请替换本行）_</li>
+</ul>
+<blockquote>想看细节，两个链接就够： <a href="https://myc20050802-debug.github.io/hr-agent-os/" target="_blank" rel="noreferrer">在线 demo</a>（零安装，30 秒看完主流程）· <a href="https://github.com/myc20050802-debug/hr-agent-os" target="_blank" rel="noreferrer">源码 + 完整文档</a></blockquote>
+<hr class="sep">
+<h2 id="doc0--附-面试时我会主动讲的三句话">附：面试时我会主动讲的三句话</h2>
+<ol>
+<li><strong>「分数和档位 100% 是规则算出来的，模型只负责措辞。」</strong> —— 主动定义「AI 在哪一步」，别等面试官发现筛选链路默认没调模型。</li>
+<li><strong>「漏筛率 0% 是我守的红线；为了它，我接受了 8.3% 的误筛。」</strong> —— 说得出指标背后的业务取舍，比报一个漂亮数字更有说服力。</li>
+<li><strong>「我知道它哪儿还不行 —— 这份自审清单就是证据。」</strong> —— 把「不足」变成「我清楚边界」。</li>
+</ol></article></main>
+</div>
+<footer>生成时间：2026-10-07 12:56（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<script>
+const docs = [{"key": "doc0", "name": "HR-Agent OS · 作品集（面试版）"}];
+
+function copyCode(btn) {
+  const code = btn.closest('.codeblock').querySelector('code').innerText;
+  navigator.clipboard.writeText(code).then(() => {
+    btn.textContent = '已复制'; setTimeout(() => btn.textContent = '复制', 1400);
+  });
+}
+
+function showDoc(key) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.doc === key));
+  document.querySelectorAll('article.doc').forEach(a => a.style.display = (a.dataset.doc === key ? '' : 'none'));
+  document.querySelectorAll('.tocgroup').forEach(g => g.style.display = (g.dataset.doc === key ? '' : 'none'));
+  resetHighlight();
+}
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => showDoc(t.dataset.doc));
+
+// 滚动高亮目录
+const links = () => Array.from(document.querySelectorAll('.tocgroup:not([style*="none"]) .toclink'));
+window.addEventListener('scroll', () => {
+  const actives = links();
+  let cur = null;
+  for (const a of actives) {
+    const el = document.getElementById(a.getAttribute('href').slice(1));
+    if (el && el.getBoundingClientRect().top < 180) cur = a;
+  }
+  actives.forEach(a => a.style.color = '');
+  if (cur) { cur.style.color = 'var(--ac2)'; }
+});
+
+// 全文搜索 + 高亮
+let marks = [];
+function resetHighlight() {
+  document.querySelectorAll('mark').forEach(m => {
+    const p = m.parentNode; p.replaceChild(document.createTextNode(m.textContent), m); p.normalize();
+  });
+  marks = [];
+  document.getElementById('hint').textContent = '全文搜索';
+  document.getElementById('hint').style.color = 'var(--tx3)';
+}
+document.getElementById('q').addEventListener('input', e => {
+  const kw = e.target.value.trim();
+  resetHighlight();
+  if (kw.length < 2) return;
+  const activeArt = document.querySelector('article.doc:not([style*="none"])') || document.body;
+  let count = 0, first = null;
+  const walker = document.createTreeWalker(activeArt, NodeFilter.SHOW_TEXT, {
+    acceptNode: n => (n.nodeValue.trim().length > 1 && !/^(SCRIPT|STYLE|MARK)$/.test(n.parentNode.nodeName))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+  });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(node => {
+    const low = node.nodeValue.toLowerCase(), k = kw.toLowerCase();
+    if (low.indexOf(k) === -1) return;
+    const frag = document.createDocumentFragment();
+    let rest = node.nodeValue;
+    while (true) {
+      const idx = rest.toLowerCase().indexOf(k); if (idx === -1) break;
+      frag.appendChild(document.createTextNode(rest.slice(0, idx)));
+      const m = document.createElement('mark'); m.textContent = rest.slice(idx, idx + kw.length);
+      frag.appendChild(m); marks.push(m); count++;
+      rest = rest.slice(idx + kw.length);
+    }
+    frag.appendChild(document.createTextNode(rest));
+    node.parentNode.replaceChild(frag, node);
+  });
+  const h = document.getElementById('hint');
+  h.textContent = count ? `命中 ${count} 处` : '无匹配';
+  h.style.color = count ? 'var(--grn)' : 'var(--red)';
+  if (count) { first = marks[0]; first.scrollIntoView({behavior:'smooth', block:'center'}); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.id !== 'q') { e.preventDefault(); document.getElementById('q').focus(); }
+  if (e.key === 'Escape') { document.getElementById('q').value = ''; resetHighlight(); }
+});
+</script>
+</body>
+</html>

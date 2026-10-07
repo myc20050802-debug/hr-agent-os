@@ -75,3 +75,14 @@ _*/
 # 补丁脚本的备份（带断言的原子补丁会先留一份原文；只用于回滚，不入库）
 *.bak_*
 *.bak
+
+# ---- 7. 作品集（frontend/）的构建产物与中间件 ----
+# 网页版由 frontend/src 构建出来，产物不入库（一条 `vite build` 可重生成）
+frontend/dist/
+frontend/dist-slides/
+# 海报图：shoot-slides.py 从 deck 源码真跑一遍重渲出来的，约 13MB，不入库
+frontend/public/assets/images/posters/
+
+# ---- 8. 导出成品（pptx / pdf / 全览图）----
+# 由 frontend/scripts/make-pptx.cjs + PowerPoint 导出，随时可重生成，不入库
+artifacts/

@@ -209,12 +209,13 @@ JSDOM.fromFile(file, { runScripts: 'dangerously', pretendToBeVisual: true, virtu
       if (t0.value !== '') throw new Error('岗位名称不应被写死（期望初始为空，实际=' + t0.value + '）');
       t0.value = '仓库管理员';
       window.document.getElementById('jdIndustry').value = '制造业';
-      window.document.getElementById('jdMust').value = '2 年以上仓储管理经验，限男性，35 岁以下';
+      window.document.getElementById('jdMust').value = '2 年以上仓储管理经验，35 岁以下，仅限本地户口';
       click('[data-act="runJD"]');
       await wait(4200);
       const t = $('#jdBody').textContent;
       if (t.indexOf('仓库管理员') === -1) throw new Error('JD 未体现所填岗位名');
-      if (t.indexOf('男性限定') === -1) throw new Error('未命中歧视性用语「男性限定」');
+      if (t.indexOf('年龄限制') === -1) throw new Error('未命中年龄歧视规则「年龄限制」');
+      if (t.indexOf('户籍限制') === -1) throw new Error('未命中户籍歧视规则「户籍限制」');
       if (t.indexOf('已阻止直接发布') === -1) throw new Error('未阻止直接发布');
     });
 

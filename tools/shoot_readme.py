@@ -141,7 +141,7 @@ def main():
             page.select_option("#jdIndustry", label="互联网")
         except Exception:
             pass          # 选项文案可能变，行业不是关键路径，选不上就保持默认
-        page.fill("#jdMust", "限男性，35 岁以下；3 年以上 AI 产品经验，了解 LLM 与 RAG")
+        page.fill("#jdMust", "35 岁以下，仅限本地户口；3 年以上 AI 产品经验，了解 LLM 与 RAG")
         page.fill("#jdNice", "有大模型应用落地经验者优先")
         page.wait_for_timeout(300)
         vals = page.evaluate("""() => ({
