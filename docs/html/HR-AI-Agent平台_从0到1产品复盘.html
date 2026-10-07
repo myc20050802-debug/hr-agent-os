@@ -210,7 +210,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>原方案</strong></td><td>原型就是一堆假数据，给客户看个样子</td></tr><tr><td><strong>我否掉的理由</strong></td><td>客户会问「这是真的还是假的？」——一旦回答「假的」，前面所有可信度归零；而且假数据无法验证「闸门到底拦没拦住」</td></tr><tr><td><strong>改后方案</strong></td><td><strong>同一份 <code>index.html</code> 双模式</strong>：双击打开 = 离线演示（内置数据 + 内置 Agent 规则）；被 <code>server.js</code> 托管 = LIVE 模式，页面加载自动探测后端，探测成功即切换为真实链路</td></tr><tr><td><strong>影响范围</strong></td><td>一套前端两种用法：陌拜现场双击就演示（不怕没网），评审现场连后端真跑（不怕被质疑）。<strong>这是解决真实约束的产品设计，不是技术炫技</strong></td></tr></tbody></table></div>
 <h3 id="doc0--关键决策-离线模式也不能说假话">关键决策：离线模式也不能说假话</h3>
 <div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>原方案</strong></td><td>离线模式的 JD 合规扫描直接返回写死的结论（「命中 3 处」）</td></tr><tr><td><strong>我否掉的理由</strong></td><td>岗位内容已经可以由 HR 自由填写了，写死结论意味着<strong>用户改了什么它都说同样的话</strong>——这是在演示里撒谎，现场必翻车</td></tr><tr><td><strong>改后方案</strong></td><td>离线端也实现真实规则扫描（<code>src/agent.js</code> 内维护同源规则表），你写什么它就扫什么</td></tr><tr><td><strong>影响范围</strong></td><td>离线演示的结论可信；同时建立一条纪律：<strong>演示态与真实态的结论必须同源</strong></td></tr></tbody></table></div>
-<p><strong>产出物</strong>：<code>平台原型/index.html</code>（<strong>537,842 bytes（约 525KB）</strong>，24 页，零依赖）+ <code>平台原型/src/</code>（app.css / data.js / agent.js / app.js / shell.html）+ <code>build.js</code>（打包脚本）</p>
+<p><strong>产出物</strong>：<code>平台原型/index.html</code>（<strong>537,851 bytes（约 525KB）</strong>，24 页，零依赖）+ <code>平台原型/src/</code>（app.css / data.js / agent.js / app.js / shell.html）+ <code>build.js</code>（打包脚本）</p>
 <blockquote>🎤 <strong>面试这么说</strong>：「我给原型做了双模式：双击打开是离线演示，不怕现场没网；被后端托管时自动探测、切成真实链路。客户问『这是真的假的』的时候，我可以直接把后端跑起来给他看。另外我定了一条纪律——离线模式的结论也必须是真扫出来的，不能写死。因为演示里的假话，现场一定会被戳穿。」</blockquote>
 <hr class="sep">
 <h2 id="doc0--阶段-6-真后端-MVP-把-演示-变成-真跑">阶段 6 · 真后端 MVP：把「演示」变成「真跑」</h2>
@@ -314,7 +314,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <hr class="sep">
 <p><em>本文档由 <code>docs/01</code> 产品需求草稿、<code>docs/02</code> 搭建实操教程、<code>docs/03</code> 本地全栈版运行说明，以及 <code>平台原型/</code>、<code>server/</code> 的实际代码整理而成。所有产出物均可在本仓库中找到对应文件。</em></p></article></main>
 </div>
-<footer>生成时间：2026-10-07 12:56（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-07 13:57（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "HR-Agent OS · 从 0 到 1 产品复盘"}];
 

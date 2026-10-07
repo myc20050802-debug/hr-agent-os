@@ -132,7 +132,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <hr class="sep">
 <h2 id="doc0--六-工程纪律-让-文档-不许撒谎">六、工程纪律：让「文档」不许撒谎</h2>
 <p>这一节是我认为最能体现工作方式的部分 —— <strong>它不是"我写了文档"，是"我让文档没法骗人"</strong>。</p>
-<div class="tablewrap"><table><thead><tr><th>机制</th><th>做法</th><th>挡住什么</th></tr></thead><tbody><tr><td><strong>回归套件</strong></td><td>12 个套件（后端 4 / 自包含 4 / 前端 4），一条命令全跑</td><td>「改 A 坏 B」</td></tr><tr><td><strong>文档真相守卫</strong></td><td>从<strong>代码</strong>读出 24 页面 / 47 接口 / 537,842 字节 / schema v9 等事实，去比对文档里的「现状句」</td><td>文档与代码不一致（真发生过：四份文档四个页面数）</td></tr><tr><td><strong>负向锚点</strong></td><td>不只钉住「现在是多少」，还禁止<strong>旧值复活</strong></td><td>修了一处、另外四篇还留着旧数字</td></tr><tr><td><strong>评测基线单一源</strong></td><td><code>tools/golden/baseline.json</code> 是评测数字的唯一源，守卫<strong>单向</strong>：质量 ≥ 基线、错误 ≤ 基线</td><td>指标倒退还悄悄过 CI</td></tr><tr><td><strong>生成物单一源</strong></td><td>全部阅读版 HTML 由一条命令从 Markdown 重生，清单在代码里</td><td>「md 改了 HTML 还是旧的」</td></tr><tr><td><strong>CI</strong></td><td>Node 22 / 24 双矩阵 + Python 编译检查 + Pages 构建</td><td>只在某一个 Node 版本上碰巧能跑</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>机制</th><th>做法</th><th>挡住什么</th></tr></thead><tbody><tr><td><strong>回归套件</strong></td><td>12 个套件（后端 4 / 自包含 4 / 前端 4），一条命令全跑</td><td>「改 A 坏 B」</td></tr><tr><td><strong>文档真相守卫</strong></td><td>从<strong>代码</strong>读出 24 页面 / 47 接口 / 537,851 字节 / schema v9 等事实，去比对文档里的「现状句」</td><td>文档与代码不一致（真发生过：四份文档四个页面数）</td></tr><tr><td><strong>负向锚点</strong></td><td>不只钉住「现在是多少」，还禁止<strong>旧值复活</strong></td><td>修了一处、另外四篇还留着旧数字</td></tr><tr><td><strong>评测基线单一源</strong></td><td><code>tools/golden/baseline.json</code> 是评测数字的唯一源，守卫<strong>单向</strong>：质量 ≥ 基线、错误 ≤ 基线</td><td>指标倒退还悄悄过 CI</td></tr><tr><td><strong>生成物单一源</strong></td><td>全部阅读版 HTML 由一条命令从 Markdown 重生，清单在代码里</td><td>「md 改了 HTML 还是旧的」</td></tr><tr><td><strong>CI</strong></td><td>Node 22 / 24 双矩阵 + Python 编译检查 + Pages 构建</td><td>只在某一个 Node 版本上碰巧能跑</td></tr></tbody></table></div>
 <blockquote>一条最典型的教训：我曾把评测基线写成<strong>四舍五入后</strong>的值，而守卫是单向往上比 —— 于是「真值 96.67% vs 基线 96.7%」被判成倒退，<strong>报了一个假红</strong>。 修法是把基线存<strong>原始值</strong>而不是显示值。教训写进了贡献指南。</blockquote>
 <hr class="sep">
 <h2 id="doc0--七-从-0-到-1-过程与关键决策">七、从 0 到 1：过程与关键决策</h2>
@@ -173,7 +173,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <li><strong>「我知道它哪儿还不行 —— 这份自审清单就是证据。」</strong> —— 把「不足」变成「我清楚边界」。</li>
 </ol></article></main>
 </div>
-<footer>生成时间：2026-10-07 12:56（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-07 13:57（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "HR-Agent OS · 作品集（面试版）"}];
 

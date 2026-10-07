@@ -32,7 +32,7 @@ window.slideDataMap.set(14, `
                 <div class="ed-row" style="grid-template-columns:24px 104px 1fr;gap:16px;padding:11px 0;">
                     <div class="ed-n" style="padding-top:2px;">2</div>
                     <div class="ed-k" style="padding-top:4px;">doc-truth</div>
-                    <div class="ed-p" style="font-size:13px;">从代码读出 24 页面 / 47 接口 / 537,842 字节 / schema v9，比对文档「现状句」—— 挡住「文档与代码不一致」</div>
+                    <div class="ed-p" style="font-size:13px;">从代码读出 24 页面 / 47 接口 / 537,851 字节 / schema v9，比对文档「现状句」—— 挡住「文档与代码不一致」</div>
                 </div>
                 <div class="ed-row" style="grid-template-columns:24px 104px 1fr;gap:16px;padding:11px 0;">
                     <div class="ed-n" style="padding-top:2px;">3</div>

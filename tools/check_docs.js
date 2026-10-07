@@ -281,6 +281,10 @@ function staleStrings(f) {
     { s: (f.pages - 1) + ' 页', note: '旧页面数（现为 ' + f.pages + ' 页）' },
     { s: '25% 的误筛', note: '旧误筛率（现为 ' + pctOf(f.evalM.falsePassRate) + '）' },
     { s: (f.docMd - 1) + ' 篇源文档', note: '旧源文档数（现为 ' + f.docMd + ' 篇）' },
+    // 原型字节数会随任意文案改动而变（只差 9 字节就漏过一次）——
+    // 实测：537,842 → 537,851 时只有 README/docs/03 被改，另 6 处（含作品集幻灯片）残留。
+    // 旧值永不会再次成为现状，故直接钉死；docs/09 属豁免（保存的是当时证据）。
+    { s: '537,842', note: '旧原型字节数（现为 ' + comma(f.htmlBytes) + ' bytes）' },
   ];
 }
 
@@ -288,6 +292,13 @@ function scanStale(f) {
   const files = ['README.md'];
   for (const n of fs.readdirSync(path.join(ROOT, 'docs'))) {
     if (n.endsWith('.md')) files.push('docs/' + n);
+  }
+  // 作品集幻灯片也是一等交付物：它同样引用「从代码算出」的事实，旧值在这儿复活过
+  const slidesDir = path.join(ROOT, 'frontend', 'src', 'slides');
+  if (fs.existsSync(slidesDir)) {
+    for (const n of fs.readdirSync(slidesDir)) {
+      if (n.endsWith('.js')) files.push('frontend/src/slides/' + n);
+    }
   }
   const hits = [];
   for (const file of files.filter(x => !STALE_SCAN_EXEMPT.includes(x))) {
