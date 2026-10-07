@@ -111,12 +111,18 @@ def resolve(entry, name):
 
 
 def scan_html():
-    """仓库里所有入库的生成物 HTML（排除 分享包 —— 它不入库）。"""
+    """仓库里所有入库的生成物 HTML（排除 分享包 / frontend / artifacts —— 都不入 MANIFEST）。"""
     found = []
     for base in ('docs', ''):
         root = os.path.join(ROOT, base) if base else ROOT
         for dirpath, dirnames, filenames in os.walk(root):
-            dirnames[:] = [d for d in dirnames if d not in ('node_modules', '.git', '分享包', 'src')]
+            # frontend/ = 独立的作品集前端（Vite 源 + dist 构建产物）；artifacts/ = 构建输出目录。
+            # 两者都不属于「文档阅读版」MANIFEST。⚠️ CI 只 checkout 跟踪文件（dist / artifacts 被
+            # .gitignore 排除），所以只排除 artifacts 是不够的 —— frontend/index.html 与
+            # frontend/404.html 是跟踪文件，漏掉它们会让 CI 变红（真踩过）。
+            dirnames[:] = [d for d in dirnames
+                           if d not in ('node_modules', '.git', '分享包', 'src',
+                                        'frontend', 'artifacts', 'dist', 'dist-slides')]
             if os.path.basename(dirpath) in ('平台原型',):
                 continue
             for f in filenames:

@@ -387,6 +387,11 @@ const attrPats = read('.gitattributes').split(/\r?\n/)
 function collectHtml(dir, acc) {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
     if (['node_modules', '.git', 'logs'].includes(e.name)) continue;
+    /* artifacts / dist / dist-slides 是构建产物（.gitignore 已排除，不随仓库分发）。
+       要求它们也标 linguist-generated 没有意义 —— 只会「本地一构建，守卫就假红」：
+       实测 artifacts/index.html + artifacts/404.html 就这么把守卫顶红过。
+       跟踪文件不会落在这些目录下（已用 git ls-files 断言），排除是安全的。 */
+    if (['artifacts', 'dist', 'dist-slides'].includes(e.name)) continue;
     if (e.name === '分享包') continue;              /* 不入库（gitignore），不必标 */
     if (e.isDirectory() && e.name === 'src') continue; /* 平台原型/src 是源码，不是生成物 */
     const p = path.join(dir, e.name);
