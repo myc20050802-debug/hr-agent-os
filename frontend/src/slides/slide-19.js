@@ -29,9 +29,6 @@ window.slideDataMap.set(19, `
                 <div style="font-family:var(--font-title);font-size:27px;font-weight:700;line-height:1.5;color:#F2F6FF;margin-top:18px;">
                     一份 JD 或 Offer 里哪句话碰不得，<br>我是从<span style="color:#FF6B4A;">法条那一侧</span>知道的。
                 </div>
-                <div class="ed-p" style="margin-top:22px;">
-                    执业法律背景，现在做 AI 产品方向 —— 所以前面那三条痛点，不是推演出来的假设，是我在法条那一侧见过的后果。
-                </div>
             </div>
 
             <div style="display:flex;flex-direction:column;">
