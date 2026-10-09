@@ -64,7 +64,7 @@ window.slideDataMap.set(3, `
             </div>
             <div>
                 <div class="ed-k">在线 demo</div>
-                <div class="ed-p ed-cy" style="margin-top:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all;">myc20050802-debug.github.io/hr-agent-os</div>
+                <div class="ed-p ed-cy" style="margin-top:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all;">https://myc20050802-debug.github.io/hr-agent-os</div>
                 <div class="ed-cap" style="margin-top:6px;">零安装，点开就玩</div>
             </div>
         </div>

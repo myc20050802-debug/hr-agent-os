@@ -58,11 +58,11 @@ window.slideDataMap.set(19, `
         <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line2);display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:30px;">
             <div>
                 <div class="ed-k" style="color:#5A6A85;">在线 demo（打开就能用）</div>
-                <div class="ed-p ed-cy" style="margin-top:7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all;">myc20050802-debug.github.io/hr-agent-os</div>
+                <div class="ed-p ed-cy" style="margin-top:7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all;">https://myc20050802-debug.github.io/hr-agent-os</div>
             </div>
             <div>
                 <div class="ed-k" style="color:#5A6A85;">源码 + 完整文档</div>
-                <div class="ed-p ed-cy" style="margin-top:7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all;">github.com/myc20050802-debug/hr-agent-os</div>
+                <div class="ed-p ed-cy" style="margin-top:7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all;">https://github.com/myc20050802-debug/hr-agent-os</div>
             </div>
             <!-- 标准 3「可复现」：三条命令，别人照做就能跑起来、看到同一组数字。 -->
             <div>
