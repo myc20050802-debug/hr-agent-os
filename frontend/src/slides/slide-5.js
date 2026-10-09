@@ -71,15 +71,9 @@ window.slideDataMap.set(5, `
             </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:40px;padding-top:16px;border-top:1px solid var(--line2);">
-            <div>
-                <div class="ed-k">目标用户</div>
-                <div class="ed-p" style="margin-top:6px;">中大型企业 HR 部门 / 招聘团队（私有化、数据不出境）</div>
-            </div>
-            <div>
-                <div class="ed-k" style="color:#5A6A85;">Non-Goals · 明确不做</div>
-                <div class="ed-p" style="margin-top:6px;">不做通用大模型 · 不做简历库买卖 · 不做面向 C 端的求职产品</div>
-            </div>
+        <div style="padding-top:16px;border-top:1px solid var(--line2);">
+            <div class="ed-k">目标用户</div>
+            <div class="ed-p" style="margin-top:6px;">中大型企业 HR 部门 / 招聘团队（私有化、数据不出境）</div>
         </div>
     </div>
 

@@ -182,7 +182,7 @@ const cnCont = !!cur &amp;&amp; !marked &amp;&amp; RE_END_CN.test(cur.text)
 <h2 id="doc0--6-影响面">6 · 影响面</h2>
 <div class="tablewrap"><table><thead><tr><th>项</th><th>说明</th></tr></thead><tbody><tr><td><code>REQ_LIB_VER</code></td><td><strong>16 → 17</strong>。解析口径变了，已存岗位的 JD 需按新口径重算 —— 懒触发，<strong>登录后拉一次 <code>GET /api/bootstrap</code></strong> 即自动重算全部岗位（重启后端本身不会重算）</td></tr><tr><td>打分</td><td><strong>不受影响</strong>。本次只改「粘贴文本 → 分栏条目」的解析，没动 <code>scoreOne()</code> / 门槛 / 关键词抽取口径，评测数字不变</td></tr><tr><td>前端</td><td><code>平台原型/src/agent.js</code> 通过 <code>window.ReqLib</code> 调用同一份解析库，<strong>无需同步改代码</strong>；但需 <code>npm run build</code> 重新打包原型（词库是内联进去的）</td></tr><tr><td>回归</td><td><code>tools/test_jd.js</code> 第 11b 节；改本文件后请连 <code>tools/test_live.js</code>、<code>平台原型/test_prototype.js</code> 一起跑</td></tr></tbody></table></div></article></main>
 </div>
-<footer>生成时间：2026-10-09 10:28（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-09 13:41（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "JD 粘贴解析口径 v17 修复说明"}];
 

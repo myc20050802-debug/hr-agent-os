@@ -107,7 +107,6 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <p>HR 场景里，AI 落地真正难的不是「接一个大模型」。我把痛点拆成三条，这个项目的每一处设计都对应其中一条：</p>
 <div class="tablewrap"><table><thead><tr><th>#</th><th>真实痛点</th><th>为什么难</th><th>本项目的解法</th></tr></thead><tbody><tr><td>1</td><td><strong>AI 给的结论业务方不敢签字</strong></td><td>分数是黑盒，出了问题无法追溯</td><td>分数与档位 <strong>100% 由确定性规则算出</strong>（可复现、可追溯）；分数下面常驻一栏「为什么是这个分」，逐维算式 + 决定性因素 + 还差几分进下一档</td></tr><tr><td>2</td><td><strong>HR 系统天生处理敏感数据</strong></td><td>权限写在页面上、数据早出了库，等于没权限</td><td>权限<strong>在出数据之前生效</strong>：24 能力 × 7 角色 + 行级数据范围（<code>all/dept/self</code>）+ PII 字段物理脱敏；越权是<strong>真 403</strong>，前端按钮显隐只是体验层</td></tr><tr><td>3</td><td><strong>JD 里一句老措辞就是法律风险</strong></td><td>涉及年龄、性别或户籍的表述，写的人不觉得有问题，HR 也未必逐句审</td><td>生成前先检索市场在招同类岗位做「接地」，生成后做合规扫描，命中就业歧视性表述（年龄／性别／户籍等）<strong>直接阻止发布</strong>，每条给法条依据 + 建议改法</td></tr></tbody></table></div>
 <p><strong>目标用户</strong>：中大型企业 HR 部门 / 招聘团队（私有化、数据不出境）。</p>
-<p><strong>Non-goals（明确不做）</strong>：不做通用大模型、不做简历库买卖、不做面向 C 端的求职产品。</p>
 <hr class="sep">
 <h2 id="doc0--二-产品设计-三个-必须-与三个-不做">二、产品设计：三个「必须」与三个「不做」</h2>
 <div class="tablewrap"><table><thead><tr><th>必须</th><th>为什么</th></tr></thead><tbody><tr><td><strong>必须可解释</strong></td><td>每个分数都要能摊开算给业务方看。归因<strong>只读</strong>打分时已算出的系数、不做二次计算，测试里锁死「分项之和 == 总分」</td></tr><tr><td><strong>必须可复现</strong></td><td>同一份简历跑两次结果必须一致，否则不能拿去和业务方对齐</td></tr><tr><td><strong>必须留痕</strong></td><td>应用层只插不改，外加数据库 <code>BEFORE UPDATE</code> / <code>BEFORE DELETE</code> 触发器 <code>RAISE(ABORT)</code> —— 想改审计得先改 schema，而 schema 是版本化迁移管的</td></tr></tbody></table></div>
@@ -173,7 +172,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <li><strong>「我知道它哪儿还不行 —— 这份自审清单就是证据。」</strong> —— 把「不足」变成「我清楚边界」。</li>
 </ol></article></main>
 </div>
-<footer>生成时间：2026-10-09 10:28（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-09 13:41（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "HR-Agent OS · 作品集（面试版）"}];
 
