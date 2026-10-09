@@ -118,7 +118,7 @@ Windows 双击 `server/start.bat` 即可（自动开浏览器）。
 
 | 文件 | 是什么 |
 |---|---|
-| `平台原型/index.html` | **可点击平台原型**，单文件 **545,169 bytes（约 532KB）**，24 个页面，双击即开（探测到本机后端会自动切到在线） |
+| `平台原型/index.html` | **可点击平台原型**，单文件 **547,989 bytes（约 535KB）**，24 个页面，双击即开（探测到本机后端会自动切到在线） |
 | `server/` | **真实后端**：Node 原生 HTTP + SQLite + Agent 引擎，零依赖；**16 个模块按 L0–L5 分层** |
 | `shared/` | **前后端共用的单一数据源**：`req-lib.js`（职能族词库）/ `override-codes.js`（推翻原因枚举）/ `score-why.js`（打分归因与系数阶梯）。只改这里，离线端与后端同时生效 |
 | `.workbuddy/settings.json` | **项目级 hook**：SessionStart → `tools/dev-up.sh`，每次打开项目把后端幂等拉起 |
@@ -286,8 +286,8 @@ node --experimental-sqlite server.js
 一键跑全部（**推荐**）：起一个隔离实例（`127.0.0.1:8799` + 临时库），演示库 `server/hr_agent.db` 毫发无伤。
 
 ```bash
-node tools/run_all.js                 # 功能回归：12 套件
-node tools/run_all.js --only backend  # 只跑后端 4 套件（也可用套件 id：--only eval / --only auth）
+node tools/run_all.js                 # 功能回归：13 套件
+node tools/run_all.js --only backend  # 只跑后端 5 套件（也可用套件 id：--only eval / --only auth / --only es）
 node tools/run_all.js --only load     # 并发压测（单独一档，不混进默认回归）
 node tools/check_docs.js              # 文档守卫：页面数 / 原型字节数 是否与代码一致（已并入 npm test）
 ```
@@ -315,10 +315,10 @@ node test_pages.js                                   # Pages 静态托管：自�
 node test_live.js                                    # 真后端：24 页渲染 + 27 项真链路（需先启动 server）
 ```
 
-当前状态：**全部 0 失败 · 12 套件全绿**（后端 4 + 自包含 4 + 前端 4）。压测另跑，0 错误。
+当前状态：**全部 0 失败 · 13 套件全绿**（后端 5 + 自包含 4 + 前端 4）。压测另跑，0 错误。
 
 > 运行前端无头测试需要 `jsdom`：`NODE_PATH=<你的 workspace>/node_modules node test_live.js`（本项目自身不依赖任何 npm 包）。
-> 硬验证：删掉 `server/hr_agent.db` 后重启，空库自动跑到 `schemaVersion: 9`（20 张业务表 / 2 个触发器 / 23 个索引），无需人工干预。
+> 硬验证：删掉 `server/hr_agent.db` 后重启，空库自动跑到 `schemaVersion: 10`（23 张业务表 / 2 个触发器 / 23 个索引），无需人工干预。
 
 > CI 在 **Node 22 与 24** 上各跑一遍（`fail-fast: false`）。只测一个版本，就看不见「上游 Node 升级后本仓库悄悄坏掉」这类问题 —— 本项目真踩过一次（Node ≥24 的 undici 会拒收跨 realm 的 `AbortSignal`），详见 `CHANGELOG.md`。
 

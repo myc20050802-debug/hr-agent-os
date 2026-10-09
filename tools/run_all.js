@@ -31,6 +31,7 @@ const SUITES = [
   { id: 'hiring', kind: 'backend', name: '招聘链路（状态机 / 合规闸门 / 行级隔离）', file: 'tools/test_hiring.js' },
   { id: 'jd', kind: 'backend', name: 'JD 生成口径（原文还原 / 段落化 / 往返无损）', file: 'tools/test_jd.js' },
   { id: 'eval', kind: 'backend', name: '筛选质量评测（一致率 / 漏筛率 / 误筛率）', file: 'tools/test_eval.js' },
+  { id: 'es', kind: 'backend', name: '员工自助 Agent（个人数据意图分流 / 越权 / 拒答精确化）', file: 'tools/test_es.js' },
   { id: 'screening', kind: 'self', name: '筛选运行（用量真实性 / 可重复运行）', file: 'tools/test_screening.js' },
   { id: 'devup', kind: 'self', name: '打开即在线（幂等启动 / CORS 白名单 / hook 接线）', file: 'tools/test_devup.js' },
   { id: 'ops', kind: 'self', name: '运维面（gzip / ETag / 源码隔离 / 重置开关 / 口令治理 / 备份恢复）', file: 'tools/test_ops.js' },

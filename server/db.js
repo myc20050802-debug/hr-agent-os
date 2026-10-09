@@ -315,8 +315,29 @@ function seed(db) {
         c.skills, c.businessTags, c.plusTags, c.source, '待人工复核', c.parseOk], j.id, true));
   });
 
-  ins(`INSERT INTO leave_balance (user_id,annual_total,annual_used,carryover) VALUES ('U-003', 10, 6.5, 2.0)`);
-  ins(`INSERT INTO leave_balance (user_id,annual_total,annual_used,carryover) VALUES ('U-004', 5, 1.0, 0)`);
+  ins(`INSERT INTO leave_balance (user_id,annual_total,annual_used,carryover,compensatory_total,compensatory_used) VALUES ('U-003', 10, 6.5, 2.0, 2.0, 0.5)`);
+  ins(`INSERT INTO leave_balance (user_id,annual_total,annual_used,carryover,compensatory_total,compensatory_used) VALUES ('U-004', 5, 1.0, 0, 1.0, 0)`);
+
+  /* 员工自助个人数据事实层（PRD 3.3.1）：考勤异常 / 薪资条 / 社保缴纳记录。
+     数字来自业务系统，演示用 U-003 张一鸣视角；U-004 给最小可用样本便于测试。 */
+  ins(`INSERT INTO attendance (user_id,month,normal_days,actual_days,late_count,absent_count,abnormal_detail,updated_at)
+       VALUES ('U-003','2026-09',22,21,1,0,'[{"date":"2026-09-12","type":"迟到","note":"09:58 打卡，迟到 2 分钟"}]','2026-10-01')`);
+  ins(`INSERT INTO attendance (user_id,month,normal_days,actual_days,late_count,absent_count,abnormal_detail,updated_at)
+       VALUES ('U-004','2026-09',22,22,0,0,'[]','2026-10-01')`);
+  ins(`INSERT INTO payslip (user_id,month,gross,deductions,net,payment_date,viewing_path,updated_at)
+       VALUES ('U-003','2026-09',21800,3680,18120,'2026-10-10','OA → 我的薪资 → 薪资条（选择 2026-09 月）','2026-10-10')`);
+  ins(`INSERT INTO payslip (user_id,month,gross,deductions,net,payment_date,viewing_path,updated_at)
+       VALUES ('U-004','2026-09',19500,3120,16380,'2026-10-10','OA → 我的薪资 → 薪资条（选择 2026-09 月）','2026-10-10')`);
+  const ssRows = [
+    ['U-003', '2026-09', '养老', 24000, 1920, 3840],
+    ['U-003', '2026-09', '医疗', 24000, 480, 1920],
+    ['U-003', '2026-09', '失业', 24000, 120, 120],
+    ['U-003', '2026-09', '公积金', 24000, 2880, 2880],
+    ['U-004', '2026-09', '养老', 21000, 1680, 3360],
+    ['U-004', '2026-09', '公积金', 21000, 2520, 2520],
+  ];
+  ssRows.forEach(r => ins(`INSERT INTO social_security (user_id,month,category,base,personal_amt,company_amt,updated_at)
+       VALUES (?,?,?,?,?,?, '2026-10-08')`, r[0], r[1], r[2], r[3], r[4], r[5]));
 
   const docs = [
     ['KB-018', '员工手册（2026 修订版）', 'v3.2', '2026-01-01', 'all', '2026-08-14'],

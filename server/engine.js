@@ -532,13 +532,102 @@ function decide(db, apId, reviewerId, decision, reason) {
    员工自助：分流 → 查库 / 检索 / 拒答
    =========================================================== */
 const REFUSE = [
-  { k: ['仲裁', '起诉', '赔偿', '纠纷', '违法解除', '律师', '劳动法'], type: '法律意见',
+  { k: ['仲裁', '起诉', '劳动纠纷', '违法解除', '律师', '劳动法', '工伤赔偿', '索要赔偿'], type: '法律意见',
     msg: '这个问题涉及劳动关系法律判断，超出我的授权范围，我不能给出意见（避免误导你）。已为你转接 HR，并同步法务同事跟进。' },
-  { k: ['涨薪', '谈薪', '加薪', '调薪'], type: '薪酬个案',
-    msg: '薪资调整属于个案沟通事项，需要结合你的岗位、绩效与公司政策综合判断，不适合由我直接回答。已转接你的 HRBP，通常 1 个工作日内联系你。' },
-  { k: ['同事', '别人的', '某人', '他人'], type: '他人隐私',
+  { k: ['涨薪', '谈薪', '加薪', '调薪', '降薪', '薪资调整', '薪资谈判'], type: '薪酬个案',
+    msg: '薪资调整属于个案沟通事项，需要结合你的岗位、绩效与公司政策综合判断，不适合由我直接回答。已转接你的 HRBP，通常在 1 个工作日内联系你。' },
+  { k: ['张三', '李四', '王五', '赵六', '某某', '别人的', '他人的', '其他人的', '同事的'], type: '他人隐私',
     msg: '我只能查询你本人的数据，无法查询或推算其他同事的任何信息（这是制度与法律的硬性要求）。如需了解相关制度，我可以为你解释。' }
 ];
+
+/* 个人数据意图识别：年假/调休 → leave；考勤异常 → attendance；
+   薪资条/实发 → payslip；社保/公积金 → social。返回意图或 null。
+   注意：『工资怎么算/薪资构成』这类制度问题**不**命中这里（留给政策检索），
+   只有明确的『查本人薪资条/实发』语义才走 personal。 */
+function detectPersonalIntent(q) {
+  if (/年假|假期余额|剩.*天.*假|调休|带薪假|年假余额/.test(q)) return 'leave';
+  if (/考勤|迟到|缺勤|漏打卡|打卡.*(异常|记录)|本月考勤|出勤|旷工/.test(q)) return 'attendance';
+  if (/薪资条|工资条|到手|实发|发了多少|这个月.*(发|工资)|上月.*(发|工资)|几号发.*(工资|薪)|我的.*(工资|薪资)/.test(q)) return 'payslip';
+  if (/社保|公积金|五险一金|缴纳|基数|参保|交社保/.test(q)) return 'social';
+  return null;
+}
+
+function noPersonalData(kind) {
+  return { route: 'no_match',
+    text: `暂时没有查到你的${kind}数据，已转 HR 核实。\n如果你是想了解相关制度，我可以为你解释。`,
+    cites: [], badge: '⚠️ 个人数据查询无结果（已转 HR）' };
+}
+
+/* 个人数据查询：按意图查对应业务表，数字只来自库（事实分层）。
+   owner 校验前置：明确他人指代直接拒答；表缺失（老库未迁移）降级转 HR。 */
+function personalQuery(db, q, userId, user) {
+  const intent = detectPersonalIntent(q);
+  if (!intent) return null;
+
+  /* owner 校验：自然语言绕过（『算算张三的年假』）也必须拒绝 */
+  if (/张三|李四|王五|赵六|某某|别人的|他人的|其他人的|同事的/.test(q)) {
+    audit(db, { actorType: 'agent', actorId: userId, action: '拒答并转人工', objType: 'user', objId: userId,
+      detail: `问题涉及他人隐私（绕过查询）→ 转 HR`, result: 'ok' });
+    return { route: 'escalated', type: '他人隐私',
+      text: '我只能查询你本人的数据，无法查询或推算其他同事的任何信息（这是制度与法律的硬性要求）。如需了解相关制度，我可以为你解释。',
+      cites: [], badge: '🚫 授权范围外 · 已按规则拒答' };
+  }
+
+  try {
+    if (intent === 'leave') {
+      const lb = db.prepare(`SELECT * FROM leave_balance WHERE user_id=?`).get(userId);
+      if (!lb) return noPersonalData('假期');
+      const annualRemain = ((lb.annual_total || 0) - (lb.annual_used || 0)).toFixed(1);
+      const compRemain = ((lb.compensatory_total || 0) - (lb.compensatory_used || 0)).toFixed(1);
+      const text = `你当前年假余额为 ${annualRemain} 天（2026 年度剩余 ${annualRemain} 天${lb.carryover ? ` + 上年度结转 ${lb.carryover} 天，结转部分需在本年度 12 月 31 日前使用` : ''}）。\n调休余额为 ${compRemain} 天（加班换休，3 个月内有效）。\n（以上数字来自 HR 系统实时查询，不是文档说明）`;
+      const doc = db.prepare(`SELECT * FROM kb_documents WHERE id='KB-021'`).get();
+      audit(db, { actorType: 'agent', actorId: userId, action: '查询本人假期数据', objType: 'user', objId: userId,
+        detail: `年假 ${annualRemain} 天 / 调休 ${compRemain} 天（HR 系统实时数据）`, result: 'ok' });
+      return { route: 'personal_data', text, badge: '🔎 已查询 HR 系统实时数据（权限：仅本人）',
+        cites: [{ t: doc.title + ' ' + doc.ver, eff: doc.effective_at, note: '数字来源：HR 系统实时查询（权威事实）' }] };
+    }
+    if (intent === 'attendance') {
+      const rows = db.prepare(`SELECT * FROM attendance WHERE user_id=? ORDER BY month DESC LIMIT 3`).all(userId);
+      if (!rows.length) return noPersonalData('考勤');
+      const last = rows[0];
+      const ab = J(last.abnormal_detail || '[]');
+      const text = `你最近考勤（${last.month}）：应出勤 ${last.normal_days} 天，实际 ${last.actual_days} 天，迟到 ${last.late_count} 次${last.absent_count ? `，缺勤 ${last.absent_count} 天` : ''}。\n${ab.length ? `异常明细：${ab.map(a => `${a.date} ${a.type}（${a.note}）`).join('；')}` : '本月无异常记录。'}\n（以上数字来自 HR 系统实时查询）`;
+      const doc = db.prepare(`SELECT * FROM kb_documents WHERE id='KB-035'`).get();
+      audit(db, { actorType: 'agent', actorId: userId, action: '查询本人考勤数据', objType: 'user', objId: userId,
+        detail: `${last.month} 迟到 ${last.late_count} 次（HR 系统实时数据）`, result: 'ok' });
+      return { route: 'personal_data', text, badge: '🔎 已查询 HR 系统实时数据（权限：仅本人）',
+        cites: [{ t: doc.title + ' ' + doc.ver, eff: doc.effective_at, note: '数字来源：HR 系统实时查询（权威事实）' }] };
+    }
+    if (intent === 'payslip') {
+      const row = db.prepare(`SELECT * FROM payslip WHERE user_id=? ORDER BY month DESC LIMIT 1`).get(userId);
+      if (!row) return noPersonalData('薪资条');
+      const text = `你的薪资条可在「${row.viewing_path}」查看。\n最近一期（${row.month} 月）：应发 ${row.gross} 元，扣款 ${row.deductions} 元，实发 ${row.net} 元，已于 ${row.payment_date} 打款。\n（以上数字来自 HR 系统实时查询，不是文档说明）`;
+      audit(db, { actorType: 'agent', actorId: userId, action: '查询本人薪资条', objType: 'user', objId: userId,
+        detail: `${row.month} 实发 ${row.net} 元（HR 系统实时数据）`, result: 'ok' });
+      return { route: 'personal_data', text, badge: '🔎 已查询 HR 系统实时数据（权限：仅本人）',
+        cites: [{ t: '薪资条（HR 系统）', eff: row.payment_date, note: '数字来源：HR 系统实时查询（权威事实）' }] };
+    }
+    if (intent === 'social') {
+      const rows = db.prepare(`SELECT * FROM social_security WHERE user_id=? ORDER BY month DESC, category LIMIT 12`).all(userId);
+      if (!rows.length) return noPersonalData('社保');
+      const last = rows[0].month;
+      const cur = rows.filter(r => r.month === last);
+      const text = `你最近社保缴纳（${last} 月，基数 ${cur[0].base} 元）：\n` +
+        cur.map(r => `· ${r.category}：个人缴 ${r.personal_amt} 元，单位缴 ${r.company_amt} 元`).join('\n') +
+        `\n（以上数字来自 HR 系统实时查询）`;
+      const doc = db.prepare(`SELECT * FROM kb_documents WHERE id='KB-027'`).get();
+      audit(db, { actorType: 'agent', actorId: userId, action: '查询本人社保缴纳', objType: 'user', objId: userId,
+        detail: `${last} 基数 ${cur[0].base} 元（HR 系统实时数据）`, result: 'ok' });
+      return { route: 'personal_data', text, badge: '🔎 已查询 HR 系统实时数据（权限：仅本人）',
+        cites: [{ t: doc.title + ' ' + doc.ver, eff: doc.effective_at, note: '数字来源：HR 系统实时查询（权威事实）' }] };
+    }
+  } catch (e) {
+    audit(db, { actorType: 'agent', actorId: userId, action: '个人数据查询失败（表缺失）', objType: 'user', objId: userId,
+      detail: String(e.message || e), result: 'fail' });
+    return noPersonalData('个人');
+  }
+  return null;
+}
 
 async function chat(db, { question, userId = 'U-003' }) {
   const user = db.prepare(`SELECT * FROM users WHERE id=?`).get(userId) || { name: '员工' };
@@ -553,21 +642,11 @@ async function chat(db, { question, userId = 'U-003' }) {
     return { route: 'escalated', type: refuse.type, text: refuse.msg, cites: [], badge: '🚫 授权范围外 · 已按规则拒答' };
   }
 
-  /* ② 个人数据：查业务库（权威事实） */
-  const isPersonal = /我.*(年假|调休|余额|几天|假期)/.test(q) || /还剩/.test(q);
-  if (isPersonal) {
-    const lb = db.prepare(`SELECT * FROM leave_balance WHERE user_id=?`).get(userId);
-    const remain = lb ? (lb.annual_total - lb.annual_used).toFixed(1) : '?';
-    const carry = lb ? lb.carryover : 0;
-    const text = lb
-      ? `你当前年假余额为 ${remain} 天（2026 年度剩余 ${remain} 天${carry ? ` + 上年度结转 ${carry} 天，结转部分需在 12 月 31 日前使用` : ''}）。\n计算口径：入职满 1 年享受 ${lb.annual_total} 天年假，按在职月份折算。\n（以上数字来自 HR 系统实时查询，不是文档说明）`
-      : '暂时没有查到你的假期数据，已转 HR 核实。';
-    const doc = db.prepare(`SELECT * FROM kb_documents WHERE id='KB-021'`).get();
-    audit(db, { actorType: 'agent', actorId: userId, action: '查询本人假期数据', objType: 'user', objId: userId,
-      detail: `余额 ${remain} 天（HR 系统实时数据）`, result: 'ok' });
-    return { route: 'personal_data', text, badge: '🔎 已查询 HR 系统实时数据（权限：仅本人）',
-      cites: [{ t: doc.title + ' ' + doc.ver, eff: doc.effective_at, note: '数字来源：HR 系统实时查询（权威事实）' }] };
-  }
+  /* ② 个人数据：按意图分流查业务库（权威事实，事实分层）。
+     年假/调休/考勤/薪资/社保这些「个人数字」必须查业务系统，绝不用知识库文档回答。
+     意图识别与查库都集中在 detectPersonalIntent / personalQuery（见上方）。 */
+  const personal = personalQuery(db, q, userId, user);
+  if (personal) return personal;
 
   /* ③ 制度解释：关键词检索知识库 */
   const chunks = db.prepare(`SELECT c.id, c.content, c.keywords, d.title, d.ver, d.effective_at, d.status

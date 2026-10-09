@@ -3908,20 +3908,26 @@ window.Agent = (function () {
   }
 
   /* ============ 员工自助问答引擎 ============ */
+  /* 员工本人数据（离线演示固定值，与后端 seed 的 U-003 视角一致；口径与 engine.js 同源） */
+  const SELF_DATA = {
+    U003: {
+      leave:      { annualRemain: '3.5', annualCarry: '2.0', compRemain: '1.5' },
+      attendance: { month: '2026-09', normal: 22, actual: 21, late: 1, absent: 0,
+                    abnormal: [{ date: '2026-09-12', type: '迟到', note: '09:58 打卡，迟到 2 分钟' }] },
+      payslip:    { month: '2026-09', gross: 21800, deductions: 3680, net: 18120, payment: '2026-10-10',
+                    path: 'OA → 我的薪资 → 薪资条（选择 2026-09 月）' },
+      social:     { month: '2026-09', base: 24000, items: [
+                      { cat: '养老', personal: 1920, company: 3840 },
+                      { cat: '医疗', personal: 480, company: 1920 },
+                      { cat: '失业', personal: 120, company: 120 },
+                      { cat: '公积金', personal: 2880, company: 2880 },
+                    ] },
+    },
+  };
+
+  /* 制度解释类知识（policy）：仅承载「制度规则」，不承载个人数字。
+     个人数字（年假/调休/考勤/薪资/社保）一律走 personal 查本人数据，与后端事实分层铁律一致。 */
   const KB = [
-    { k: ['年假', '调休', '假期余额', '剩几天'], route: 'personal', src: '《假期管理制度》v2.6 第 3 章',
-      eff: '2026-04-01', ans: days => `你当前年假余额为 ${days} 天（其中 2026 年度剩余 3.5 天 + 上年度结转 2.0 天，结转部分需在本年度 12 月 31 日前使用）。
-计算口径：入职满 1 年享受 10 天年假，按在职月份折算；上年度未休部分最多结转 5 天。
-（以上天数来自 HR 系统实时数据，非文档说明）` },
-    { k: ['考勤', '打卡', '迟到', '加班'], route: 'policy', src: '《考勤与加班管理办法》v2.1 第 2、4 章', eff: '2026-05-01',
-      ans: () => `公司实行弹性工作制：每个工作日 10:00 前打卡到岗，当日工作满 8 小时即可。
-加班需提前在系统提交申请，经直属上级审批后生效；加班可申请调休，调休需在 3 个月内使用。
-每月迟到累计 3 次以上将影响当月考勤考核评分。` },
-    { k: ['社保', '公积金', '缴纳', '基数', '五险'], route: 'policy', src: '《社保公积金缴纳说明（北京）》v1.9 第 1、2 章', eff: '2026-07-01',
-      ans: () => `公司按北京市规定足额缴纳五险一金，缴纳基数为本人上年度月平均工资（新入职员工按首月工资）。
-每年 7 月随北京市社平工资调整同步调基。
-公积金缴存比例为 12%（公司与个人同比例），每月 15 日前完成当月缴纳。
-户口在外地不影响在北京参保，但需注意社保转移衔接（可在「随申办」或北京人社渠道办理）。` },
     { k: ['报销', '发票', '差旅', '出差'], route: 'policy', src: '《员工手册（2026 修订版）》v3.2 第 6 章', eff: '2026-01-01',
       ans: () => `报销流程：在 OA 提交报销单 → 上传发票原件照片 → 直属上级审批 → 财务复核 → 每月 25 日统一打款。
 差旅需提前提交出差申请，未经审批的差旅费用原则上不予报销。
@@ -3929,20 +3935,33 @@ window.Agent = (function () {
     { k: ['试用期', '转正'], route: 'policy', src: '《试用期与转正管理规定》v1.4 第 2、3 章', eff: '2026-03-01',
       ans: () => `试用期为 3 个月（特殊岗位可约定 6 个月）。试用期工资按约定标准的 100% 发放。
 转正流程：试用期结束前 15 天，系统自动提醒直属上级发起转正考核；考核通过后次月 1 日转正。
-如因客观原因需要延长试用期，须在到期前 7 天由直属上级提出申请并经 HRD 审批，且延长后总时长不得超过法定上限。` }
+如需延长试用期，须在到期前 7 天由直属上级提出申请并经 HRD 审批，且延长后总时长不得超过法定上限。` },
+    { k: ['加班', '调休怎么', '调休规则', '加班怎么'], route: 'policy', src: '《考勤与加班管理办法》v2.1 第 2、4 章', eff: '2026-05-01',
+      ans: () => `公司实行弹性工作制：每个工作日 10:00 前打卡到岗，当日工作满 8 小时即可。
+加班需提前在系统提交申请，经直属上级审批后生效；加班可申请调休，调休需在 3 个月内使用。
+每月迟到累计 3 次以上将影响当月考勤考核评分。` },
   ];
   const REFUSE = [
-    { k: ['仲裁', '起诉', '赔偿', '劳动纠纷', '违法解除', '律师', '劳动法'], type: '法律意见',
+    { k: ['仲裁', '起诉', '劳动纠纷', '违法解除', '律师', '劳动法', '工伤赔偿', '索要赔偿'], type: '法律意见',
       msg: '这个问题涉及劳动关系法律判断，超出我的授权范围，我不能给出意见（避免给你造成误导）。已为你转接 HR，并同步法务同事跟进。' },
-    { k: ['工资', '薪资', '涨薪', '谈薪', '加薪'], type: '薪酬个案',
+    { k: ['涨薪', '谈薪', '加薪', '调薪', '降薪', '薪资调整', '薪资谈判'], type: '薪酬个案',
       msg: '薪资调整属于个案沟通事项，需要结合你的岗位、绩效与公司政策综合判断，不适合由我直接回答。已为你转接你的 HRBP，通常在 1 个工作日内联系你。' },
-    { k: ['张三', '李四', '同事', '别人的', '某某'], type: '他人隐私',
+    { k: ['张三', '李四', '王五', '赵六', '某某', '别人的', '他人的', '其他人的', '同事的'], type: '他人隐私',
       msg: '我只能查询你本人的数据，无法查询或推算其他同事的任何信息（这是制度与法律的硬性要求，不是权限设置问题）。如需了解相关制度，我可以为你解释。' }
   ];
 
+  /* 个人数据意图识别：与后端 engine.js 的 detectPersonalIntent 同源。 */
+  function detectPersonalIntent(q) {
+    if (/年假|假期余额|剩.*天.*假|调休余额|我的调休|还剩.*调休|几天调休|调休几|带薪假|年假余额/.test(q)) return 'leave';
+    if (/考勤|迟到|缺勤|漏打卡|打卡.*(异常|记录)|本月考勤|出勤|旷工/.test(q)) return 'attendance';
+    if (/薪资条|工资条|到手|实发|发了多少|这个月.*(发|工资)|上月.*(发|工资)|几号发.*(工资|薪)|我的.*(工资|薪资)/.test(q)) return 'payslip';
+    if (/社保|公积金|五险一金|缴纳|基数|参保|交社保/.test(q)) return 'social';
+    return null;
+  }
+
   function classify(q) {
     if (REFUSE.some(r => r.k.some(k => q.indexOf(k) > -1))) return 'refuse';
-    if (/我.*(年假|调休|余额|几天|假期)/.test(q) || /还剩/.test(q)) return 'personal';
+    if (detectPersonalIntent(q)) return 'personal';
     if (KB.some(b => b.k.some(k => q.indexOf(k) > -1))) return 'policy';
     return 'nomatch';
   }
@@ -3956,9 +3975,32 @@ window.Agent = (function () {
         cites: [] };
     }
     if (route === 'personal') {
-      const b = KB.find(x => x.route === 'personal');
-      return { route: 'personal_data', text: b.ans('3.5'),
-        cites: [{ t: b.src, eff: b.eff, note: '数字来源：HR 系统实时查询（权威事实）' }],
+      const intent = detectPersonalIntent(q);
+      const d = SELF_DATA.U003;
+      let text, src, eff;
+      if (intent === 'leave') {
+        text = `你当前年假余额为 ${d.leave.annualRemain} 天（2026 年度剩余 ${d.leave.annualRemain} 天${d.leave.annualCarry ? ` + 上年度结转 ${d.leave.annualCarry} 天，结转部分需在本年度 12 月 31 日前使用` : ''}）。\n调休余额为 ${d.leave.compRemain} 天（加班换休，3 个月内有效）。\n（以上数字来自 HR 系统实时查询，不是文档说明）`;
+        src = '《假期管理制度》v2.6 第 3 章'; eff = '2026-04-01';
+      } else if (intent === 'attendance') {
+        const a = d.attendance;
+        const ab = a.abnormal.length
+          ? `异常明细：${a.abnormal.map(x => `${x.date} ${x.type}（${x.note}）`).join('；')}`
+          : '本月无异常记录。';
+        text = `你最近考勤（${a.month}）：应出勤 ${a.normal} 天，实际 ${a.actual} 天，迟到 ${a.late} 次${a.absent ? `，缺勤 ${a.absent} 天` : ''}。\n${ab}\n（以上数字来自 HR 系统实时查询）`;
+        src = '《考勤与加班管理办法》v2.1'; eff = '2026-05-01';
+      } else if (intent === 'payslip') {
+        const p = d.payslip;
+        text = `你的薪资条可在「${p.path}」查看。\n最近一期（${p.month} 月）：应发 ${p.gross} 元，扣款 ${p.deductions} 元，实发 ${p.net} 元，已于 ${p.payment} 打款。\n（以上数字来自 HR 系统实时查询，不是文档说明）`;
+        src = '薪资条（HR 系统）'; eff = p.payment;
+      } else if (intent === 'social') {
+        const ssn = d.social;
+        text = `你最近社保缴纳（${ssn.month} 月，基数 ${ssn.base} 元）：\n` +
+          ssn.items.map(x => `· ${x.cat}：个人缴 ${x.personal} 元，单位缴 ${x.company} 元`).join('\n') +
+          `\n（以上数字来自 HR 系统实时查询）`;
+        src = '《社保公积金缴纳说明（北京）》v1.9'; eff = '2026-07-01';
+      }
+      return { route: 'personal_data', text,
+        cites: [{ t: src, eff, note: '数字来源：HR 系统实时查询（权威事实）' }],
         badge: '🔎 已查询 HR 系统实时数据' };
     }
     if (route === 'policy') {
@@ -7420,7 +7462,7 @@ document.getElementById('collapseBtn').addEventListener('click', function () {
   this.setAttribute('aria-expanded', app.classList.contains('collapsed') ? 'false' : 'true');
 });
 // 原型说明：检测到 server/ 启动后自动切换为真实后端（SQLite + Agent 引擎），否则使用内置演示数据。
-console.log('%cHR-Agent OS 原型', 'color:#7aa9ff;font-weight:700', '构建时间 2026-10-09 10:27 · 无后端依赖，双击可用');
+console.log('%cHR-Agent OS 原型', 'color:#7aa9ff;font-weight:700', '构建时间 2026-10-09 17:27 · 无后端依赖，双击可用');
 </script>
 </body>
 </html>

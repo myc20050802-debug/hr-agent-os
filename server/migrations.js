@@ -24,6 +24,7 @@
      v7  score_why             打分归因落库（复核历史评分看到的是当时的理由）
      v8  job_duties            岗位职责栏（HR 自填职责随岗位持久化，v13）
      v9  reference_jobs        岗位资料库（BOSS 直聘在招岗位抓取入库，作为 JD 生成的参考依据）
+     v10 employee_self_data    员工自助个人数据事实层：leave_balance 加调休字段 + 新建 attendance / payslip / social_security 三表（落实 PRD 3.3.1「事实分层」）
    =========================================================== */
 'use strict';
 const { logger } = require('./logger.js');
@@ -345,6 +346,53 @@ const MIGRATIONS = [
         CREATE INDEX IF NOT EXISTS idx_ref_title    ON reference_jobs(job_title);
         CREATE INDEX IF NOT EXISTS idx_ref_loc      ON reference_jobs(location);
         CREATE INDEX IF NOT EXISTS idx_ref_scraped  ON reference_jobs(scraped_at DESC);
+      `);
+    },
+  },
+  {
+    version: 10, name: 'employee_self_data',
+    up(db) {
+      /* 员工自助 Agent 的个人数据事实层（PRD 3.3.1「个人数据查询」）。
+         之前后端只查 leave_balance 的年假，考勤异常 / 薪资条位置 / 社保缴纳记录
+         完全没有表，导致「事实分层」铁律（个人数字必须查业务系统，不许用知识库回答）
+         在后端根本没落地 —— 员工问「我这个月迟到几次」会被当成制度问答返回原文。
+         这里补齐三类个人数据表，并给 leave_balance 加调休字段（调休此前被错误吞进年假查询）。 */
+      const lbCols = db.prepare(`PRAGMA table_info(leave_balance)`).all().map(c => c.name);
+      if (!lbCols.includes('compensatory_total')) db.exec(`ALTER TABLE leave_balance ADD COLUMN compensatory_total REAL DEFAULT 0`);
+      if (!lbCols.includes('compensatory_used')) db.exec(`ALTER TABLE leave_balance ADD COLUMN compensatory_used REAL DEFAULT 0`);
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS attendance (
+          user_id         TEXT NOT NULL,
+          month           TEXT NOT NULL,            -- 自然月，如 2026-09
+          normal_days     REAL,                     -- 应出勤天数
+          actual_days     REAL,                     -- 实际出勤天数
+          late_count      INTEGER DEFAULT 0,        -- 迟到次数
+          absent_count    INTEGER DEFAULT 0,        -- 缺勤（未请假）天数
+          abnormal_detail TEXT DEFAULT '[]',        -- 异常明细（JSON 数组：{date,type,note}）
+          updated_at      TEXT,
+          PRIMARY KEY (user_id, month)
+        );
+        CREATE TABLE IF NOT EXISTS payslip (
+          user_id         TEXT NOT NULL,
+          month           TEXT NOT NULL,            -- 发薪月份，如 2026-09
+          gross           REAL,                     -- 应发
+          deductions      REAL,                     -- 扣款合计
+          net             REAL,                     -- 实发
+          payment_date    TEXT,                     -- 实际打款日
+          viewing_path    TEXT,                     -- 薪资条查看入口（位置，非数字）
+          updated_at      TEXT,
+          PRIMARY KEY (user_id, month)
+        );
+        CREATE TABLE IF NOT EXISTS social_security (
+          user_id         TEXT NOT NULL,
+          month           TEXT NOT NULL,            -- 缴纳月份，如 2026-09
+          category        TEXT NOT NULL,            -- 险种：养老/医疗/失业/工伤/生育/公积金
+          base            REAL,                     -- 缴纳基数
+          personal_amt    REAL,                     -- 个人缴纳
+          company_amt     REAL,                     -- 单位缴纳
+          updated_at      TEXT,
+          PRIMARY KEY (user_id, month, category)
+        );
       `);
     },
   },
