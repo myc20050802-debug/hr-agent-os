@@ -127,6 +127,16 @@ export class PPTController {
         // 按钮点击
         this.prevBtn.addEventListener('click', () => this.prevSlide())
         this.nextBtn.addEventListener('click', () => this.nextSlide())
+
+        // 页内跳转：任何带 data-goto="N" 的元素被点击，就跳到第 N 页（1 起算）。
+        // 用事件委托而不是给每个元素挂 onclick —— 幻灯片是 innerHTML 注入的，
+        // 委托只绑一次，以后加/改页面都不用碰 JS。
+        this.viewport.addEventListener('click', (e) => {
+            const el = e.target.closest('[data-goto]')
+            if (!el) return
+            const page = parseInt(el.getAttribute('data-goto'), 10)
+            if (!isNaN(page)) this.goToSlide(page - 1)
+        })
         
         // 键盘导航
         document.addEventListener('keydown', (e) => {

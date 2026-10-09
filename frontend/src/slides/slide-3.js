@@ -38,7 +38,7 @@ window.slideDataMap.set(3, `
             <div class="ed-cell">
                 <div class="ed-num">96.7<span style="font-size:34px;">%</span></div>
                 <div class="ed-k" style="color:#93A4BF;margin-top:12px;">档位一致率 · 29 / 30</div>
-                <div class="ed-cap" style="margin-top:8px;">±1 档 <span class="ed-accent">100%</span><br>30 例人工标注黄金集</div>
+                <div class="ed-cap" style="margin-top:8px;">±1 档 <span class="ed-accent">100%</span><br>n = 30 · rubric v1 · 人工标注</div>
             </div>
             <div class="ed-cell">
                 <div class="ed-num" style="color:#FBBF24;">0<span style="font-size:34px;">%</span></div>
@@ -58,8 +58,9 @@ window.slideDataMap.set(3, `
                 <div class="ed-p" style="margin-top:8px;">产品定义 + 口径设计 + 工程落地 + 自建评测<br>（独立完成）</div>
             </div>
             <div>
-                <div class="ed-k">目标用户</div>
+                <div class="ed-k">给谁做 · 真实数据底座</div>
                 <div class="ed-p" style="margin-top:8px;">中大型企业 HR 部门 / 招聘团队<br>私有化部署 · 数据不出境</div>
+                <div class="ed-cap" style="margin-top:8px;">183 条市场在招岗位（BOSS 147 · 智联 36）<br>21 个岗位 · 79 份候选人 · 9 个演示账号</div>
             </div>
             <div>
                 <div class="ed-k">在线 demo</div>

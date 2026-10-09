@@ -96,6 +96,9 @@ def main():
     ap.add_argument("--url", default="http://127.0.0.1:5173")
     ap.add_argument("--output", "-o", required=True)
     ap.add_argument("--pages", "-p", type=int, default=None)
+    ap.add_argument("--only", default=None,
+                    help="只截这几页（逗号分隔，如 17,19）；默认截全部。"
+                         "改一两页时用它，配合已存在的 page-*.png 目录即可局部重生 PPTX。")
     args = ap.parse_args()
 
     os.makedirs(args.output, exist_ok=True)
@@ -122,7 +125,23 @@ def main():
             sys.exit(3)
         print(f"Found {total} slides")
 
-        for i in range(1, total + 1):
+        # --only：局部重拍。页码越界即报错退出，不静默少拍（静默少拍会
+        # 让下游 make-pptx 用陈旧图拼出「看起来没问题」的 PPTX）。
+        targets = list(range(1, total + 1))
+        if args.only:
+            try:
+                targets = sorted({int(x) for x in args.only.split(",") if x.strip()})
+            except ValueError:
+                print("ERROR: --only 需要逗号分隔的整数页码，如 17,19", file=sys.stderr)
+                browser.close()
+                sys.exit(3)
+            bad = [n for n in targets if n < 1 or n > total]
+            if bad:
+                print(f"ERROR: --only 页码越界（有效范围 1..{total}）：{bad}", file=sys.stderr)
+                browser.close()
+                sys.exit(3)
+
+        for i in targets:
             page.goto(f"{args.url}?page={i}", wait_until="domcontentloaded", timeout=30000)
             wait_ready(page, page_no=i)
             page.add_style_tag(content=UI_CHROME_CSS)
@@ -137,7 +156,7 @@ def main():
 
         browser.close()
 
-    print(f"\nDone. {total} screenshots -> {args.output}")
+    print(f"\nDone. {len(targets)} screenshots -> {args.output}")
 
 
 if __name__ == "__main__":

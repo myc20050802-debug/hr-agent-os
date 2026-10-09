@@ -32,32 +32,32 @@ window.slideDataMap.set(18, `
             </div>
 
             <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:2px 20px;">
-                <div style="display:grid;grid-template-columns:38px 190px 1fr;gap:20px;align-items:baseline;padding:13px 0;border-bottom:1px solid var(--line);">
+                <div style="display:grid;grid-template-columns:38px 190px 1fr;gap:20px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line);">
                     <div class="ed-n" style="color:#39445A;">01</div>
                     <div class="ed-h3" style="font-size:16px;">黄金集 30 例</div>
                     <div class="ed-p" style="font-size:13px;">置信区间偏宽 <span class="ed-accent">[83.3%, 99.4%]</span> · 扩样必须<span class="ed-b">独立标注</span>才有效</div>
                 </div>
-                <div style="display:grid;grid-template-columns:38px 190px 1fr;gap:20px;align-items:baseline;padding:13px 0;border-bottom:1px solid var(--line);">
+                <div style="display:grid;grid-template-columns:38px 190px 1fr;gap:20px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line);">
                     <div class="ed-n" style="color:#39445A;">02</div>
                     <div class="ed-h3" style="font-size:16px;">单租户</div>
                     <div class="ed-p" style="font-size:13px;">租户标识写死 · 多租户涉及数据隔离模型重设计，属企业级门槛，不在 PoC 范围</div>
                 </div>
-                <div style="display:grid;grid-template-columns:38px 190px 1fr;gap:20px;align-items:baseline;padding:13px 0;border-bottom:1px solid var(--line);">
+                <div style="display:grid;grid-template-columns:38px 190px 1fr;gap:20px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line);">
                     <div class="ed-n" style="color:#39445A;">03</div>
                     <div class="ed-h3" style="font-size:16px;">无真实简历入口</div>
                     <div class="ed-p" style="font-size:13px;">目前走演示数据 · 真实简历涉及个人信息合规，需先定数据来源与授权链路</div>
                 </div>
-                <div style="display:grid;grid-template-columns:38px 190px 1fr;gap:20px;align-items:baseline;padding:13px 0;border-bottom:1px solid var(--line);">
+                <div style="display:grid;grid-template-columns:38px 190px 1fr;gap:20px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line);">
                     <div class="ed-n" style="color:#39445A;">04</div>
                     <div class="ed-h3" style="font-size:16px;">模型未接入默认链路</div>
                     <div class="ed-p" style="font-size:13px;">规则模式跑全流程 · <span class="ed-b">这是设计选择</span>（可复现、可签字）；接模型是替换一个函数，不改架构</div>
                 </div>
-                <div style="display:grid;grid-template-columns:38px 190px 1fr;gap:20px;align-items:baseline;padding:13px 0;border-bottom:1px solid var(--line);">
+                <div style="display:grid;grid-template-columns:38px 190px 1fr;gap:20px;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line);">
                     <div class="ed-n" style="color:#39445A;">05</div>
                     <div class="ed-h3" style="font-size:16px;">并发天花板未压到极限</div>
                     <div class="ed-p" style="font-size:13px;">已测到 20 并发 0 错误 · SQLite 单写者，需在真实部署形态下再压</div>
                 </div>
-                <div style="display:grid;grid-template-columns:38px 190px 1fr;gap:20px;align-items:baseline;padding:13px 0;">
+                <div style="display:grid;grid-template-columns:38px 190px 1fr;gap:20px;align-items:baseline;padding:10px 0;">
                     <div class="ed-n" style="color:#39445A;">06</div>
                     <div class="ed-h3" style="font-size:16px;">无障碍仅最小集</div>
                     <div class="ed-p" style="font-size:13px;">已补语义与焦点管理 · 完整 WCAG 审计未做，<span class="ed-warn">不能当合规</span></div>

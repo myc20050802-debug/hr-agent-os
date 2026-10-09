@@ -13,6 +13,12 @@ window.slideDataMap.set(1, `
     <!-- 左：HR 的一天 -->
     <div class="ed-log">
         <div class="ed-k" style="color:#5A6A85;letter-spacing:.3em;">A DAY IN HR</div>
+        <!-- 诚实标注：下面是场景还原，不是用户访谈记录。标准 1「真实」的第一条就是
+             不许把构造出来的场景讲成观测数据 —— 标注比删掉它更值钱，因为场景本身
+             来自法务实务与工程实测，只是不该冒充样本。 -->
+        <div style="font-size:11px;line-height:1.55;color:#4E5B72;margin-top:7px;">
+            场景还原 —— 取材自法务实务与工程实测，非用户访谈记录
+        </div>
         <div class="ed-log-list">
             <div class="ed-log-item">
                 <i>09:12</i>
@@ -28,7 +34,7 @@ window.slideDataMap.set(1, `
             </div>
             <div class="ed-log-item">
                 <i>15:05</i>
-                <b>JD 里写着「35 岁以下」，写的人没觉得有问题</b>
+                <b>JD 里一句不合规的话，写的人没觉得有问题</b>
             </div>
             <div class="ed-log-item">
                 <i>16:30</i>

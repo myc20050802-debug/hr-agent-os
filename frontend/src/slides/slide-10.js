@@ -15,7 +15,7 @@ window.slideDataMap.set(10, `
             <div>
                 <div class="ed-eyebrow"><i></i>05 / Evaluation</div>
                 <h2 class="ed-title">黄金集与标注口径</h2>
-                <div class="ed-sub">标准答案该怎么造，才能让人信 —— 面试官一定会追问「你这个集子怎么来的」</div>
+                <div class="ed-sub">标准答案该怎么造，才能让人信 —— 使用者一定会追问「你这个集子怎么来的」</div>
             </div>
         </div>
 

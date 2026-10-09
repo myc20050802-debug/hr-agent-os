@@ -227,6 +227,13 @@
             border-bottom: none;
         }
 
+        /* 可跳转行（目录页用）：data-goto 由 ppt-controller 里的委托点击消费。
+           悬停底色由这里的 CSS 给；光标与左右内缩写在行内样式里 —— 行内已有
+           padding 简写，会盖掉类里的 padding-left，写两处必踩坑。 */
+        .ed-row[data-goto] { transition: background-color .18s ease; }
+        .ed-row[data-goto]:hover { background-color: rgba(56, 189, 248, .07); }
+        .ed-row[data-goto]:hover .ed-k { color: #7DD3FC; }
+
         .ed-n {
             font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
             font-size: 14px;
@@ -577,9 +584,10 @@
         <div class="progress-bar-fill" id="progressBarFill"></div>
     </div>
     
-    <!-- 页码指示器 -->
-    <div class="page-indicator" id="pageIndicator">
-        1 / 1
+    <!-- 页码指示器（.kb-tip 属于浏览外壳，截图脚本按 .page-indicator 整体隐藏） -->
+    <div class="page-indicator">
+        <span id="pageIndicator">1 / 1</span>
+        <span class="kb-tip">← → 翻页 · 目录页可点击</span>
     </div>
     
     <!-- Vite Main Entry -->

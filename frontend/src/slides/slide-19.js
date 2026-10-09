@@ -30,12 +30,12 @@ window.slideDataMap.set(19, `
                     一份 JD 或 Offer 里哪句话碰不得，<br>我是从<span style="color:#FF6B4A;">法条那一侧</span>知道的。
                 </div>
                 <div class="ed-p" style="margin-top:22px;">
-                    执业法律背景，现在做 AI 产品方向 —— 所以我前面讲的那三条痛点，对我不是推演出来的假设。
+                    执业法律背景，现在做 AI 产品方向 —— 所以前面那三条痛点，不是推演出来的假设，是我在法条那一侧见过的后果。
                 </div>
             </div>
 
             <div style="display:flex;flex-direction:column;">
-                <div class="ed-k">面试时我会主动讲的三句话</div>
+                <div class="ed-k">我对使用者的三条承诺</div>
                 <div style="flex:1;display:flex;flex-direction:column;justify-content:space-between;margin-top:16px;">
                     <div style="display:grid;grid-template-columns:34px 1fr;gap:16px;padding-bottom:13px;border-bottom:1px solid var(--line);">
                         <div class="ed-n">01</div>
@@ -51,21 +51,28 @@ window.slideDataMap.set(19, `
                     </div>
                     <div style="padding-top:13px;">
                         <div class="ed-k" style="color:#5A6A85;">工作方式</div>
-                        <div class="ed-p" style="margin-top:6px;font-size:13.5px;">让 AI 写代码，但我必须能解释每一行为什么这么写 —— 所以每个踩过的坑，都写成了回归用例。</div>
+                        <div class="ed-p" style="margin-top:6px;font-size:13.5px;">AI 写代码，但我能解释每一行为什么这么写 —— 招聘结论你要拿去用，它就得经得起追问。</div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- 联系方式块已移除：宁缺，不留占位提示 -->
-        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line2);display:grid;grid-template-columns:1fr 1fr;gap:34px;">
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line2);display:grid;grid-template-columns:1fr 1fr 1.15fr;gap:30px;">
             <div>
-                <div class="ed-k" style="color:#5A6A85;">在线 demo</div>
+                <div class="ed-k" style="color:#5A6A85;">在线 demo（打开就能用）</div>
                 <div class="ed-p ed-cy" style="margin-top:7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all;">myc20050802-debug.github.io/hr-agent-os</div>
             </div>
             <div>
                 <div class="ed-k" style="color:#5A6A85;">源码 + 完整文档</div>
                 <div class="ed-p ed-cy" style="margin-top:7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;word-break:break-all;">github.com/myc20050802-debug/hr-agent-os</div>
+            </div>
+            <!-- 标准 3「可复现」：三条命令，别人照做就能跑起来、看到同一组数字。 -->
+            <div>
+                <div class="ed-k" style="color:#5A6A85;">自己验一遍（零配置）</div>
+                <div class="ed-p" style="margin-top:7px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#C6D3E8;">
+                    npm start　·　npm test　·　eval_dual_mode.js
+                </div>
             </div>
         </div>
     </div>

@@ -169,6 +169,14 @@ body {
     display: block;
 }
 
+/* 页码指示器里的键盘 / 交互提示（与页码同属浏览外壳，截图时一并隐藏） */
+.page-indicator .kb-tip {
+    margin-left: 10px;
+    padding-left: 10px;
+    border-left: 1px solid rgba(255, 255, 255, .28);
+    opacity: .7;
+}
+
 /* 键盘导航提示 */
 .keyboard-hint {
     position: fixed;

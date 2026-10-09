@@ -8,7 +8,7 @@ window.slideDataMap.set(9, `
     <div class="ed-trans">
         <div class="ed-eyebrow"><i></i>Section 03</div>
         <h2>怎么证明它有效</h2>
-        <p>AI 岗面试的第一个技术问题，通常是「你怎么衡量效果」。<br>所以我自己搭了一套评测，并且它真的否决过我的方案。</p>
+        <p>AI 产品第一个要说服人的问题，通常是「你怎么衡量效果」。<br>所以我自己搭了一套评测 —— 它否决过我的方案，也照出过我改不动的地方。</p>
     </div>
 
     <div class="ed-foot">

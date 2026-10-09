@@ -55,7 +55,7 @@ window.slideDataMap.set(15, `
             <div class="ed-tl-item" style="display:grid;grid-template-columns:50px 132px 1fr;gap:22px;align-items:baseline;">
                 <div class="ed-n">07</div>
                 <div class="ed-h3" style="font-size:18px;">运营准备</div>
-                <div class="ed-p" style="font-size:13px;">自审：把自己当面试官，翻自己的代码　<span class="ed-cy">→ 面试前缺口审计</span></div>
+                <div class="ed-p" style="font-size:13px;">自审：先当一遍最挑剔的用户，翻自己的代码　<span class="ed-cy">→ 缺口审计清单</span></div>
             </div>
         </div>
     </div>

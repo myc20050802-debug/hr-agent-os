@@ -53,7 +53,7 @@ window.slideDataMap.set(7, `
                     </div>
                     <div style="padding:16px 0;border-bottom:1px solid var(--line);">
                         <div class="ed-h3">不编硬数字</div>
-                        <div class="ed-p" style="margin-top:7px;">成本与用量必须能指出来源；规则模式就是 0 调用、显示 0 —— 不拿「看起来合理」的试算值冒充真实用量。</div>
+                        <div class="ed-p" style="margin-top:7px;">成本与用量必须能指出来源；规则模式就是 0 调用、显示 0。同理 —— 没有用户数据就说没有，<b>不用构造样本充数</b>。</div>
                     </div>
                     <div style="padding-top:16px;">
                         <div class="ed-h3">不让 AI 越过人工闸门</div>

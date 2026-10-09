@@ -59,12 +59,22 @@ window.slideDataMap.set(13, `
             </div>
         </div>
 
-        <div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--line2);display:flex;justify-content:space-between;align-items:baseline;gap:30px;">
-            <div class="ed-statbar" style="font-size:13px;">
-                <span class="ed-b">24</span> 页面 · <span class="ed-b">47</span> 接口 ·
-                <span class="ed-b">约 19,400</span> 行 JS · <span class="ed-b">10,300+</span> 行文档
+        <div style="margin-top:auto;padding-top:16px;border-top:1px solid var(--line2);">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:30px;">
+                <div class="ed-statbar" style="font-size:13px;">
+                    <span class="ed-b">24</span> 页面 · <span class="ed-b">47</span> 接口 ·
+                    <span class="ed-b">约 19,400</span> 行 JS · <span class="ed-b">10,300+</span> 行文档
+                </div>
+                <div class="ed-cap">全部由脚本从代码算出 —— 写进文档的数字，有守卫盯着</div>
             </div>
-            <div class="ed-cap">全部由脚本从代码算出 —— 写进文档的数字，有守卫盯着</div>
+            <!-- 标准 3「可复现」的入口必须给在作品集里：说得出「一条命令就能起」，
+                 就得把那条命令写出来。评测本身也是零配置可跑的。 -->
+            <div style="margin-top:13px;display:flex;align-items:baseline;gap:16px;">
+                <div class="ed-k" style="color:#38BDF8;letter-spacing:.2em;">你自己跑一遍</div>
+                <div class="ed-p" style="font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;color:#C6D3E8;">
+                    npm start　·　npm test（12 套件）　·　node tools/eval_dual_mode.js（评测，零配置）
+                </div>
+            </div>
         </div>
     </div>
 

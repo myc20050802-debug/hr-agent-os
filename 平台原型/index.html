@@ -1861,8 +1861,12 @@ textarea.i{resize:vertical;line-height:1.6}
   const RE_LI_DASH = /^[-–—]\s+/;
   /* v14：中文编号符（、)）:：）后的空格改为可选 —— 「5、逻辑清晰」这类写法不带空格，
      旧正则的 \s+ 剥不掉，序号就残留在条目里（表现为「（五）软技能」下直接跟「5、…」）。
-     西文句点仍强制要求空格，避免「1.5 年经验」被误剥成「5 年经验」。 */
-  const RE_LI_NUM = /^(?:\d{1,2}\s*[、)）:：]\s*|\d{1,2}\s*\.\s+)/;
+     v15：西文句点后的空格同样改为可选 —— 中文 JD 写「1.跟随业务团队…」时几乎不留空格，
+     旧写法的 \s+ 剥不掉，编号直接残留在正文里（表现为「1. 1.跟随业务团队…」这种双重编号，
+     用户一眼就能看出「语序不对」，实则是一个没被剥掉的序号）。
+     防误伤改用**否定前瞻**而非空格：「1.5 年经验」点号后是数字 → 不剥；
+     「1.跟随业务」「2.结合大模型」点号后是汉字 → 剥。 */
+  const RE_LI_NUM = /^(?:\d{1,2}\s*[、)）:：]\s*|\d{1,2}\s*\.(?!\d)\s*)/;
   const RE_LI_PAREN = /^[（(]\s*\d{1,2}\s*[)）]\s*/;
   const RE_LI_CIRCLE = /^[①-⑳㉑-㉟]\s*/;
   const RE_MD_HEAD = /^#{1,6}\s*/;
@@ -1885,6 +1889,32 @@ textarea.i{resize:vertical;line-height:1.6}
   const RE_REQ_START = /^(熟悉|精通|掌握|具备|具有|熟练|负责|本科|大专|硕士|博士|应届|无|须|需|能|会|可|有|年龄|性别|年以上|经验|\d)/;
   const RE_END_SENT = /[。！？!?…]$/;
   const RE_END_MID = /[，,、；;：:]$/;
+  /* v15：段落型 JD 的「断行还原」判据 —— 复制来的 JD 常把一句话在**词中间**换行
+     （「…主动挖掘潜在业务痛」/「点；2.结合大模型…」），上一行既不以句中标点收尾
+     （RE_END_MID 不中），也不带列表符号（cur.marked 为假）→ 旧的两条判据都不满足，
+     一个词被劈成两条，读起来就是「语序不对」。
+     合取三条：
+       ① 上一行以汉字收尾 —— 中文句子的结束必有终止标点，没有就是话没说完；
+       ② 下一行以「残片 + 标点」开头 —— 尾巴被切下来的直接证据；
+       ③ 起始词表兜底 —— 挡住「配合完成上级安排的其他工作」这类真正的新条目。 */
+  const RE_END_CN = /[\u4e00-\u9fa5]$/;
+  const RE_ITEM_START = /^(?:负责|参与|协同|协助|配合|支持|完成|独立|跟进|推动|组织|制定|编写|撰写|分析|设计|维护|管理|监控|优化|提升|确保|保障|落实|执行|根据|按照|熟悉|精通|掌握|具备|具有|了解|理解|熟练|善于|擅长|有|能|会|\d|[（(【\[])/;
+  /* v15：行内条目切分 —— 中文 JD 常把多条挤在一行，用「；2.」这类编号相连。
+     旧规则只认「；+数字+、/）」（中文编号符），西文句点一律不切，
+     于是「…边界；3.将客户…；4.跟踪…；5.轮岗…」整段粘成一条（就是那「一大坨」）。
+     (?!\d) 与 RE_LI_NUM 同款防误伤：「；1.5 个月」不切。
+     ⚠️ 与铁律 8「逗号分号顿号永不做分隔符」不冲突：切点是「分隔符 **+ 编号**」，
+     没有编号的裸分号一律不切，表单「一行一条」的往返无损因此得以保持。 */
+  /* 片首编号与行首编号是**同一件事** —— 直接复用 RE_LI_NUM，不再手抄一份。
+     各写一份的后果：改一处漏一处，而且反向验证抓不住退化
+     （实测过：把 RE_LI_NUM 收回旧写法，断言照样全绿，因为这里的手抄版兜住了）。 */
+  const RE_INLINE_CUT = new RegExp('[；;]\\s*(?=' + RE_LI_NUM.source.slice(1) + ')');
+  const RE_INLINE_NUM = RE_LI_NUM;
+  /* v15：段落中间的分栏标签 —— 段落型 JD 会把「任职要求：」写在职责段的末尾
+     （「…成长为…复合型产品人才。任职要求：1.学历背景：…」）。RE_HEAD_LEAD 只认行首，
+     识别不到它 → 整段留在 duty：职责栏吞掉要求，must 栏却空着（铁律 12 的反向症状）。
+     复用 RE_HEAD_ANY 的词表，但**要求前面有句末标点**，避免误切正文里的同名词。 */
+  const RE_INLINE_HEAD = new RegExp('[。；;]\\s*(' + RE_HEAD_ANY.source.slice(1, -1) + ')\\s*[：:]');
 
   function parseReqText(raw) {
     const lines = String(raw == null ? '' : raw).replace(/\r\n?/g, '\n').split('\n');
@@ -1970,11 +2000,23 @@ textarea.i{resize:vertical;line-height:1.6}
       }
       /* 断行还原：上一行以句中标点结尾 → 这句还没说完，并回来；
          否则视为「上一行已是一条完整条目」。 */
-      if (cur && !marked && (RE_END_MID.test(cur.text) || (cur.marked && !RE_END_SENT.test(cur.text)))) {
-        /* 上一行「话没说完」才并回来，两种情形：
+      /* v15 第三条判据：中文段落型 JD 的断点落在词中间（见 RE_END_CN 处的注释）。
+         与 ①② 互斥（末字符不可能既是标点又是汉字），不会叠加触发。 */
+      /* 判据只看「下一行是否以**残片 + 标点**开头」（如「点；2.结合…」的「点；」）——
+         这是「上一行的话被切断、尾巴掉到下一行」的强信号。
+         ⚠️ 不要用「长度阈值 + 末尾汉字」这类宽松判据：表单里的
+         「3 年以上 AI 产品经验」「执行采购订单跟催与交期管理」同样长、同样以汉字收尾，
+         一旦合并就破坏了「一行一条 → 往返无损」的既有铁律（实测踩过，见 test_jd 回归）。 */
+      const cnCont = !!cur && !marked && RE_END_CN.test(cur.text)
+        && /^[^\s]{0,2}[。；，、：]/.test(s) && !RE_ITEM_START.test(s);
+      if (cur && !marked && (RE_END_MID.test(cur.text) || (cur.marked && !RE_END_SENT.test(cur.text)) || cnCont)) {
+        /* 上一行「话没说完」才并回来，三种情形：
            ① 以句中标点结尾 —— 断行只是把一句话切开了，直接接上；
            ② 本来是列表项却没写完 —— 需要补一个逗号，例如
-              「• 把模糊的用户场景」+「拆成能落地的产品方案」。
+              「• 把模糊的用户场景」+「拆成能落地的产品方案」；
+           ③ 中文长句断在词中间（v15，cnCont）—— **只拼接、一个分隔符都不插**：
+              否则「…潜在业务痛」+「点；2.结合…」会被拼成「…潜在业务痛，点；…」，
+              把「断行错误」升级成「标点错误」，越修越像病句。
            表单里一行一条的写法（无符号、无标点）不满足任一条件，
            不会被合并，「一行一条 → 提交 → 再载入」往返无损。 */
         /* v14：列表项续行时，若下一行只是被换行**切断的短尾**（去掉标点后 ≤2 字，
@@ -1983,17 +2025,62 @@ textarea.i{resize:vertical;line-height:1.6}
            「• 把模糊的用户场景」+「拆成能落地的产品方案」。 */
         const tailShort = cur.marked && !RE_END_MID.test(cur.text)
           && s.replace(/[；;，,、。．.]+$/, '').trim().length <= 2;
-        if (!tailShort) {
-          cur.text += RE_END_MID.test(cur.text) ? '' : (/[A-Za-z0-9]$/.test(cur.text) ? ' ' : '，');
+        /* v18：**中文断行一个标点都不补**。中文换行从不会吞掉标点（吞掉的只有西文空格），
+           所以在这里补逗号 = 凭空造标点，把「断行」直接升级成病句：
+           「…预判方案实施效果」+「与边界；3.将…」被拼成「…实施效果，与边界」，
+           「跟踪AI应用」+「上线后的业务指标」被拼成「跟踪AI应用，上线后的业务指标」。
+           这正是「无论填什么，语句都不能有问题」踩的那条线（实测见 test_jd 第 11c 节）。
+           只有接缝左侧是西文字母/数字时才补一个空格 —— 那是被换行真正吃掉的字符。 */
+        if (!cnCont && !tailShort && !RE_END_MID.test(cur.text) && /[A-Za-z0-9]$/.test(cur.text)) {
+          cur.text += ' ';
         }
         cur.text += s;
       } else { flush(); cur = { text: s, marked: marked }; }
+
+      /* v15：行内分栏标签 —— 「…复合型产品人才。任职要求：1.学历背景：…」的标签不在行首，
+         RE_HEAD_LEAD 认不出。不处理的话，它**后面所有行**都会被算作职责
+         （截图里「4.产品思维：…」「5.软性素质：…」两条要求因此留在 duty 栏）。
+         这里在切点处把当前累积的内容**一分为二**：前半留在原桶、后半归新桶，
+         并把 key 状态交给后续行。⚠️ 只改 key 而不切内容，会把整段职责一起搬进要求栏 ——
+         flush() 用的是**当时**的 key，cur 攒了多久就搬走多少。 */
+      for (;;) {
+        const mIn = cur && cur.text ? cur.text.match(RE_INLINE_HEAD) : null;
+        if (!mIn) break;
+        const before = cur.text.slice(0, mIn.index + 1).replace(/[。；;]+$/, '').trim();
+        const after = cur.text.slice(mIn.index + mIn[0].length).trim();
+        if (before) b[key].push(before);
+        key = keyOf(mIn[1]);
+        cur = after ? { text: after, marked: !!cur.marked } : null;
+      }
     });
     flush();
 
     /* 引言只在「确实是一份完整 JD」时保留（≥2 个小标题）；否则前置内容
        就是普通任职要求，退回 must —— 避免把一列要求误当公司介绍。 */
     if (heads < 2) { b.must = b.lead.concat(b.must); b.lead = []; }
+    /* v15：行内分栏标签 —— 段落型 JD 把「任职要求：」写在职责段末尾（见 RE_INLINE_HEAD）。
+       必须**先读干净再投递**：下面的 forEach 会原位覆盖每个桶，
+       边改派边处理会把刚移进来的内容丢掉（duty 排在 must 前面，正是会踩的顺序坑）。 */
+    {
+      const moved = { duty: [], must: [], nice: [], benefit: [] };
+      ['duty', 'must', 'nice', 'benefit'].forEach(k => {
+        const keep = [];
+        b[k].forEach(raw => {
+          let key = k, rest = String(raw);
+          for (;;) {
+            const m = rest.match(RE_INLINE_HEAD);
+            if (!m) break;
+            const before = rest.slice(0, m.index + 1).replace(/[。；;]+$/, '').trim();
+            if (before) (key === k ? keep : moved[key]).push(before);
+            key = keyOf(m[1]);
+            rest = rest.slice(m.index + m[0].length).trim();
+          }
+          if (rest) (key === k ? keep : moved[key]).push(rest);
+        });
+        b[k] = keep;
+      });
+      ['duty', 'must', 'nice', 'benefit'].forEach(k => { b[k] = b[k].concat(moved[k]); });
+    }
     /* 「 / 」并列项拆开（要求斜杠两侧有空格）；「AI/大模型」这类写法不受影响 */
     ['duty', 'must', 'nice', 'benefit'].forEach(k => {
       b[k] = b[k].flatMap(t => String(t).split(/\s+[／/]\s+/).map(x => x.trim()).filter(Boolean));
@@ -2002,8 +2089,8 @@ textarea.i{resize:vertical;line-height:1.6}
          这里**只在「；+编号」处**切，普通分号一律不切，
          保持「表单一行一条 → 往返无损」的既有铁律
          （表单写入的每条都在独立行，不含「；数字、」这个模式）。 */
-      b[k] = b[k].flatMap(t => String(t).split(/[；;]\s*(?=\d{1,2}\s*[、)）])/))
-        .map(x => x.replace(/^[；;\s]+/, '').replace(/^\d{1,2}\s*[、)）]\s*/, '').trim())
+      b[k] = b[k].flatMap(t => String(t).split(RE_INLINE_CUT))
+        .map(x => x.replace(/^[；;\s]+/, '').replace(RE_INLINE_NUM, '').trim())
         .filter(Boolean);
     });
     return { lead: b.lead, duty: b.duty, must: b.must, nice: b.nice, benefit: b.benefit, heads: heads };
@@ -7333,7 +7420,7 @@ document.getElementById('collapseBtn').addEventListener('click', function () {
   this.setAttribute('aria-expanded', app.classList.contains('collapsed') ? 'false' : 'true');
 });
 // 原型说明：检测到 server/ 启动后自动切换为真实后端（SQLite + Agent 引擎），否则使用内置演示数据。
-console.log('%cHR-Agent OS 原型', 'color:#7aa9ff;font-weight:700', '构建时间 2026-10-07 12:54 · 无后端依赖，双击可用');
+console.log('%cHR-Agent OS 原型', 'color:#7aa9ff;font-weight:700', '构建时间 2026-10-09 10:27 · 无后端依赖，双击可用');
 </script>
 </body>
 </html>

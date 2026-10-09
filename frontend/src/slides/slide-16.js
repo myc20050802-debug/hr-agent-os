@@ -36,6 +36,7 @@ window.slideDataMap.set(16, `
                 <div>
                     <div class="ed-k" style="color:#5A6A85;">修法</div>
                     <div class="ed-p" style="margin-top:7px;">改为从页面注册表 <span class="ed-b">派生</span>，并由守卫禁止再写死。</div>
+                    <div class="ed-cap" style="margin-top:7px;font-family:ui-monospace,Menlo,Consolas,monospace;">→ tools/test_nav.js + 文档守卫不变量</div>
                 </div>
             </div>
 
@@ -51,6 +52,7 @@ window.slideDataMap.set(16, `
                 <div>
                     <div class="ed-k" style="color:#5A6A85;">修法</div>
                     <div class="ed-p" style="margin-top:7px;">抽 <span class="ed-cy">shared/</span> 单一数据源；离线端必须镜像同一份词库与口径，改完跑对应套件。</div>
+                    <div class="ed-cap" style="margin-top:7px;font-family:ui-monospace,Menlo,Consolas,monospace;">→ tools/test_jd.js（改一处必须同改两处，否则红）</div>
                 </div>
             </div>
 
@@ -66,6 +68,7 @@ window.slideDataMap.set(16, `
                 <div>
                     <div class="ed-k" style="color:#5A6A85;">修法</div>
                     <div class="ed-p" style="margin-top:7px;">规则模式一律显示 <span class="ed-b">0</span>，成本卡改「试算」并注明来源。</div>
+                    <div class="ed-cap" style="margin-top:7px;font-family:ui-monospace,Menlo,Consolas,monospace;">→ tools/test_screening.js（规则模式 token 必须为 0）</div>
                 </div>
             </div>
         </div>

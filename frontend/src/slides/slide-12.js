@@ -53,7 +53,9 @@ window.slideDataMap.set(12, `
                 <span class="ed-tick tl"></span><span class="ed-tick br"></span>
                 <div class="ed-k">怎么选的</div>
                 <div class="ed-p" style="margin-top:9px;">
-                    五个候选方案做了实测对照。选中的方案是 <span class="ed-b">唯一一个</span>「一致率 ↑ 且 漏筛不 ↑」的方案 —— 其余四个都至少破了一条底线。
+                    5 个候选方案逐一实测，只有这一个同时满足「一致率不降 <b>且</b> 漏筛不涨」。
+                    它带来的是 <span class="ed-b">一致率 +6.7pt · 误筛 −16.7pt · 漏筛不动</span> ——
+                    三个数出自同一次改动、同一次跑分，不是分别调出来的。
                 </div>
             </div>
             <div class="ed-panel alert">

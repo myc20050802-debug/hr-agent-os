@@ -54,7 +54,7 @@ window.slideDataMap.set(8, `
                 <div class="ed-n">05</div>
                 <div class="ed-h3" style="font-size:19px;">JD 接地真实市场 + 合规红线</div>
                 <div class="ed-p" style="font-size:13.5px;">
-                    按「标题优先」检索市场在招同类岗位（自带 <span class="ed-b">183 条</span>抓取快照）；命中「35 岁以下」「仅限本地户口」
+                    按「标题优先」检索市场在招同类岗位（真实抓取 <span class="ed-b">183 条</span>：BOSS 147 · 智联 36，69 条含完整 JD 正文、36 条带真实薪资）；命中就业歧视性表述（年龄／性别／户籍等）
                     <span class="ed-warn">直接阻止发布</span>，每条给法条依据与建议改法。
                 </div>
             </div>

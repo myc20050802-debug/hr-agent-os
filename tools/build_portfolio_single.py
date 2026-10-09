@@ -45,8 +45,12 @@ OUT_DIR = os.path.join(ROOT, "artifacts")
 OUT = os.path.join(OUT_DIR, "HR-Agent-OS_作品集_19页_单文件.html")
 
 PAGES = 19            # 作品集页数（改页数时同步这里 + 断言）
-BYTES_ANCHOR = "537,851"   # 平台原型的字节数（与 tools/check_docs.js 的锚点同源）
-FORBIDDEN = ("限男", "发送前请替换", "邮箱 / 微信")
+BYTES_ANCHOR = "545,169"   # 平台原型的字节数（与 tools/check_docs.js 的锚点同源）
+# 交付件里绝不允许逐字出现的字样。
+# 后三项是 2026-10-07 加的「不复现歧视原句」编辑红线：合规拦截这个卖点照样讲
+#（讲成「命中就业歧视性表述（年龄／性别／户籍等）直接阻止发布」），但**不把
+# 歧视句本身印在作品集上** —— 面试官扫一眼只会看到那句违规要求，看不到它被拦下。
+FORBIDDEN = ("限男", "发送前请替换", "邮箱 / 微信", "岁以下", "本地户口", "已婚已育")
 
 # 路由守卫里那句「跳 404」——单文件版必须中和掉，详见文件头 §5
 ROUTE_REDIRECT_RE = re.compile(r'window\.location\.href\s*=\s*["\']/404\.html["\']')

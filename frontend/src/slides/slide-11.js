@@ -50,19 +50,27 @@ window.slideDataMap.set(11, `
             </div>
         </div>
 
-        <div style="margin-top:50px;display:grid;grid-template-columns:1fr 1fr;gap:44px;">
+        <div style="margin-top:44px;display:grid;grid-template-columns:repeat(3,1fr);gap:34px;">
             <div style="padding-top:14px;border-top:1px solid var(--line2);">
                 <div class="ed-k" style="color:#5A6A85;">统计诚实</div>
-                <div class="ed-p" style="margin-top:8px;">
+                <div class="ed-p" style="margin-top:8px;font-size:13.5px;">
                     样本只有 30 例 —— 所以不只报点估计：同时给出 Wilson 95% 置信区间
                     <span class="ed-accent">[83.3%, 99.4%]</span>。主动暴露区间偏宽，比藏起来更可信。
                 </div>
             </div>
             <div style="padding-top:14px;border-top:1px solid var(--line2);">
                 <div class="ed-k" style="color:#5A6A85;">门槛拦截 9 例</div>
-                <div class="ed-p" style="margin-top:8px;">
+                <div class="ed-p" style="margin-top:8px;font-size:13.5px;">
                     年限 <span class="ed-b">×2</span> · 学历 <span class="ed-b">×1</span> ·
                     技能零命中 <span class="ed-b">×6</span> —— 这些在看分数之前就被拦掉了。
+                </div>
+            </div>
+            <!-- 标准 2「可评测」不止是「我有什么指标」，还包括「哪一块我还量不出来」。
+                 说出盲区，比多报一个漂亮数字更能证明这套评测是真的。 -->
+            <div style="padding-top:14px;border-top:1px solid var(--line2);">
+                <div class="ed-k" style="color:#FBBF24;">度量盲区 · 主动说</div>
+                <div class="ed-p" style="margin-top:8px;font-size:13.5px;">
+                    JD 生成质量<b>没有</b>客观指标 —— 只有筛选侧有黄金集。这一块我不拿「看起来不错」当结论，它列在已知边界里。
                 </div>
             </div>
         </div>

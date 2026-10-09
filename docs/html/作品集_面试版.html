@@ -105,7 +105,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <hr class="sep">
 <h2 id="doc0--一-我在解决什么问题">一、我在解决什么问题</h2>
 <p>HR 场景里，AI 落地真正难的不是「接一个大模型」。我把痛点拆成三条，这个项目的每一处设计都对应其中一条：</p>
-<div class="tablewrap"><table><thead><tr><th>#</th><th>真实痛点</th><th>为什么难</th><th>本项目的解法</th></tr></thead><tbody><tr><td>1</td><td><strong>AI 给的结论业务方不敢签字</strong></td><td>分数是黑盒，出了问题无法追溯</td><td>分数与档位 <strong>100% 由确定性规则算出</strong>（可复现、可追溯）；分数下面常驻一栏「为什么是这个分」，逐维算式 + 决定性因素 + 还差几分进下一档</td></tr><tr><td>2</td><td><strong>HR 系统天生处理敏感数据</strong></td><td>权限写在页面上、数据早出了库，等于没权限</td><td>权限<strong>在出数据之前生效</strong>：24 能力 × 7 角色 + 行级数据范围（<code>all/dept/self</code>）+ PII 字段物理脱敏；越权是<strong>真 403</strong>，前端按钮显隐只是体验层</td></tr><tr><td>3</td><td><strong>JD 里一句「35 岁以下」就是法律风险</strong></td><td>写的人不觉得有问题，HR 也未必逐句审</td><td>生成前先检索市场在招同类岗位做「接地」，生成后做合规扫描，命中歧视性表述<strong>直接阻止发布</strong>，每条给法条依据 + 建议改法</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>真实痛点</th><th>为什么难</th><th>本项目的解法</th></tr></thead><tbody><tr><td>1</td><td><strong>AI 给的结论业务方不敢签字</strong></td><td>分数是黑盒，出了问题无法追溯</td><td>分数与档位 <strong>100% 由确定性规则算出</strong>（可复现、可追溯）；分数下面常驻一栏「为什么是这个分」，逐维算式 + 决定性因素 + 还差几分进下一档</td></tr><tr><td>2</td><td><strong>HR 系统天生处理敏感数据</strong></td><td>权限写在页面上、数据早出了库，等于没权限</td><td>权限<strong>在出数据之前生效</strong>：24 能力 × 7 角色 + 行级数据范围（<code>all/dept/self</code>）+ PII 字段物理脱敏；越权是<strong>真 403</strong>，前端按钮显隐只是体验层</td></tr><tr><td>3</td><td><strong>JD 里一句老措辞就是法律风险</strong></td><td>涉及年龄、性别或户籍的表述，写的人不觉得有问题，HR 也未必逐句审</td><td>生成前先检索市场在招同类岗位做「接地」，生成后做合规扫描，命中就业歧视性表述（年龄／性别／户籍等）<strong>直接阻止发布</strong>，每条给法条依据 + 建议改法</td></tr></tbody></table></div>
 <p><strong>目标用户</strong>：中大型企业 HR 部门 / 招聘团队（私有化、数据不出境）。</p>
 <p><strong>Non-goals（明确不做）</strong>：不做通用大模型、不做简历库买卖、不做面向 C 端的求职产品。</p>
 <hr class="sep">
@@ -114,7 +114,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <div class="tablewrap"><table><thead><tr><th>不做</th><th>为什么</th></tr></thead><tbody><tr><td><strong>不把判断权交给模型</strong></td><td>分数与档位全由确定性规则算出；模型只做三件事：推荐理由的<strong>措辞</strong>、制度问答的语言组织、JD 润色</td></tr><tr><td><strong>不编硬数字</strong></td><td>页面上的成本/用量必须能指出来源。规则模式就是 0 调用、显示 0，不显示一个「看起来合理」的试算值冒充真实用量</td></tr><tr><td><strong>不让 AI 越过人工闸门</strong></td><td>高风险动作（Offer 决策、推翻 AI 结论）必须留人工签批，AI 只负责把它推到闸门前面</td></tr></tbody></table></div>
 <hr class="sep">
 <h2 id="doc0--三-五个核心能力-每条都写明-为什么它是真的">三、五个核心能力（每条都写明「为什么它是真的」）</h2>
-<div class="tablewrap"><table><thead><tr><th>#</th><th>能力</th><th>为什么不是话术</th></tr></thead><tbody><tr><td>1</td><td><strong>分数可解释</strong></td><td>分数下面有一栏「为什么是这个分」：逐维算式（<code>技能匹配 40 × 0.95 = 38</code>）+ 决定性因素 + 还差几分进下一档。测试锁死「分项之和 == 总分」「满分 × 系数 == 该维得分」</td></tr><tr><td>2</td><td><strong>规则与模型分工明确</strong></td><td>分档 <strong>100% 规则</strong>（可复现、可签字）；模型只做措辞与语言组织。「不配大模型也能跑通全流程」不是降级方案，是<strong>设计选择</strong> —— 见双模式对照评测</td></tr><tr><td>3</td><td><strong>权限真的在服务端</strong></td><td>24 能力 × 7 角色 + 行级范围 + PII 脱敏，全部在出数据之前生效。员工身份导出全公司花名册是<strong>真 403</strong>（缺 <code>employee:export</code> 能力）</td></tr><tr><td>4</td><td><strong>审计改不掉</strong></td><td>应用层只插不改 + 数据库触发器 <code>RAISE(ABORT)</code>，审计日志无法被应用层篡改</td></tr><tr><td>5</td><td><strong>JD 接地真实市场 + 合规红线</strong></td><td>生成前按「标题优先」检索市场在招同类岗位（仓库自带 <strong>183 条</strong>抓取快照），拼接前做最长公共子串 + bigram 双去重；命中「35 岁以下」「仅限本地户口」这类表述<strong>直接阻止发布</strong>，每条给法条依据与建议改法</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>能力</th><th>为什么不是话术</th></tr></thead><tbody><tr><td>1</td><td><strong>分数可解释</strong></td><td>分数下面有一栏「为什么是这个分」：逐维算式（<code>技能匹配 40 × 0.95 = 38</code>）+ 决定性因素 + 还差几分进下一档。测试锁死「分项之和 == 总分」「满分 × 系数 == 该维得分」</td></tr><tr><td>2</td><td><strong>规则与模型分工明确</strong></td><td>分档 <strong>100% 规则</strong>（可复现、可签字）；模型只做措辞与语言组织。「不配大模型也能跑通全流程」不是降级方案，是<strong>设计选择</strong> —— 见双模式对照评测</td></tr><tr><td>3</td><td><strong>权限真的在服务端</strong></td><td>24 能力 × 7 角色 + 行级范围 + PII 脱敏，全部在出数据之前生效。员工身份导出全公司花名册是<strong>真 403</strong>（缺 <code>employee:export</code> 能力）</td></tr><tr><td>4</td><td><strong>审计改不掉</strong></td><td>应用层只插不改 + 数据库触发器 <code>RAISE(ABORT)</code>，审计日志无法被应用层篡改</td></tr><tr><td>5</td><td><strong>JD 接地真实市场 + 合规红线</strong></td><td>生成前按「标题优先」检索市场在招同类岗位（仓库自带 <strong>183 条</strong>抓取快照），拼接前做最长公共子串 + bigram 双去重；命中就业歧视性表述（年龄／性别／户籍等）这类表述<strong>直接阻止发布</strong>，每条给法条依据与建议改法</td></tr></tbody></table></div>
 <hr class="sep">
 <h2 id="doc0--四-怎么证明它有效-一套自己搭的评测">四、怎么证明它有效：一套自己搭的评测</h2>
 <p><strong>AI 产品经理岗，面试官问的第一个技术问题通常是「你怎么衡量你的 AI 效果」。</strong> 所以我把评测做成了项目的核心交付物之一。</p>
@@ -132,7 +132,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <hr class="sep">
 <h2 id="doc0--六-工程纪律-让-文档-不许撒谎">六、工程纪律：让「文档」不许撒谎</h2>
 <p>这一节是我认为最能体现工作方式的部分 —— <strong>它不是"我写了文档"，是"我让文档没法骗人"</strong>。</p>
-<div class="tablewrap"><table><thead><tr><th>机制</th><th>做法</th><th>挡住什么</th></tr></thead><tbody><tr><td><strong>回归套件</strong></td><td>12 个套件（后端 4 / 自包含 4 / 前端 4），一条命令全跑</td><td>「改 A 坏 B」</td></tr><tr><td><strong>文档真相守卫</strong></td><td>从<strong>代码</strong>读出 24 页面 / 47 接口 / 537,851 字节 / schema v9 等事实，去比对文档里的「现状句」</td><td>文档与代码不一致（真发生过：四份文档四个页面数）</td></tr><tr><td><strong>负向锚点</strong></td><td>不只钉住「现在是多少」，还禁止<strong>旧值复活</strong></td><td>修了一处、另外四篇还留着旧数字</td></tr><tr><td><strong>评测基线单一源</strong></td><td><code>tools/golden/baseline.json</code> 是评测数字的唯一源，守卫<strong>单向</strong>：质量 ≥ 基线、错误 ≤ 基线</td><td>指标倒退还悄悄过 CI</td></tr><tr><td><strong>生成物单一源</strong></td><td>全部阅读版 HTML 由一条命令从 Markdown 重生，清单在代码里</td><td>「md 改了 HTML 还是旧的」</td></tr><tr><td><strong>CI</strong></td><td>Node 22 / 24 双矩阵 + Python 编译检查 + Pages 构建</td><td>只在某一个 Node 版本上碰巧能跑</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>机制</th><th>做法</th><th>挡住什么</th></tr></thead><tbody><tr><td><strong>回归套件</strong></td><td>12 个套件（后端 4 / 自包含 4 / 前端 4），一条命令全跑</td><td>「改 A 坏 B」</td></tr><tr><td><strong>文档真相守卫</strong></td><td>从<strong>代码</strong>读出 24 页面 / 47 接口 / 545,169 字节 / schema v9 等事实，去比对文档里的「现状句」</td><td>文档与代码不一致（真发生过：四份文档四个页面数）</td></tr><tr><td><strong>负向锚点</strong></td><td>不只钉住「现在是多少」，还禁止<strong>旧值复活</strong></td><td>修了一处、另外四篇还留着旧数字</td></tr><tr><td><strong>评测基线单一源</strong></td><td><code>tools/golden/baseline.json</code> 是评测数字的唯一源，守卫<strong>单向</strong>：质量 ≥ 基线、错误 ≤ 基线</td><td>指标倒退还悄悄过 CI</td></tr><tr><td><strong>生成物单一源</strong></td><td>全部阅读版 HTML 由一条命令从 Markdown 重生，清单在代码里</td><td>「md 改了 HTML 还是旧的」</td></tr><tr><td><strong>CI</strong></td><td>Node 22 / 24 双矩阵 + Python 编译检查 + Pages 构建</td><td>只在某一个 Node 版本上碰巧能跑</td></tr></tbody></table></div>
 <blockquote>一条最典型的教训：我曾把评测基线写成<strong>四舍五入后</strong>的值，而守卫是单向往上比 —— 于是「真值 96.67% vs 基线 96.7%」被判成倒退，<strong>报了一个假红</strong>。 修法是把基线存<strong>原始值</strong>而不是显示值。教训写进了贡献指南。</blockquote>
 <hr class="sep">
 <h2 id="doc0--七-从-0-到-1-过程与关键决策">七、从 0 到 1：过程与关键决策</h2>
@@ -173,7 +173,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <li><strong>「我知道它哪儿还不行 —— 这份自审清单就是证据。」</strong> —— 把「不足」变成「我清楚边界」。</li>
 </ol></article></main>
 </div>
-<footer>生成时间：2026-10-07 13:57（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-09 10:28（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "HR-Agent OS · 作品集（面试版）"}];
 
