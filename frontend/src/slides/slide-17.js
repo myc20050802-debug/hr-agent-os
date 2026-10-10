@@ -34,7 +34,7 @@ window.slideDataMap.set(17, `
                     <div class="ed-p" style="margin-top:8px;font-size:12.5px;line-height:1.62;">
                         「业务匹配」只数标签个数 —— 会让「资深销售」这类无关背景被抬到 ok（实测 77 分）。
                         我按评测口径跑了一遍修法：一致率掉到 <span class="ed-warn">73.3%</span>、
-                        漏筛 <span class="ed-warn">0% → 22.2%</span>，破了红线 —— 于是否决修法、保留原实现，
+                        误筛 <span class="ed-warn">0% → 22.2%</span>，破了红线 —— 于是否决修法、保留原实现，
                         并把「为什么不修」写进口径文档。
                     </div>
                 </div>

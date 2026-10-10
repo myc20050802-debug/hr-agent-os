@@ -31,7 +31,7 @@ npm test
 |---|---|---|
 | 功能回归 | `tools/run_all.js` | 起隔离实例（`127.0.0.1:8799` + 临时库）跑 12 套件，不碰演示库 |
 | 文档一致性 | `tools/check_docs.js` | 文档里的页面数 / 原型字节数 / 套件数 / schema 版本与代码不符 |
-| 双模式评测 | `tools/eval_dual_mode.js` | 安全红线：规则模式**漏筛率必须为 0** |
+| 双模式评测 | `tools/eval_dual_mode.js` | 安全红线：规则模式**误筛率必须为 0** |
 
 > ⚠️ **假绿是这个仓库最贵的 bug**。缺 `jsdom` 时 `run_all.js` 会跳过 4 个前端套件，
 > 因此它**强制以退出码 4 失败**并打印「结论不完整」—— **没跑过的套件不允许算作通过**。
@@ -90,7 +90,7 @@ npm test
 | 数字 | 唯一源 | 谁来把关 |
 |---|---|---|
 | 页面数 / 原型字节数 / 套件数 / schema 版本 / 接口数 | 代码与文件系统 | `tools/check_docs.js` 正向锚点 |
-| 评测指标（一致率 / 漏筛 / 误筛 / 门槛例数） | `tools/golden/baseline.json` | `test_eval.js --write-baseline` 产出，`check_docs.js` 校验文档 |
+| 评测指标（一致率 / 误筛 / 漏筛 / 门槛例数） | `tools/golden/baseline.json` | `test_eval.js --write-baseline` 产出，`check_docs.js` 校验文档 |
 
 两条纪律：
 

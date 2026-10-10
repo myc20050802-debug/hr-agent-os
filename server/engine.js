@@ -395,7 +395,7 @@ function ruleGate(c, job) {
  *   有问题的是「技能零命中」这件事没有任何地方表达出来（技能维度只把它记成「触底系数」，
  *   在总分里与「命中 1 项」几乎无差别）。
  *   实测：黄金集里 3 个探针例（前端投 Java 岗 / 算法投产品岗 / 销售投实施岗）
- *   全部因此被抬进 ok；加上这道闸后一致率 90.0% → 96.7%、误筛 25.0% → 8.3%，漏筛仍为 0。
+ *   全部因此被抬进 ok；加上这道闸后一致率 90.0% → 96.7%、漏筛 25.0% → 8.3%，误筛仍为 0。
  *
  * 与 ruleGate 的区别：年限/学历是**客观硬条件**，这里是**相关性推断** ——
  * 所以单独一个函数、单独的 dim 名，不与硬性门槛混在一起。
@@ -552,6 +552,49 @@ function detectPersonalIntent(q) {
   return null;
 }
 
+/* 主动提醒意图识别：员工问「提醒 / 待办 / 到期 / 清零 / 要注意」→ 汇总本人待办。 */
+function detectAlertIntent(q) {
+  if (/提醒|待办|预警|要注意|到期|清零|别忘了|待办事项|我要注意|有什么.*(提醒|待办)|近期.*(安排|事项)|我该.*(做|办)/.test(q)) return true;
+  return false;
+}
+
+/* 拉式主动提醒：从业务库算本人待办（年假结转清零 / 调休逾期 / 试用期规则提示）。
+   这是「主动推送（试用期到期 / 年假清零）」在「无 cron / IM 基础设施」下的落地形态 ——
+   员工主动问，Agent 从库算，而非后台定时推。仍走 owner 校验 + 事实分层（数字只来自库）。 */
+function alertSummary(db, q, userId, user) {
+  if (/张三|李四|王五|赵六|某某|别人的|他人的|其他人的|同事的/.test(q)) {
+    audit(db, { actorType: 'agent', actorId: userId, action: '拒答并转人工', objType: 'user', objId: userId,
+      detail: `提醒查询涉及他人隐私（绕过查询）→ 转 HR`, result: 'ok' });
+    return { route: 'escalated', type: '他人隐私',
+      text: '我只能查询你本人的数据，无法查询或推算其他同事的任何信息（这是制度与法律的硬性要求）。如需了解相关制度，我可以为你解释。',
+      cites: [], badge: '🚫 授权范围外 · 已按规则拒答' };
+  }
+  try {
+    const lb = db.prepare(`SELECT * FROM leave_balance WHERE user_id=?`).get(userId);
+    if (!lb) return noPersonalData('个人');
+    const annualRemain = ((lb.annual_total || 0) - (lb.annual_used || 0)).toFixed(1);
+    const compRemain = ((lb.compensatory_total || 0) - (lb.compensatory_used || 0)).toFixed(1);
+    const carry = lb.carryover || 0;
+    const today = new Date();
+    const yearEnd = new Date(today.getFullYear(), 11, 31);
+    const daysToYearEnd = Math.max(0, Math.ceil((yearEnd - today) / 86400000));
+    const lines = ['📌 你的近期待办提醒（以下数字来自 HR 系统实时数据，非文档说明）：'];
+    if (carry > 0) lines.push(`· 年假结转 ${carry} 天将于 ${today.getFullYear()}-12-31 清零，还剩约 ${daysToYearEnd} 天，请尽快安排休假，逾期清零不补。`);
+    else lines.push(`· 年假剩余 ${annualRemain} 天（本年度额度，无结转待清）。`);
+    lines.push(`· 调休剩余 ${compRemain} 天，调休自加班日起 3 个月内有效，逾期自动失效，建议尽快申请使用。`);
+    lines.push(`· 试用期：按《试用期与转正管理规定》为 3 个月，到期前 15 天系统会自动提醒你的上级发起转正考核（当前库未记录你的入职日期，无法计算具体到期日，可在 OA 查看合同）。`);
+    const doc = db.prepare(`SELECT * FROM kb_documents WHERE id='KB-021'`).get();
+    audit(db, { actorType: 'agent', actorId: userId, action: '主动提醒汇总', objType: 'user', objId: userId,
+      detail: `年假剩余 ${annualRemain} / 调休 ${compRemain} / 结转 ${carry}`, result: 'ok' });
+    return { route: 'alert', text: lines.join('\n'), badge: '🔔 主动提醒（基于本人实时数据）',
+      cites: [{ t: (doc ? doc.title + ' ' + doc.ver : '假期管理制度'), eff: doc ? doc.effective_at : '2026-04-01', note: '数字来源：HR 系统实时查询（权威事实）' }] };
+  } catch (e) {
+    audit(db, { actorType: 'agent', actorId: userId, action: '主动提醒查询失败', objType: 'user', objId: userId,
+      detail: String(e.message || e), result: 'fail' });
+    return noPersonalData('个人');
+  }
+}
+
 function noPersonalData(kind) {
   return { route: 'no_match',
     text: `暂时没有查到你的${kind}数据，已转 HR 核实。\n如果你是想了解相关制度，我可以为你解释。`,
@@ -642,6 +685,15 @@ async function chat(db, { question, userId = 'U-003' }) {
     return { route: 'escalated', type: refuse.type, text: refuse.msg, cites: [], badge: '🚫 授权范围外 · 已按规则拒答' };
   }
 
+  /* ①.5 主动提醒：员工问「有什么要提醒我的 / 待办 / 到期」→ 汇总本人实时待办。
+     这是把「主动推送（试用期到期 / 年假清零）」在「无 cron / IM 基础设施」下
+     落地的**拉式**形态 —— 员工主动问，Agent 从业务库算，而非后台定时推。
+     仍走 owner 校验 + 事实分层（数字只来自库）。 */
+  if (detectAlertIntent(q)) {
+    const alert = alertSummary(db, q, userId, user);
+    if (alert) return alert;
+  }
+
   /* ② 个人数据：按意图分流查业务库（权威事实，事实分层）。
      年假/调休/考勤/薪资/社保这些「个人数字」必须查业务系统，绝不用知识库文档回答。
      意图识别与查库都集中在 detectPersonalIntent / personalQuery（见上方）。 */
@@ -663,7 +715,7 @@ async function chat(db, { question, userId = 'U-003' }) {
     audit(db, { actorType: 'agent', actorId: userId, action: '知识库无匹配，转人工并记录', objType: 'kb', objId: null,
       detail: `问题已记录，待补全知识库`, result: 'ok' });
     return { route: 'no_match',
-      text: `我在公司制度文档里没有找到与「${q}」相关的内容，为避免误导，我不做推测回答。\n你可以：① 点击「转人工」由 HR 答复；② 换个说法再问。\n这次提问已被记录，HR 会据此补充知识库。`,
+      text: `我在公司制度文档里没有找到与「${q}」相关的内容，为避免误导，我不做推测回答。\n你可以：① 点击「转人工」由 HR 答复；② 换个说法再问；③ 试着问我这些我能准确回答的问题：\n  · 我的年假 / 调休还剩多少天\n  · 我最近的考勤怎么样\n  · 我的薪资条在哪看\n  · 报销流程是怎样的\n  · 试用期 / 转正有什么规定\n  · 有什么要提醒我的（待办 / 到期 / 清零）\n这次提问已被记录，HR 会据此补充知识库。`,
       cites: [], badge: '⚠️ 知识库无匹配（相似度低于阈值）' };
   }
 

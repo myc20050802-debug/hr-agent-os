@@ -40,7 +40,10 @@ window.slideDataMap.set(19, `
                     </div>
                     <div style="display:grid;grid-template-columns:34px 1fr;gap:16px;padding:13px 0;border-bottom:1px solid var(--line);">
                         <div class="ed-n">02</div>
-                        <div class="ed-p" style="font-size:14.5px;color:#C6D3E8;">「漏筛率 0% 是我守的红线；为了它，我接受了 8.3% 的误筛。」</div>
+                        <div>
+                            <div class="ed-p" style="font-size:14.5px;color:#C6D3E8;">「误筛率 0% 是我守的红线；为了它，我接受了 8.3% 的漏筛。」</div>
+                            <div class="ed-p" style="margin-top:6px;font-size:12.5px;color:#7C8AA3;">漏筛：不合适的人混进了面试　·　误筛：合适的人被错拒</div>
+                        </div>
                     </div>
                     <div style="display:grid;grid-template-columns:34px 1fr;gap:16px;padding:13px 0;border-bottom:1px solid var(--line);">
                         <div class="ed-n">03</div>

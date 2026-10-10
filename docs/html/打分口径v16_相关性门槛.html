@@ -108,7 +108,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <hr class="sep">
 <h2 id="doc0--二-候选方案与实测对照">二、候选方案与实测对照</h2>
 <p>只比较「改业务维度」是不对的 —— 先跑了对照再决定。所有方案都在同一份黄金集上实跑/精确重算（业务维度按系数阶梯替换，其余维度沿用实跑结果）：</p>
-<div class="tablewrap"><table><thead><tr><th>方案</th><th>档位一致率</th><th>漏筛率（红线）</th><th>误筛率</th><th>失败例</th></tr></thead><tbody><tr><td><strong>V0 现状</strong>（<code>bizN = 简历业务标签条数</code>）</td><td>90.0%（27/30）</td><td>0.0%</td><td>25.0%</td><td>G-J09 / G-P09 / G-M09 误判 ok</td></tr><tr><td>V1 业务维度改为「与职能族业务词表求交」</td><td>73.3%（22/30）</td><td><strong>22.2%</strong> ❌</td><td>16.7%</td><td>+ G-J04 / G-J05 / G-J06 / G-P06 漏筛</td></tr><tr><td>V2 业务维度改为「与（职能族 ∪ 行业）词表求交」</td><td>80.0%（24/30）</td><td><strong>16.7%</strong> ❌</td><td>16.7%</td><td>+ G-J05 / G-J06 / G-P06 漏筛</td></tr><tr><td><strong>V3 V0 + 相关性门槛（技能零命中 ⇒ 出局）</strong></td><td><strong>96.7%（29/30）</strong></td><td><strong>0.0%</strong> ✅</td><td><strong>8.3%</strong></td><td>仅 G-M09</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>方案</th><th>档位一致率</th><th>误筛率（红线）</th><th>漏筛率</th><th>失败例</th></tr></thead><tbody><tr><td><strong>V0 现状</strong>（<code>bizN = 简历业务标签条数</code>）</td><td>90.0%（27/30）</td><td>0.0%</td><td>25.0%</td><td>G-J09 / G-P09 / G-M09 误判 ok</td></tr><tr><td>V1 业务维度改为「与职能族业务词表求交」</td><td>73.3%（22/30）</td><td><strong>22.2%</strong> ❌</td><td>16.7%</td><td>+ G-J04 / G-J05 / G-J06 / G-P06 误筛</td></tr><tr><td>V2 业务维度改为「与（职能族 ∪ 行业）词表求交」</td><td>80.0%（24/30）</td><td><strong>16.7%</strong> ❌</td><td>16.7%</td><td>+ G-J05 / G-J06 / G-P06 误筛</td></tr><tr><td><strong>V3 V0 + 相关性门槛（技能零命中 ⇒ 出局）</strong></td><td><strong>96.7%（29/30）</strong></td><td><strong>0.0%</strong> ✅</td><td><strong>8.3%</strong></td><td>仅 G-M09</td></tr></tbody></table></div>
 <p><strong>为什么 V1/V2 会被否</strong>：Java 岗的职能族业务词表是<strong>架构术语</strong>（高并发 / 分布式 / 微服务 / 云原生 / 中台 / To B 系统 / C 端产品），而真实 Java 候选人的业务标签是<strong>业务领域</strong>（金融 / 风控 / 交易系统 / 企业服务 / CRM / 政务 / 外包）。求交之后，<code>G-J04</code>（电商 + 后台系统）、<code>G-J05</code>（企业服务 + CRM）、<code>G-J06</code>（外包 + 政务）这些<strong>人工标 <code>ok</code> 的正常候选人业务分从 22 掉到 6，直接掉出 ok</strong> —— 把「该通过的漏掉」从 0% 打到 22%，<strong>这是安全红线，不是可以商量的取舍</strong>。</p>
 <blockquote>顺带说明：<code>server/db.js</code> 的 <code>INDUSTRY_SKILLS[*].biz</code> 用的正是<strong>业务领域</strong>词（互联网 → 电商 / 交易 / 订单 / 支付 / 内容 / 社交 / SaaS）， 与 <code>shared/req-lib.js</code> 的职能族 <code>biz</code>（架构术语）<strong>是两套不同的词表</strong>。这也解释了为什么 G-J01 的业务标签 （电商 / 订单系统 / 支付 / 高并发）看着「既像又不像」词表里的词。<strong>这份词表要不要统一，是另一个未决问题</strong>（见第六节）。</blockquote>
 <hr class="sep">
@@ -137,12 +137,12 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <p><code>REQ_LIB_VER</code> 递增的理由：它管的是「岗位 JD / 关键词的懒重算」，口径变了若不递增，重启后端不会重算（只在 <code>GET /api/bootstrap</code> 比对）。</p>
 <hr class="sep">
 <h2 id="doc0--五-实测效果-跑出来的">五、实测效果（跑出来的）</h2>
-<div class="tablewrap"><table><thead><tr><th>指标</th><th>v16 前</th><th>v16 后</th></tr></thead><tbody><tr><td>档位一致率</td><td>90.0%（27/30）</td><td><strong>96.7%（29/30）</strong></td></tr><tr><td>Wilson 95% 置信区间</td><td>[74.4%, 96.5%]（宽 22.2pp）</td><td><strong>[83.3%, 99.4%]（宽 16.1pp）</strong></td></tr><tr><td>±1 档一致率</td><td>100.0%</td><td><strong>100.0%</strong></td></tr><tr><td>漏筛率（安全红线）</td><td>0.0%（0/18）</td><td><strong>0.0%（0/18）</strong></td></tr><tr><td>误筛率</td><td>25.0%（3/12）</td><td><strong>8.3%（1/12）</strong></td></tr><tr><td>门槛拦截例数</td><td>3（年限 ×2 / 学历 ×1）</td><td><strong>9（年限 ×2 / 学历 ×1 / 技能零命中 ×6）</strong></td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>指标</th><th>v16 前</th><th>v16 后</th></tr></thead><tbody><tr><td>档位一致率</td><td>90.0%（27/30）</td><td><strong>96.7%（29/30）</strong></td></tr><tr><td>Wilson 95% 置信区间</td><td>[74.4%, 96.5%]（宽 22.2pp）</td><td><strong>[83.3%, 99.4%]（宽 16.1pp）</strong></td></tr><tr><td>±1 档一致率</td><td>100.0%</td><td><strong>100.0%</strong></td></tr><tr><td>误筛率（安全红线）</td><td>0.0%（0/18）</td><td><strong>0.0%（0/18）</strong></td></tr><tr><td>漏筛率</td><td>25.0%（3/12）</td><td><strong>8.3%（1/12）</strong></td></tr><tr><td>门槛拦截例数</td><td>3（年限 ×2 / 学历 ×1）</td><td><strong>9（年限 ×2 / 学历 ×1 / 技能零命中 ×6）</strong></td></tr></tbody></table></div>
 <p><strong>关于区间</strong>：点估计上升、区间收窄（22.2pp → 16.1pp），但这<strong>不是</strong>「一致率已达 96.7%」的证明 ——</p>
 <p>30 例的样本量下，区间下沿 83.3% 才是可以对外说的数。要收窄只能扩样本（当前 3 岗 × 10 例，词库覆盖 30 个职能族）。</p>
-<p><strong>误筛率 25% → 8.3% 是这次更值得说的改善</strong>：它是 B 端客户真正在意的方向。</p>
+<p><strong>漏筛率 25% → 8.3% 是这次更值得说的改善</strong>：它是 B 端客户真正在意的方向。</p>
 <p><strong>新增的 6 例门槛里只有 2 例（G-J09 / G-P09）原先判错</strong>，另外 4 例（G-J10 测试 / G-P10 文案投放 / G-M08 Java 转实施 / G-M10 硬件维修）本来就是 <code>no</code> ——</p>
-<p>这道闸只是把它们的分数从「底分堆出来的 43~59」改成诚实的 0，档位不变。<strong>没有任何人工标 <code>strong</code>/<code>ok</code> 的样本被这道闸碰到</strong>，所以漏筛守住 0%。</p>
+<p>这道闸只是把它们的分数从「底分堆出来的 43~59」改成诚实的 0，档位不变。<strong>没有任何人工标 <code>strong</code>/<code>ok</code> 的样本被这道闸碰到</strong>，所以误筛守住 0%。</p>
 <hr class="sep">
 <h2 id="doc0--六-已知剩余-没有-解决的">六、已知剩余（<strong>没有</strong>解决的）</h2>
 <p><strong>G-M09 仍然是 <code>ok</code>（77 分）而人工是 <code>no</code>。</strong> 它的技能命中 2/6（<code>客户沟通</code>、<code>培训</code> 确实对得上实施岗），</p>
@@ -183,7 +183,7 @@ node 平台原型/build.js &amp;&amp; node 平台原型/test_prototype.js
 python tools/_rev_v16.py break | restore</code></pre></div>
 <blockquote>注：<code>tools/_probe_options.js</code> / <code>_rev_v16.py</code> / <code>_probe_biz.js</code> 以下划线开头，属分析脚本（<code>.gitignore</code> 已覆盖）， 随工作区保留、不随仓库发布。</blockquote></article></main>
 </div>
-<footer>生成时间：2026-10-09 13:41（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-10 09:35（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "打分口径 v16 · 相关性门槛（技能零命中即出局）"}];
 

@@ -111,7 +111,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <hr class="sep">
 <h2 id="doc0--零之二-修复进度-2026-09-29-更新">零之二、修复进度（2026-09-29 更新）</h2>
 <p>审计结论保留原文，<strong>不改历史</strong>；此处只追加「现在改到哪了」，每条都附可复查的证据。</p>
-<div class="tablewrap"><table><thead><tr><th>#</th><th>缺口</th><th>状态</th><th>证据 / 说明</th></tr></thead><tbody><tr><td>1</td><td>无评测集，答不出准确率</td><td>✅ 已修</td><td><code>tools/golden/golden_set.json</code>（30 例人工标注）+ <code>tools/test_eval.js</code>：档位一致率 <strong>90.0%</strong> / ±1 档 <strong>100%</strong> / 漏筛率 <strong>0.0%</strong> / 误筛率 <strong>25.0%</strong>；3 例分歧全部同向且已归类</td></tr><tr><td>2</td><td>筛选链路虚报模型调用与成本</td><td>✅ 已修</td><td><code>abfc85f</code>。规则模式 0 token、工具名 <code>rule.score_resume</code>；接入模式用量取自网关 <code>usage</code>。<code>tools/test_screening.js</code> 29 项断言 + 假网关证明 <code>tokens = 调用次数 × 137</code></td></tr><tr><td>3</td><td>「优化数据集」不存在 + 无一致率</td><td>✅ 已修</td><td>迁移 v6 加 <code>override_code</code>；<code>shared/override-codes.js</code> 9 个可归因原因码；人工结论三态（确认 / 推翻·推进 / 推翻·否决）；<code>GET /api/metrics/agreement</code> 返回一致率与 byCode 分布；前端下拉 + 一致率卡片</td></tr><tr><td>4</td><td>无 git 仓库、无 <code>.gitignore</code></td><td>✅ 已修</td><td><code>git init</code> + 按语义拆分的提交历史（基线 18 条 + 修复若干），<code>.gitignore</code> / <code>.gitattributes</code> 齐备</td></tr><tr><td>5</td><td>无一键启动、无 <code>package.json</code></td><td>✅ 已修</td><td><code>package.json</code>（engines ≥22.5 + 各套件脚本）、<code>server/start.bat</code>（去硬编码 Node 路径 + 版本校验）、<code>server/start.sh</code>、<code>平台原型/build.js</code>（构建去掉 Python 依赖）、<code>tools/run_all.js</code> 一键回归</td></tr><tr><td>6</td><td>WAL 从不 checkpoint</td><td>✅ 已修</td><td><code>db.checkpoint()</code>（PASSIVE/FULL/RESTART/TRUNCATE）；维护定时器 PASSIVE、关闭与重置 TRUNCATE；<code>/api/health</code> 暴露 <code>wal</code> 体积；重置时连 <code>-wal</code>/<code>-shm</code> 一起删</td></tr><tr><td>7</td><td>无并发/压测数据</td><td>✅ 已修</td><td><code>tools/test_load.js</code> 三阶段（读/写/混合）并发 20：P95 <strong>35 / 12 / 39 ms</strong>，P99 42 / 15 / 50 ms，吞吐 ~800 req/s，<strong>0 错误</strong></td></tr><tr><td>8</td><td>死按钮 <code>resetJobScores</code></td><td>✅ 已修</td><td><code>5014278</code>；同时补上后端 <code>POST /api/jobs/:id/reset-scores</code>（清评分与人工结论、<strong>不动阶段</strong>，行级范围校验 + 审计）</td></tr><tr><td>9</td><td>2 个装饰性下拉</td><td>⬜ 未修</td><td>「模型路由」「时间范围」仍是纯装饰。要么接上真实行为，要么删掉 —— 留着比删掉更伤信任</td></tr><tr><td>10</td><td>无障碍为 0</td><td>🟡 最小集已修</td><td><code>role="dialog"</code> / <code>aria-modal</code> / 焦点移入与归还 / Esc 关闭 / <code>th scope</code> / <code>aria-live</code> 提示区 / <code>prefers-reduced-motion</code> / <code>:focus-visible</code> / 跳转链接；<code>test_prototype.js</code> 有 1 项专门断言。<strong>完整 WCAG 审计未做</strong>，别当成合规</td></tr><tr><td>11</td><td><code>LIVE.authMode</code> 默认 <code>'legacy'</code></td><td>✅ 已修</td><td>该字段是展示用、不参与分支，但初值写 <code>legacy</code> 会让人以为还有伪身份后门；已改 <code>strict</code> 并加注释说明</td></tr><tr><td>12</td><td>无部署路径</td><td>⬜ 未修</td><td>仍绑 <code>127.0.0.1</code>，无 Dockerfile / CI。定位仍是本地 PoC，靠话术说明</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>缺口</th><th>状态</th><th>证据 / 说明</th></tr></thead><tbody><tr><td>1</td><td>无评测集，答不出准确率</td><td>✅ 已修</td><td><code>tools/golden/golden_set.json</code>（30 例人工标注）+ <code>tools/test_eval.js</code>：档位一致率 <strong>90.0%</strong> / ±1 档 <strong>100%</strong> / 误筛率 <strong>0.0%</strong> / 漏筛率 <strong>25.0%</strong>；3 例分歧全部同向且已归类</td></tr><tr><td>2</td><td>筛选链路虚报模型调用与成本</td><td>✅ 已修</td><td><code>abfc85f</code>。规则模式 0 token、工具名 <code>rule.score_resume</code>；接入模式用量取自网关 <code>usage</code>。<code>tools/test_screening.js</code> 29 项断言 + 假网关证明 <code>tokens = 调用次数 × 137</code></td></tr><tr><td>3</td><td>「优化数据集」不存在 + 无一致率</td><td>✅ 已修</td><td>迁移 v6 加 <code>override_code</code>；<code>shared/override-codes.js</code> 9 个可归因原因码；人工结论三态（确认 / 推翻·推进 / 推翻·否决）；<code>GET /api/metrics/agreement</code> 返回一致率与 byCode 分布；前端下拉 + 一致率卡片</td></tr><tr><td>4</td><td>无 git 仓库、无 <code>.gitignore</code></td><td>✅ 已修</td><td><code>git init</code> + 按语义拆分的提交历史（基线 18 条 + 修复若干），<code>.gitignore</code> / <code>.gitattributes</code> 齐备</td></tr><tr><td>5</td><td>无一键启动、无 <code>package.json</code></td><td>✅ 已修</td><td><code>package.json</code>（engines ≥22.5 + 各套件脚本）、<code>server/start.bat</code>（去硬编码 Node 路径 + 版本校验）、<code>server/start.sh</code>、<code>平台原型/build.js</code>（构建去掉 Python 依赖）、<code>tools/run_all.js</code> 一键回归</td></tr><tr><td>6</td><td>WAL 从不 checkpoint</td><td>✅ 已修</td><td><code>db.checkpoint()</code>（PASSIVE/FULL/RESTART/TRUNCATE）；维护定时器 PASSIVE、关闭与重置 TRUNCATE；<code>/api/health</code> 暴露 <code>wal</code> 体积；重置时连 <code>-wal</code>/<code>-shm</code> 一起删</td></tr><tr><td>7</td><td>无并发/压测数据</td><td>✅ 已修</td><td><code>tools/test_load.js</code> 三阶段（读/写/混合）并发 20：P95 <strong>35 / 12 / 39 ms</strong>，P99 42 / 15 / 50 ms，吞吐 ~800 req/s，<strong>0 错误</strong></td></tr><tr><td>8</td><td>死按钮 <code>resetJobScores</code></td><td>✅ 已修</td><td><code>5014278</code>；同时补上后端 <code>POST /api/jobs/:id/reset-scores</code>（清评分与人工结论、<strong>不动阶段</strong>，行级范围校验 + 审计）</td></tr><tr><td>9</td><td>2 个装饰性下拉</td><td>⬜ 未修</td><td>「模型路由」「时间范围」仍是纯装饰。要么接上真实行为，要么删掉 —— 留着比删掉更伤信任</td></tr><tr><td>10</td><td>无障碍为 0</td><td>🟡 最小集已修</td><td><code>role="dialog"</code> / <code>aria-modal</code> / 焦点移入与归还 / Esc 关闭 / <code>th scope</code> / <code>aria-live</code> 提示区 / <code>prefers-reduced-motion</code> / <code>:focus-visible</code> / 跳转链接；<code>test_prototype.js</code> 有 1 项专门断言。<strong>完整 WCAG 审计未做</strong>，别当成合规</td></tr><tr><td>11</td><td><code>LIVE.authMode</code> 默认 <code>'legacy'</code></td><td>✅ 已修</td><td>该字段是展示用、不参与分支，但初值写 <code>legacy</code> 会让人以为还有伪身份后门；已改 <code>strict</code> 并加注释说明</td></tr><tr><td>12</td><td>无部署路径</td><td>⬜ 未修</td><td>仍绑 <code>127.0.0.1</code>，无 Dockerfile / CI。定位仍是本地 PoC，靠话术说明</td></tr></tbody></table></div>
 <p><strong>本次新增的可信度来源（面试可直接展示）</strong>：<code>npm test</code> 一条命令跑 7 套件；<code>node tools/run_all.js --only load</code> 出压测表；<code>_eval_result.json</code> / <code>_load_result.json</code> 是评测与压测的机器可读产物（已 gitignore，运行时重算）。</p>
 <hr class="sep">
 <h2 id="doc0--一-总表-按面试杀伤力排序-非按修复难度">一、总表（按面试杀伤力排序，非按修复难度）</h2>
@@ -139,14 +139,14 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 </ol>
 <ul>
 <li><strong>档位一致率</strong>（strict）与 <strong>±1 档一致率</strong>（lenient）</li>
-<li><strong>漏筛率</strong> = 人工判 strong 而机器判 no 的比例 ← <strong>这是 HR 场景最贵的一类错误</strong></li>
-<li><strong>误筛率</strong> = 人工判 no 而机器判 strong 的比例</li>
+<li><strong>误筛率</strong> = 人工判 strong 而机器判 no 的比例 ← <strong>这是 HR 场景最贵的一类错误</strong></li>
+<li><strong>漏筛率</strong> = 人工判 no 而机器判 strong 的比例</li>
 </ul>
 <ol>
 <li>把这三个数写进 README 与验收报告。</li>
 <li>附一句最有分量的收口：<strong>「拿到数之后我把 78/60 这两个阈值调过一次，重跑一致率从 X 升到 Y」</strong> —— 这一句证明你懂评测驱动的迭代，比任何架构图都值钱。</li>
 </ol>
-<blockquote>数字丑没关系。<code>漏筛率 12%</code> 是工程结论，<code>不知道</code> 是没做。</blockquote>
+<blockquote>数字丑没关系。<code>误筛率 12%</code> 是工程结论，<code>不知道</code> 是没做。</blockquote>
 <hr class="sep">
 <h3 id="doc0--缺口-2-筛选链路虚报模型调用与成本">缺口 2 · 筛选链路虚报模型调用与成本</h3>
 <p><strong>这是本轮审计最严重的发现，且它比表面看起来更深。</strong></p>
@@ -181,7 +181,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <li><strong>把承诺收回来或兑现</strong>，二选一。建议兑现，因为成本很低：</li>
 </ol>
 <ul>
-<li><code>override_reason</code> 加一个 <code>override_code</code> 枚举字段（如 <code>AI漏筛-确有经验</code> / <code>AI误判-技能不对口</code> / <code>AI评分偏高-软素质存疑</code> / <code>其他</code>）；</li>
+<li><code>override_reason</code> 加一个 <code>override_code</code> 枚举字段（如 <code>AI误筛-确有经验</code> / <code>AI误判-技能不对口</code> / <code>AI评分偏高-软素质存疑</code> / <code>其他</code>）；</li>
 <li>前端推翻弹窗改成「先选分类，再填补充说明」。</li>
 </ul>
 <ol>
@@ -288,7 +288,7 @@ try { db.exec('PRAGMA busy_timeout = 5000;'); } catch { ... }</code></pre></div>
 <h3 id="doc0--Q1-你的筛选-Agent-准确率多少">Q1「你的筛选 Agent 准确率多少？」</h3>
 <ul>
 <li><strong>现在</strong>（不推荐）：『靠人工看，感觉挺准的。』→ AI 岗直接失分。</li>
-<li><strong>补完缺口 1 后</strong>：『我做了 30 份人工标注的黄金集，档位一致率 X%、±1 档一致率 Y%。<strong>漏筛率 Z% 是我最关注的</strong> —— HR 场景里把好简历判死的代价，远高于把差简历放进面试。所以我后来把 <code>strong</code> 的阈值从 78 调到了 72，宁多勿漏。』</li>
+<li><strong>补完缺口 1 后</strong>：『我做了 30 份人工标注的黄金集，档位一致率 X%、±1 档一致率 Y%。<strong>误筛率 Z% 是我最关注的</strong> —— HR 场景里把好简历判死的代价，远高于把差简历放进面试。所以我后来把 <code>strong</code> 的阈值从 78 调到了 72，宁多勿漏。』</li>
 </ul>
 <h3 id="doc0--Q2-这个-token-数和-成本怎么来的">Q2「这个 token 数和 ¥ 成本怎么来的？」</h3>
 <ul>
@@ -307,7 +307,7 @@ try { db.exec('PRAGMA busy_timeout = 5000;'); } catch { ... }</code></pre></div>
 <div class="tablewrap"><table><thead><tr><th>顺序</th><th>动作</th><th>工时</th></tr></thead><tbody><tr><td>1</td><td>写 <code>.gitignore</code>（<strong>在 init 之前</strong>）→ <code>git init</code> → 拆出有意义的提交历史 → 推到 GitHub</td><td>3 h</td></tr><tr><td>2</td><td>修缺口 2：规则模式不报 token/成本，工具名不撒谎，成本卡改「试算」或隐藏</td><td>1.5 h</td></tr><tr><td>3</td><td>修缺口 8 死按钮 <code>resetJobScores</code> + 缺口 11 <code>authMode</code> 残留</td><td>0.5 h</td></tr><tr><td>4</td><td>加 <code>package.json</code> + <code>start.bat</code> / <code>start.sh</code> + README 首屏改成三段</td><td>1 h</td></tr></tbody></table></div>
 <p>做完这四条，项目从「一个很完整的作品」变成「<strong>一个可以坦然接受提问的作品</strong>」。</p>
 <h3 id="doc0--一天-决定-AI-岗评分的核心">⏱ 一天 —— 决定 AI 岗评分的核心</h3>
-<p>| 5 | 30 份黄金集（自己标）+ <code>tools/test_eval.js</code> + 一致率/漏筛率/误筛率写进 README | 6 h |</p>
+<p>| 5 | 30 份黄金集（自己标）+ <code>tools/test_eval.js</code> + 一致率/误筛率/漏筛率写进 README | 6 h |</p>
 <p>| 6 | 缺口 3：<code>override_code</code> 枚举 + <code>/api/metrics/agreement</code> + 把「已进入优化数据集」改成真话 | 2 h |</p>
 <h3 id="doc0--两天-拉开差距">⏱ 两天+ —— 拉开差距</h3>
 <p>| 7 | WAL checkpoint（2 行）+ 并发压测并记录 P95/P99（半天） |</p>
@@ -328,7 +328,7 @@ try { db.exec('PRAGMA busy_timeout = 5000;'); } catch { ... }</code></pre></div>
 <h2 id="doc0--附-本次审计的原始证据-可复查">附：本次审计的原始证据（可复查）</h2>
 <div class="tablewrap"><table><thead><tr><th>结论</th><th>复查命令</th></tr></thead><tbody><tr><td>无 git / 无 .gitignore</td><td><code>ls -d .git .gitignore</code></td></tr><tr><td>敏感文件在源码树</td><td>`ls -la server/ \</td><td>grep -E 'db\</td><td>secret'<code> → </code>-wal` 4.2 MB</td></tr><tr><td>筛选链路 0 次模型调用</td><td>取 <code>runScreening</code> 函数体 grep <code>llm(</code> → 0 命中</td></tr><tr><td>虚报 token</td><td><code>grep -n 'tokens += 160' server/engine.js</code></td></tr><tr><td>UI 翻牌逻辑</td><td><code>grep -n "rule: !(opt &amp;&amp; opt.tokens)" 平台原型/src/app.js</code></td></tr><tr><td>显示成本</td><td><code>grep -n 'cost = (tokens' 平台原型/src/app.js</code></td></tr><tr><td>优化数据集不存在</td><td>`grep -rn 'dataset\</td><td>eval_set' server/` → 空</td></tr><tr><td>死按钮</td><td>括号匹配解析 <code>ACT</code> 表 → 57 键 vs 50 动作，缺 <code>resetJobScores</code></td></tr><tr><td>无障碍为 0</td><td>`grep -c 'aria-\</td><td>role=' 平台原型/src/app.js` → 0</td></tr><tr><td>WAL 无 checkpoint</td><td><code>grep -n 'PRAGMA' server/db.js</code> → 仅 journal_mode / busy_timeout</td></tr></tbody></table></div></article></main>
 </div>
-<footer>生成时间：2026-10-09 13:41（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-10 09:35（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "HR-Agent OS · 面试前缺口审计"}];
 

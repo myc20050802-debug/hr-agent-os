@@ -42,7 +42,7 @@ window.slideDataMap.set(3, `
             </div>
             <div class="ed-cell">
                 <div class="ed-num" style="color:#FBBF24;">0<span style="font-size:34px;">%</span></div>
-                <div class="ed-k amber" style="color:#FBBF24;margin-top:12px;">漏筛率 · 红线</div>
+                <div class="ed-k amber" style="color:#FBBF24;margin-top:12px;">误筛率 · 红线</div>
                 <div class="ed-cap" style="margin-top:8px;">宁可多聊一轮<br>不可错杀一份</div>
             </div>
             <div class="ed-cell">

@@ -40,12 +40,12 @@ window.slideDataMap.set(11, `
                     <div class="ed-num" style="color:#FBBF24;">0.0<span style="font-size:32px;">%</span></div>
                     <span class="ed-chip amber">红线</span>
                 </div>
-                <div class="ed-k" style="color:#FBBF24;margin-top:16px;">Metric 03 · 漏筛率</div>
+                <div class="ed-k" style="color:#FBBF24;margin-top:16px;">Metric 03 · 误筛率</div>
                 <div class="ed-cap" style="margin-top:10px;">把好简历判死的代价<br>远高于把差简历放进面试</div>
             </div>
             <div class="ed-cell">
                 <div class="ed-num" style="color:#93A4BF;">8.3<span style="font-size:32px;">%</span></div>
-                <div class="ed-k" style="color:#93A4BF;margin-top:16px;">Counterpart · 误筛率</div>
+                <div class="ed-k" style="color:#93A4BF;margin-top:16px;">Counterpart · 漏筛率</div>
                 <div class="ed-cap" style="margin-top:10px;">12 个应拒样本里放了 1 个进来<br>—— 宁可多聊一轮，不可错杀</div>
             </div>
         </div>

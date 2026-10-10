@@ -83,7 +83,7 @@ window.slideDataMap.set(1, `
             <div class="ed-p" style="margin-top:8px;font-size:13px;"><span class="ed-b">100%</span> 规则算出 · 可复现</div>
         </div>
         <div>
-            <div class="ed-k" style="color:#5A6A85;">漏筛率 · 红线</div>
+            <div class="ed-k" style="color:#5A6A85;">误筛率 · 红线</div>
             <div class="ed-p" style="margin-top:8px;font-size:13px;color:#FBBF24;"><span class="ed-b" style="color:#FBBF24;">0%</span> —— 宁可多聊一轮</div>
         </div>
         <div>

@@ -87,8 +87,8 @@ const ROWS = CASES.map(c => {
    -----------------------------------------------------------
    档位一致率  完全同档的比例
    ±1 档一致率 档位距离 ≤ 1
-   漏筛率      人工说该通过（strong/ok）却被判 no   ← 安全红线
-   误筛率      人工说该淘汰（no）却被判 strong/ok   ← 成本问题
+   误筛率      人工说该通过（strong/ok）却被判 no   ← 安全红线
+   漏筛率      人工说该淘汰（no）却被判 strong/ok   ← 成本问题
    =========================================================== */
 function metrics(rows /* [{label, pred, gate}] */) {
   const n = rows.length;
@@ -230,8 +230,8 @@ const C = { g: '\x1b[32m', r: '\x1b[31m', y: '\x1b[33m', d: '\x1b[2m', x: '\x1b[
   console.log('  档位一致率   ' + pct(A.m.exact) + '  (' + A.m.same + '/' + A.m.n + ')');
   console.log('    └ 95% 置信区间 ' + ci(A.m.same, A.m.n) + '  ← 30 例样本只能给到这个精度');
   console.log('  ±1 档一致率  ' + pct(A.m.within1) + '  (' + A.m.near + '/' + A.m.n + ')');
-  console.log('  漏筛率       ' + pct(A.m.miss) + '  (' + A.m.missN + '/' + A.m.passBase + ')');
-  console.log('  误筛率       ' + pct(A.m.falsePass) + '  (' + A.m.fpN + '/' + A.m.rejectBase + ')');
+  console.log('  误筛率       ' + pct(A.m.miss) + '  (' + A.m.missN + '/' + A.m.passBase + ')');
+  console.log('  漏筛率       ' + pct(A.m.falsePass) + '  (' + A.m.fpN + '/' + A.m.rejectBase + ')');
   console.log('  档位分布     strong ' + A.m.dist_pred.strong + ' / ok ' + A.m.dist_pred.ok
     + ' / no ' + A.m.dist_pred.no + '（门槛拦截 ' + A.m.gateBlocked + '）');
 
@@ -244,8 +244,8 @@ const C = { g: '\x1b[32m', r: '\x1b[31m', y: '\x1b[33m', d: '\x1b[2m', x: '\x1b[
       + '（失败 ' + B.failed + ' · 无法解析 ' + B.unparsed + '）');
     console.log('  档位一致率   ' + pct(B.m.exact) + '  (' + B.m.same + '/' + B.m.n + ')');
     console.log('  ±1 档一致率  ' + pct(B.m.within1) + '  (' + B.m.near + '/' + B.m.n + ')');
-    console.log('  漏筛率       ' + pct(B.m.miss) + '  (' + B.m.missN + '/' + B.m.passBase + ')');
-    console.log('  误筛率       ' + pct(B.m.falsePass) + '  (' + B.m.fpN + '/' + B.m.rejectBase + ')');
+    console.log('  误筛率       ' + pct(B.m.miss) + '  (' + B.m.missN + '/' + B.m.passBase + ')');
+    console.log('  漏筛率       ' + pct(B.m.falsePass) + '  (' + B.m.fpN + '/' + B.m.rejectBase + ')');
     console.log('  真实用量     ' + B.tokens + ' tokens' + (B.usageUnknown ? '（' + B.usageUnknown + ' 次未返回 usage）' : ''));
     /* --- 模式间一致性 --- */
     const pair = A.out.filter(a => {
@@ -282,9 +282,9 @@ const C = { g: '\x1b[32m', r: '\x1b[31m', y: '\x1b[33m', d: '\x1b[2m', x: '\x1b[
       + ' 行；要落盘加 --md <路径>）' + C.x);
   }
 
-  /* 退出码：规则模式的硬红线（漏筛必须为 0）——与 test_eval.js 同一标准 */
+  /* 退出码：规则模式的硬红线（误筛必须为 0）——与 test_eval.js 同一标准 */
   const bad = A.m.miss !== 0;
-  console.log('\n' + (bad ? C.r + '✗ 规则模式漏筛率不为 0（安全红线）' : C.g + '✓ 规则模式漏筛率为 0（安全红线守住）') + C.x + '\n');
+  console.log('\n' + (bad ? C.r + '✗ 规则模式误筛率不为 0（安全红线）' : C.g + '✓ 规则模式误筛率为 0（安全红线守住）') + C.x + '\n');
   process.exit(bad ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(1); });
 
@@ -340,8 +340,8 @@ function buildMarkdown(A, B, llmOn) {
   P('| 档位一致率 | **' + pct(A.m.exact) + '** | 完全同档（' + A.m.same + '/' + A.m.n + '） |');
   P('| 　└ 95% 置信区间 | ' + ci(A.m.same, A.m.n) + ' | Wilson 区间，样本 ' + A.m.n + ' 例 |');
   P('| ±1 档一致率 | **' + pct(A.m.within1) + '** | 档位距离 ≤ 1（' + A.m.near + '/' + A.m.n + '） |');
-  P('| 漏筛率 | **' + pct(A.m.miss) + '** | 人工说该通过却被判 no（' + A.m.missN + '/' + A.m.passBase + '）← 安全红线 |');
-  P('| 误筛率 | **' + pct(A.m.falsePass) + '** | 人工说该淘汰却被放行（' + A.m.fpN + '/' + A.m.rejectBase + '）← 成本问题 |');
+  P('| 误筛率 | **' + pct(A.m.miss) + '** | 人工说该通过却被判 no（' + A.m.missN + '/' + A.m.passBase + '）← 安全红线 |');
+  P('| 漏筛率 | **' + pct(A.m.falsePass) + '** | 人工说该淘汰却被放行（' + A.m.fpN + '/' + A.m.rejectBase + '）← 成本问题 |');
   P('| 门槛拦截 | ' + A.m.gateBlocked + ' 例 | 规则前置拦截，不进入打分（年限 / 学历 / **技能零命中**） |');
   P('');
   P('档位分布（AI）：strong ' + A.m.dist_pred.strong + ' / ok ' + A.m.dist_pred.ok + ' / no ' + A.m.dist_pred.no);
@@ -400,14 +400,14 @@ function buildMarkdown(A, B, llmOn) {
     P('|---|---|---|');
     P('| 档位一致率 | ' + pct(A.m.exact) + ' | 待跑 |');
     P('| ±1 档一致率 | ' + pct(A.m.within1) + ' | 待跑 |');
-    P('| 漏筛率 | ' + pct(A.m.miss) + ' | 待跑 |');
-    P('| 误筛率 | ' + pct(A.m.falsePass) + ' | 待跑 |');
+    P('| 误筛率 | ' + pct(A.m.miss) + ' | 待跑 |');
+    P('| 漏筛率 | ' + pct(A.m.falsePass) + ' | 待跑 |');
     P('');
     P('### 跑之前要有的预期（写在这里是为了防止事后凑解释）');
     P('');
-    P('1. **模型很可能比规则更宽松**。规则的误筛率已经偏高（' + pct(A.m.falsePass) + '，方向在安全侧），');
-    P('   而通用模型对「必备项没写但背景接近」这类情况通常更愿意给机会 —— 如果模式 B 的**漏筛率**');
-    P('   （该通过却判 no）反而更低、误筛率更高，那是符合预期的，不是「模型更准」。');
+    P('1. **模型很可能比规则更宽松**。规则的漏筛率已经偏高（' + pct(A.m.falsePass) + '，方向在安全侧），');
+    P('   而通用模型对「必备项没写但背景接近」这类情况通常更愿意给机会 —— 如果模式 B 的**误筛率**');
+    P('   （该通过却判 no）反而更低、漏筛率更高，那是符合预期的，不是「模型更准」。');
     P('2. **一致率大概率在 60%~85% 之间**。低于 60% 要怀疑提示词或字段表达；');
     P('   高于 95% 要怀疑模型在猜（或提示词泄漏了规则答案）—— 真到了 95%+，');
     P('   反而应该检查是不是把规则算出的分数喂进去了。');
@@ -437,8 +437,8 @@ function buildMarkdown(A, B, llmOn) {
       + '（失败 ' + B.failed + ' · 无法解析 ' + B.unparsed + '） |');
     P('| 档位一致率 | ' + pct(A.m.exact) + ' | ' + pct(B.m.exact) + ' |');
     P('| ±1 档一致率 | ' + pct(A.m.within1) + ' | ' + pct(B.m.within1) + ' |');
-    P('| 漏筛率 | ' + pct(A.m.miss) + ' | ' + pct(B.m.miss) + ' |');
-    P('| 误筛率 | ' + pct(A.m.falsePass) + ' | ' + pct(B.m.falsePass) + ' |');
+    P('| 误筛率 | ' + pct(A.m.miss) + ' | ' + pct(B.m.miss) + ' |');
+    P('| 漏筛率 | ' + pct(A.m.falsePass) + ' | ' + pct(B.m.falsePass) + ' |');
     P('| 真实用量 | 0 token | ' + B.tokens + ' token |');
     P('');
     P('**两模式一致率**：' + pct(B.crossAgree) + '（' + B.crossSame + '/' + B.crossN + '）——'

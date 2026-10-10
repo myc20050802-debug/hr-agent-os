@@ -230,7 +230,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <h2 id="doc0--七-已知边界与未做-诚实清单">七、已知边界与未做（诚实清单）</h2>
 <blockquote>这一节是面试时<strong>最该主动讲</strong>的部分。声称「全做完了」反而会被追问到塌。</blockquote>
 <blockquote><strong>口径更新（2026-10-03）</strong>：下表的第 4 / 8 / 9 项已闭环（行内已标注）。其余各项仍是当前边界。</blockquote>
-<div class="tablewrap"><table><thead><tr><th>#</th><th>未做 / 边界</th><th>为什么</th><th>补齐路径</th></tr></thead><tbody><tr><td>1</td><td><strong>没换 PostgreSQL</strong></td><td>风险高、且不降低门槛；先把可信补上（D1）</td><td>见 <code>docs/08</code> §八 迁移路径阶段 ②；字段映射表已在 <code>docs/05</code> P1-1 给出</td></tr><tr><td>2</td><td><strong>仍是单租户</strong></td><td><code>tenant_id</code> 是服务端常量，不是从请求读（这是<strong>安全</strong>的默认值，但也不是真隔离）</td><td>每查询强制带 <code>tenant_id</code> + 行级策略；先把常量改成「从会话取」再谈多租户</td></tr><tr><td>3</td><td><strong>模型层仍空转</strong></td><td>无 API Key、无国内备案模型接入</td><td><code>docs/07</code> M3 / <code>docs/08</code> §6.2 模型网关设计已在，属于「接线」而非「设计」工作</td></tr><tr><td>4</td><td>~~<strong>无离线评测集</strong>~~ <strong>已补</strong>（30 例人工标注黄金集）</td><td>口径固定为「档位一致率 / ±1 档 / 漏筛率 / 误筛率」，判据进回归</td><td>下一步扩到 90 例（覆盖 9 个职能族）；现状见 README「质量与性能实测」</td></tr><tr><td>5</td><td><strong>候选人是合成数据</strong></td><td>无真实简历</td><td><code>docs/07</code> M2：真实 PDF/DOCX 链路</td></tr><tr><td>6</td><td><strong>字段级加密未做</strong></td><td>本轮做的是「脱敏 + 访问留痕」，<strong>不是</strong>加密存储</td><td>需要密钥管理（KMS / 本地密钥文件）+ 加解密中间层</td></tr><tr><td>7</td><td><strong>限流是单机内存态</strong></td><td>单进程场景够用</td><td>多实例需换 Redis 令牌桶</td></tr><tr><td>8</td><td>~~<strong>无 CI</strong>~~ <strong>已补</strong></td><td><code>test.yml</code>（Node 22/24 矩阵 + 文档守卫）+ <code>pages.yml</code>（零安装 demo）</td><td>下一步把评测阈值也设为阻断项</td></tr><tr><td>9</td><td>~~<strong><code>legacy</code> 模式仍保留</strong>~~ <strong>已删除</strong></td><td>该模式用于对比演示「身份可伪造有多危险」，已完成使命</td><td>一个能让身份退化成可伪造的开关，即使默认关闭也是攻击面 —— 已从代码里移除</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>#</th><th>未做 / 边界</th><th>为什么</th><th>补齐路径</th></tr></thead><tbody><tr><td>1</td><td><strong>没换 PostgreSQL</strong></td><td>风险高、且不降低门槛；先把可信补上（D1）</td><td>见 <code>docs/08</code> §八 迁移路径阶段 ②；字段映射表已在 <code>docs/05</code> P1-1 给出</td></tr><tr><td>2</td><td><strong>仍是单租户</strong></td><td><code>tenant_id</code> 是服务端常量，不是从请求读（这是<strong>安全</strong>的默认值，但也不是真隔离）</td><td>每查询强制带 <code>tenant_id</code> + 行级策略；先把常量改成「从会话取」再谈多租户</td></tr><tr><td>3</td><td><strong>模型层仍空转</strong></td><td>无 API Key、无国内备案模型接入</td><td><code>docs/07</code> M3 / <code>docs/08</code> §6.2 模型网关设计已在，属于「接线」而非「设计」工作</td></tr><tr><td>4</td><td>~~<strong>无离线评测集</strong>~~ <strong>已补</strong>（30 例人工标注黄金集）</td><td>口径固定为「档位一致率 / ±1 档 / 误筛率 / 漏筛率」，判据进回归</td><td>下一步扩到 90 例（覆盖 9 个职能族）；现状见 README「质量与性能实测」</td></tr><tr><td>5</td><td><strong>候选人是合成数据</strong></td><td>无真实简历</td><td><code>docs/07</code> M2：真实 PDF/DOCX 链路</td></tr><tr><td>6</td><td><strong>字段级加密未做</strong></td><td>本轮做的是「脱敏 + 访问留痕」，<strong>不是</strong>加密存储</td><td>需要密钥管理（KMS / 本地密钥文件）+ 加解密中间层</td></tr><tr><td>7</td><td><strong>限流是单机内存态</strong></td><td>单进程场景够用</td><td>多实例需换 Redis 令牌桶</td></tr><tr><td>8</td><td>~~<strong>无 CI</strong>~~ <strong>已补</strong></td><td><code>test.yml</code>（Node 22/24 矩阵 + 文档守卫）+ <code>pages.yml</code>（零安装 demo）</td><td>下一步把评测阈值也设为阻断项</td></tr><tr><td>9</td><td>~~<strong><code>legacy</code> 模式仍保留</strong>~~ <strong>已删除</strong></td><td>该模式用于对比演示「身份可伪造有多危险」，已完成使命</td><td>一个能让身份退化成可伪造的开关，即使默认关闭也是攻击面 —— 已从代码里移除</td></tr></tbody></table></div>
 <hr class="sep">
 <h2 id="doc0--八-后续可优化方向-按优先级">八、后续可优化方向（按优先级）</h2>
 <div class="tablewrap"><table><thead><tr><th>优先级</th><th>事项</th><th>为什么这么排</th></tr></thead><tbody><tr><td><strong>P0</strong></td><td>把三套测试接进 CI，并在 <code>docs/</code> 里写明「回归门槛」</td><td>已有资产零成本变现；「我建了回归门槛并阻断合并」是 AI PM 与工程师的分水岭</td></tr><tr><td><strong>P0</strong></td><td>补离线评测集（M4）</td><td>目前唯一无法自证的能力；没有它，「AI 判断准不准」全靠嘴说</td></tr><tr><td><strong>P1</strong></td><td>接一个国内已备案模型，跑通一条真链路 + 记 token/成本</td><td>把「规则为主 + 模型兜底」从设计变成实测；同时验证降级路径</td></tr><tr><td><strong>P1</strong></td><td>删掉 <code>legacy</code> 认证分支</td><td>不留后门</td></tr><tr><td><strong>P1</strong></td><td>会话表加「设备/UA + 最近活跃」，管理端可逐个踢下线</td><td>可信故事的自然延伸，成本低</td></tr><tr><td><strong>P2</strong></td><td>换 PostgreSQL + 版本化迁移平移</td><td>需先有真实并发/数据量诉求，否则是「为技术而技术」</td></tr><tr><td><strong>P2</strong></td><td>多租户隔离落地</td><td>需要真实多客户场景驱动</td></tr><tr><td><strong>P2</strong></td><td>前端把「按能力裁剪」升级为「按能力渲染 + 空态引导」</td><td>体验优化，非安全项</td></tr></tbody></table></div>
@@ -475,12 +475,12 @@ fnKey = null（职能识别不出）→ 走行业兜底
 <p><strong>① 筛选质量有了数字（新增 <code>tools/golden/golden_set.json</code> + <code>tools/test_eval.js</code>）</strong></p>
 <ul>
 <li>黄金集：3 个岗位（高级 Java 工程师 / AI 产品经理 / 软件实施管培生）× 10 例 = <strong>30 例人工标注</strong>，每例带人工档位（strong/ok/no）与决定性因素说明。</li>
-<li>评测口径：档位一致率 / ±1 档一致率 / <strong>漏筛率</strong>（该通过却被判 no）/ <strong>误筛率</strong>（该淘汰却被判 strong·ok）。口径在代码与文档里都写死，避免「一致率」被含糊解释。</li>
-<li>实测：一致率 <strong>90.0%</strong>（27/30）、±1 档 <strong>100%</strong>、漏筛率 <strong>0.0%</strong>、误筛率 <strong>25.0%</strong>。</li>
+<li>评测口径：档位一致率 / ±1 档一致率 / <strong>误筛率</strong>（该通过却被判 no）/ <strong>漏筛率</strong>（该淘汰却被判 strong·ok）。口径在代码与文档里都写死，避免「一致率」被含糊解释。</li>
+<li>实测：一致率 <strong>90.0%</strong>（27/30）、±1 档 <strong>100%</strong>、误筛率 <strong>0.0%</strong>、漏筛率 <strong>25.0%</strong>。</li>
 <li>关键结构保证：评测调用的 <code>evaluateCandidate</code> 与线上筛选<strong>是同一个函数</strong>（本轮把硬性门槛抽成 <code>ruleGate</code>、合成判定抽成 <code>evaluateCandidate</code>），避免「评测一套、线上另一套」。</li>
 <li>3 例分歧全部同向（AI 过宽），且都是<strong>有意埋的边界探针</strong>（前端技术负责人 / 资深算法工程师 / 资深销售）。它们不是「评测没过」，而是本轮 <code>override_code</code> 枚举的设计输入。</li>
 </ul>
-<blockquote><strong>后续口径变更（数年后回看请注意）</strong>：v15 修掉匹配层的跨词族误命中，v16 新增<strong>相关性门槛</strong>（岗位抽出关键词、简历也列了技能、但零命中 ⇒ 出局）。当前数字：一致率 <strong>96.7%</strong>（29/30）、漏筛 <strong>0.0%</strong>、误筛 <strong>8.3%</strong>，探针分歧 3 → 1。<strong>上面这段数字保留为当轮记录</strong>，现状见 <code>README.md</code> 与 <code>docs/18_打分口径v16_相关性门槛.md</code>。</blockquote>
+<blockquote><strong>后续口径变更（数年后回看请注意）</strong>：v15 修掉匹配层的跨词族误命中，v16 新增<strong>相关性门槛</strong>（岗位抽出关键词、简历也列了技能、但零命中 ⇒ 出局）。当前数字：一致率 <strong>96.7%</strong>（29/30）、误筛 <strong>0.0%</strong>、漏筛 <strong>8.3%</strong>，探针分歧 3 → 1。<strong>上面这段数字保留为当轮记录</strong>，现状见 <code>README.md</code> 与 <code>docs/18_打分口径v16_相关性门槛.md</code>。</blockquote>
 <p><strong>② 「进入优化数据集」从承诺变成数据（迁移 v6 + <code>shared/override-codes.js</code> + <code>GET /api/metrics/agreement</code>）</strong></p>
 <ul>
 <li>原状：<code>override_reason</code> 是自由文本，存得下、<strong>统计不了</strong>，所以那句承诺是空的。</li>
@@ -504,13 +504,13 @@ fnKey = null（职能识别不出）→ 走行业兜底
 <li><code>LIVE.authMode</code> 初值 <code>'legacy'</code>：该字段只写不读，但初值会让人误以为还有伪身份后门，已改 <code>strict</code> 并注明用途。</li>
 <li>前端「推翻并推进」按钮实际写死 <code>rejected_by_human</code>（否决）—— 名实不符，已改为<strong>方向由 AI 档位推出</strong>，并在后端加方向自洽校验（反向不符直接 400，避免污染一致率样本）。</li>
 </ul>
-<p><strong>本轮口径（面试可直接引用）</strong>：筛选评测<strong>错误全部落在安全侧</strong> —— 漏筛率 0（不会静默杀掉合格的人），误筛只是「多进一轮人工」。当时是 25%，v16 加入相关性门槛后降到 <strong>8.3%</strong>，一致率 90.0% → <strong>96.7%</strong>。这不是「做得很好」，而是「错的方向可以接受，且我们量过」。</p>
+<p><strong>本轮口径（面试可直接引用）</strong>：筛选评测<strong>错误全部落在安全侧</strong> —— 误筛率 0（不会静默杀掉合格的人），漏筛只是「多进一轮人工」。当时是 25%，v16 加入相关性门槛后降到 <strong>8.3%</strong>，一致率 90.0% → <strong>96.7%</strong>。这不是「做得很好」，而是「错的方向可以接受，且我们量过」。</p>
 <h2 id="doc0--十三-补记-2026-10-03-口径与状态刷新">十三 · 补记（2026-10-03）· 口径与状态刷新</h2>
 <p>本报告正文里的 <strong>23 页</strong> 是<strong>当时的实跑记录</strong>：当时前端套件写死了 23 个页面 id，</p>
 <p>新加的「岗位资料库」页被静默漏测（套件照样打印「全部通过」）。该缺陷已修</p>
 <p>（两个前端套件改为从 <code>PAGES</code> 派生，并加了守卫禁止再写死），<strong>代码事实与当前实测都是 24 页</strong>。</p>
 <p>历史数字保留原文不改 —— 改掉就毁掉了「什么时候是什么样」的证据。当前口径：</p>
-<div class="tablewrap"><table><thead><tr><th>项</th><th>当时的记录</th><th>现在（2026-10-03）</th></tr></thead><tbody><tr><td>前端回归</td><td>23 页 + 22 / 18 项</td><td><strong>24 页 + 在线 27 项 / 离线 23 项</strong></td></tr><tr><td>单文件原型</td><td>436,610 bytes</td><td><strong>537,842 bytes（约 525KB）</strong></td></tr><tr><td>评测集</td><td>无（本报告列为「最硬短板」）</td><td><strong>30 例人工标注黄金集</strong>：一致率 96.7% / ±1 档 100% / 漏筛 0% / 误筛 8.3%</td></tr><tr><td>词库版本</td><td>无版本号</td><td><code>REQ_LIB_VER = 16</code>（登录后拉一次 <code>GET /api/bootstrap</code> 即自愈重算老岗位）</td></tr><tr><td>CI</td><td>无</td><td><code>test.yml</code>（Node 22/24 矩阵）+ <code>pages.yml</code>（零安装 demo），全绿</td></tr><tr><td><code>legacy</code> 认证模式</td><td>仍保留</td><td><strong>已删除</strong>（不留可伪造身份的开关）</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>项</th><th>当时的记录</th><th>现在（2026-10-03）</th></tr></thead><tbody><tr><td>前端回归</td><td>23 页 + 22 / 18 项</td><td><strong>24 页 + 在线 27 项 / 离线 23 项</strong></td></tr><tr><td>单文件原型</td><td>436,610 bytes</td><td><strong>537,842 bytes（约 525KB）</strong></td></tr><tr><td>评测集</td><td>无（本报告列为「最硬短板」）</td><td><strong>30 例人工标注黄金集</strong>：一致率 96.7% / ±1 档 100% / 误筛 0% / 漏筛 8.3%</td></tr><tr><td>词库版本</td><td>无版本号</td><td><code>REQ_LIB_VER = 16</code>（登录后拉一次 <code>GET /api/bootstrap</code> 即自愈重算老岗位）</td></tr><tr><td>CI</td><td>无</td><td><code>test.yml</code>（Node 22/24 矩阵）+ <code>pages.yml</code>（零安装 demo），全绿</td></tr><tr><td><code>legacy</code> 认证模式</td><td>仍保留</td><td><strong>已删除</strong>（不留可伪造身份的开关）</td></tr></tbody></table></div>
 <p><strong>为什么会有这一节</strong>：上面每一行都曾是「当时正确的表述」，而文档漂移的成本不是「不美观」——</p>
 <p>是<strong>面试官交叉核对时发现两个数字对不上，从而怀疑全部材料</strong>。所以现在的做法是双保险：</p>
 <p><code>tools/check_docs.js</code> 正向锚点（现状句必须写对）+ 负向锚点（旧页面数不得在现状类文档里复活），</p>
@@ -518,7 +518,7 @@ fnKey = null（职能识别不出）→ 走行业兜底
 <hr class="sep">
 <p><em>配套阅读：<code>docs/07_项目计划书.md</code>（里程碑与决策）、<code>docs/08_架构设计文档.md</code>（L0–L5 与 ADR）、<code>docs/05_从PoC到企业级的差距清单.md</code>（本轮的立项依据）。凡本报告与代码冲突，<strong>以代码实测为准</strong>。</em></p></article></main>
 </div>
-<footer>生成时间：2026-10-09 13:41（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-10 09:35（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "09 · M1 实现说明与验收报告（可信底座）"}];
 

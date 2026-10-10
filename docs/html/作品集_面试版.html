@@ -86,7 +86,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <header>
   <div class="hrow">
     <h1 class="brand">HR-Agent OS · 作品集（面试版）</h1>
-    <span class="sub">一个能真跑起来的 B 端 HR AI Agent 平台 · 24 页面 / 47 接口 / 一致率 96.7% / 漏筛 0%</span>
+    <span class="sub">一个能真跑起来的 B 端 HR AI Agent 平台 · 24 页面 / 47 接口 / 一致率 96.7% / 误筛 0%</span>
     <div class="searchbox">
       <span class="hint" id="hint">全文搜索</span>
       <input id="q" placeholder="输入关键词，如「脱敏」「MVP」" autocomplete="off">
@@ -100,7 +100,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <blockquote><strong>一个能真跑起来的 B 端 HR AI Agent 平台。</strong> 界面上的<strong>每一个分数都能回答「为什么是这个分」</strong>，每一次越权都在<strong>服务端</strong>被 403 拦下， 每一份 JD 都会先对着真实在招市场校准、再做一遍用工合规扫描。 最关键的一句：<strong>这些结论全部可复现 —— 不接大模型也能跑通全流程。</strong></blockquote>
 <hr class="sep">
 <h2 id="doc0--30-秒速览">30 秒速览</h2>
-<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>项目</strong></td><td>HR-Agent OS · 招聘全链路 AI Agent 平台（PoC → 可演示档）</td></tr><tr><td><strong>我担任</strong></td><td>产品定义 + 口径设计 + 工程落地 + 自建评测（独立完成）</td></tr><tr><td><strong>在线 demo</strong>（零安装，点开即玩）</td><td><a href="https://myc20050802-debug.github.io/hr-agent-os/" target="_blank" rel="noreferrer">GitHub Pages</a></td></tr><tr><td><strong>备用预览</strong></td><td><a href="https://hr-agent-os.app.workbuddy.host/" target="_blank" rel="noreferrer">沙箱部署</a></td></tr><tr><td><strong>源码 + 完整文档</strong></td><td><a href="https://github.com/myc20050802-debug/hr-agent-os" target="_blank" rel="noreferrer">github.com/myc20050802-debug/hr-agent-os</a></td></tr><tr><td><strong>规模</strong></td><td>24 个页面 · 47 个后端接口 · schema v9 · 12 个回归套件 · 约 19,400 行 JS</td></tr><tr><td><strong>筛选质量</strong></td><td>档位一致率 <strong>96.7%</strong>（29/30）· ±1 档 <strong>100%</strong> · <strong>漏筛 0%</strong> · 误筛 8.3%</td></tr><tr><td><strong>运行时依赖</strong></td><td><strong>0</strong>（Node 22 原生 <code>http</code> + 内置 <code>node:sqlite</code>，<code>dependencies</code> 为空）</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>项目</strong></td><td>HR-Agent OS · 招聘全链路 AI Agent 平台（PoC → 可演示档）</td></tr><tr><td><strong>我担任</strong></td><td>产品定义 + 口径设计 + 工程落地 + 自建评测（独立完成）</td></tr><tr><td><strong>在线 demo</strong>（零安装，点开即玩）</td><td><a href="https://myc20050802-debug.github.io/hr-agent-os/" target="_blank" rel="noreferrer">GitHub Pages</a></td></tr><tr><td><strong>备用预览</strong></td><td><a href="https://hr-agent-os.app.workbuddy.host/" target="_blank" rel="noreferrer">沙箱部署</a></td></tr><tr><td><strong>源码 + 完整文档</strong></td><td><a href="https://github.com/myc20050802-debug/hr-agent-os" target="_blank" rel="noreferrer">github.com/myc20050802-debug/hr-agent-os</a></td></tr><tr><td><strong>规模</strong></td><td>24 个页面 · 47 个后端接口 · schema v9 · 12 个回归套件 · 约 19,400 行 JS</td></tr><tr><td><strong>筛选质量</strong></td><td>档位一致率 <strong>96.7%</strong>（29/30）· ±1 档 <strong>100%</strong> · <strong>误筛 0%</strong> · 漏筛 8.3%</td></tr><tr><td><strong>运行时依赖</strong></td><td><strong>0</strong>（Node 22 原生 <code>http</code> + 内置 <code>node:sqlite</code>，<code>dependencies</code> 为空）</td></tr></tbody></table></div>
 <blockquote>一句话看懂它和「长得像 HR 系统的演示原型」的区别： <strong>原型是「点得动」，这个项目是「答得上」。</strong> 答得上分数怎么来的、答得上越权为什么被拒、答得上 JD 为什么这么写。</blockquote>
 <hr class="sep">
 <h2 id="doc0--一-我在解决什么问题">一、我在解决什么问题</h2>
@@ -120,11 +120,11 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <h3 id="doc0--4-1-黄金集与口径">4.1 黄金集与口径</h3>
 <div class="tablewrap"><table><thead><tr><th>项</th><th>内容</th></tr></thead><tbody><tr><td>规模</td><td><strong>30 例</strong>（3 个岗位 × 各 10 例），<strong>人工标注</strong>、三档标签 <code>strong / ok / no</code></td></tr><tr><td>判定顺序</td><td><strong>先过硬性门槛（年限 / 学历 / 技能相关性），再定档位</strong> —— 顺序反了会把「技能很全但年限不够」标成优秀</td></tr><tr><td>证据来源</td><td>标注时<strong>只看简历原文 + 岗位要求</strong>，禁止偷看算法输出（看一眼 = 把规则抄成答案 = 循环论证）</td></tr><tr><td>口径冻结</td><td><code>rubricVersion = 1</code>，写到代码里可机器校验（枚举合法 / <code>id</code> 唯一 / <code>jobId</code> 无悬空 / 每岗位 ≥10 例 / 每岗 ≥1 陷阱探针 / 三档占比 ∈[20%,50%]）</td></tr><tr><td>扩样方案</td><td>独立成文（含 7 个必须先拍死的决策、三层难度配额、一致性验证），<strong>不拿规则输出当答案</strong></td></tr></tbody></table></div>
 <h3 id="doc0--4-2-三个指标-跟着一个红线">4.2 三个指标（跟着一个红线）</h3>
-<div class="tablewrap"><table><thead><tr><th>指标</th><th>当前值</th><th>说明</th></tr></thead><tbody><tr><td><strong>档位一致率</strong></td><td><strong>96.7%</strong>（29/30）</td><td>严格三档一致</td></tr><tr><td><strong>±1 档一致率</strong></td><td><strong>100%</strong></td><td>从没出现「差两档」的离谱判断</td></tr><tr><td><strong>漏筛率</strong></td><td><strong>0.0%</strong></td><td>← <strong>红线</strong>。HR 场景里「把好简历判死」的代价远高于「把差简历放进面试」，所以这个数必须守 0</td></tr><tr><td>误筛率</td><td><strong>8.3%</strong></td><td>12 个应拒样本里放了 1 个进来（宁可多聊一轮，不可错杀）</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>指标</th><th>当前值</th><th>说明</th></tr></thead><tbody><tr><td><strong>档位一致率</strong></td><td><strong>96.7%</strong>（29/30）</td><td>严格三档一致</td></tr><tr><td><strong>±1 档一致率</strong></td><td><strong>100%</strong></td><td>从没出现「差两档」的离谱判断</td></tr><tr><td><strong>误筛率</strong></td><td><strong>0.0%</strong></td><td>← <strong>红线</strong>。HR 场景里「把好简历判死」的代价远高于「把差简历放进面试」，所以这个数必须守 0</td></tr><tr><td>漏筛率</td><td><strong>8.3%</strong></td><td>12 个应拒样本里放了 1 个进来（宁可多聊一轮，不可错杀）</td></tr></tbody></table></div>
 <blockquote>样本只有 30 例，所以我不敢只报点估计 —— 同时给出 <strong>Wilson 95% 置信区间 [83.3%, 99.4%]</strong>。 样本量不足是<strong>已知边界</strong>，扩样方案已独立成文，但<strong>不自己给自己标注</strong>（那是自证）。</blockquote>
 <h3 id="doc0--4-3-一个真实的迭代">4.3 一个真实的迭代</h3>
-<p>改「判定链条」而不是改「业务维度计数」，让一致率从 90.0% → <strong>96.7%</strong>、误筛率 25.0% → <strong>8.3%</strong>，同时<strong>保住漏筛 0%</strong>。</p>
-<p>五个候选方案做了实测对照，选中的方案是唯一一个「一致率↑ 且 漏筛不↑」的。<strong>评测驱动的迭代</strong>，不是拍脑袋调阈值。</p>
+<p>改「判定链条」而不是改「业务维度计数」，让一致率从 90.0% → <strong>96.7%</strong>、漏筛率 25.0% → <strong>8.3%</strong>，同时<strong>保住误筛 0%</strong>。</p>
+<p>五个候选方案做了实测对照，选中的方案是唯一一个「一致率↑ 且 误筛不↑」的。<strong>评测驱动的迭代</strong>，不是拍脑袋调阈值。</p>
 <hr class="sep">
 <h2 id="doc0--五-技术实现概览">五、技术实现概览</h2>
 <div class="tablewrap"><table><thead><tr><th>维度</th><th>选择</th><th>为什么</th></tr></thead><tbody><tr><td><strong>运行时</strong></td><td>Node 22 原生 <code>http</code> + 内置 <code>node:sqlite</code></td><td><strong>零依赖</strong>：clone 下来一条命令就能起，不需要装任何 npm 包。PoC 阶段把「环境问题」这个变量彻底消掉</td></tr><tr><td><strong>前端</strong></td><td>单文件 HTML（内联全部 CSS/JS）</td><td><strong>断网可演示</strong>、双击即开。代价我主动说：没法按需加载、没有构建期校验</td></tr><tr><td><strong>分层</strong></td><td>后端 <strong>16 个模块按 L0–L5 分层</strong></td><td>依赖方向单向，改一层不会牵连全栈</td></tr><tr><td><strong>来源单一</strong></td><td><code>shared/</code> 三个文件是前后端共用数据源</td><td>改一处，离线端与后端同时生效，避免两套逻辑漂移</td></tr><tr><td><strong>数据库</strong></td><td>schema <strong>v9</strong>，版本化迁移</td><td>空库自动迁移 + 种子，不提交任何数据文件</td></tr><tr><td><strong>规模</strong></td><td>24 页面 / 47 接口 / 约 19,400 行 JS / 10,300+ 行文档</td><td>全部<strong>由脚本从代码算出</strong>，写进文档的数字有守卫盯着（见第六节）</td></tr></tbody></table></div>
@@ -168,11 +168,11 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <h2 id="doc0--附-面试时我会主动讲的三句话">附：面试时我会主动讲的三句话</h2>
 <ol>
 <li><strong>「分数和档位 100% 是规则算出来的，模型只负责措辞。」</strong> —— 主动定义「AI 在哪一步」，别等面试官发现筛选链路默认没调模型。</li>
-<li><strong>「漏筛率 0% 是我守的红线；为了它，我接受了 8.3% 的误筛。」</strong> —— 说得出指标背后的业务取舍，比报一个漂亮数字更有说服力。</li>
+<li><strong>「误筛率 0% 是我守的红线；为了它，我接受了 8.3% 的漏筛。」</strong> —— 说得出指标背后的业务取舍，比报一个漂亮数字更有说服力。</li>
 <li><strong>「我知道它哪儿还不行 —— 这份自审清单就是证据。」</strong> —— 把「不足」变成「我清楚边界」。</li>
 </ol></article></main>
 </div>
-<footer>生成时间：2026-10-09 14:40（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-10 09:35（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "HR-Agent OS · 作品集（面试版）"}];
 

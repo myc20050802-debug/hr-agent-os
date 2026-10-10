@@ -113,7 +113,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <p>换句话说：<strong>模式 A 的结果不会因为换模型而变化</strong>，这是设计目标，不是巧合。</p>
 <hr class="sep">
 <h2 id="doc0--二-模式-A-规则-实跑-真实数字">二、模式 A · 规则（实跑，真实数字）</h2>
-<div class="tablewrap"><table><thead><tr><th>指标</th><th>结果</th><th>口径</th></tr></thead><tbody><tr><td>样本数</td><td>30</td><td>30 例人工标注</td></tr><tr><td>档位一致率</td><td><strong>96.7%</strong></td><td>完全同档（29/30）</td></tr><tr><td>└ 95% 置信区间</td><td>[83.3%, 99.4%]</td><td>Wilson 区间，样本 30 例</td></tr><tr><td>±1 档一致率</td><td><strong>100.0%</strong></td><td>档位距离 ≤ 1（30/30）</td></tr><tr><td>漏筛率</td><td><strong>0.0%</strong></td><td>人工说该通过却被判 no（0/18）← 安全红线</td></tr><tr><td>误筛率</td><td><strong>8.3%</strong></td><td>人工说该淘汰却被放行（1/12）← 成本问题</td></tr><tr><td>门槛拦截</td><td>9 例</td><td>规则前置拦截，不进入打分（年限 / 学历 / <strong>技能零命中</strong>）</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>指标</th><th>结果</th><th>口径</th></tr></thead><tbody><tr><td>样本数</td><td>30</td><td>30 例人工标注</td></tr><tr><td>档位一致率</td><td><strong>96.7%</strong></td><td>完全同档（29/30）</td></tr><tr><td>└ 95% 置信区间</td><td>[83.3%, 99.4%]</td><td>Wilson 区间，样本 30 例</td></tr><tr><td>±1 档一致率</td><td><strong>100.0%</strong></td><td>档位距离 ≤ 1（30/30）</td></tr><tr><td>误筛率</td><td><strong>0.0%</strong></td><td>人工说该通过却被判 no（0/18）← 安全红线</td></tr><tr><td>漏筛率</td><td><strong>8.3%</strong></td><td>人工说该淘汰却被放行（1/12）← 成本问题</td></tr><tr><td>门槛拦截</td><td>9 例</td><td>规则前置拦截，不进入打分（年限 / 学历 / <strong>技能零命中</strong>）</td></tr></tbody></table></div>
 <p>档位分布（AI）：strong 9 / ok 10 / no 11</p>
 <h3 id="doc0--怎么读这个-96-7">怎么读这个 96.7%</h3>
 <p>口径先说清楚：一致率 = <strong>AI 档位与人工标注完全同档</strong>的比例。</p>
@@ -137,13 +137,13 @@ LLM_MODEL=&lt;模型名，默认 gpt-4o-mini&gt; \
 node --experimental-sqlite tools/eval_dual_mode.js \
   --md docs/16_规则与LLM双模式对照评测.md</code></pre></div>
 <p>跑完之后这张表会被真实数字填上，并且会自动多出一张<strong>两模式一致率</strong>：</p>
-<div class="tablewrap"><table><thead><tr><th>指标</th><th>模式 A 规则</th><th>模式 B LLM</th></tr></thead><tbody><tr><td>档位一致率</td><td>96.7%</td><td>待跑</td></tr><tr><td>±1 档一致率</td><td>100.0%</td><td>待跑</td></tr><tr><td>漏筛率</td><td>0.0%</td><td>待跑</td></tr><tr><td>误筛率</td><td>8.3%</td><td>待跑</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>指标</th><th>模式 A 规则</th><th>模式 B LLM</th></tr></thead><tbody><tr><td>档位一致率</td><td>96.7%</td><td>待跑</td></tr><tr><td>±1 档一致率</td><td>100.0%</td><td>待跑</td></tr><tr><td>误筛率</td><td>0.0%</td><td>待跑</td></tr><tr><td>漏筛率</td><td>8.3%</td><td>待跑</td></tr></tbody></table></div>
 <h3 id="doc0--跑之前要有的预期-写在这里是为了防止事后凑解释">跑之前要有的预期（写在这里是为了防止事后凑解释）</h3>
 <ol>
-<li><strong>模型很可能比规则更宽松</strong>。规则的误筛率已经偏高（8.3%，方向在安全侧），</li>
+<li><strong>模型很可能比规则更宽松</strong>。规则的漏筛率已经偏高（8.3%，方向在安全侧），</li>
 </ol>
-<p>而通用模型对「必备项没写但背景接近」这类情况通常更愿意给机会 —— 如果模式 B 的<strong>漏筛率</strong></p>
-<p>（该通过却判 no）反而更低、误筛率更高，那是符合预期的，不是「模型更准」。</p>
+<p>而通用模型对「必备项没写但背景接近」这类情况通常更愿意给机会 —— 如果模式 B 的<strong>误筛率</strong></p>
+<p>（该通过却判 no）反而更低、漏筛率更高，那是符合预期的，不是「模型更准」。</p>
 <ol>
 <li><strong>一致率大概率在 60%~85% 之间</strong>。低于 60% 要怀疑提示词或字段表达；</li>
 </ol>
@@ -170,7 +170,7 @@ LLM_API_URL=... LLM_API_KEY=... node --experimental-sqlite tools/eval_dual_mode.
 node --experimental-sqlite tools/test_eval.js   # 黄金集评测 + 一致率接口（14 节）</code></pre></div>
 <blockquote>本报告与 <code>tools/test_eval.js</code> 共用同一份黄金集与同一套指标口径， 且都直接调用 <code>engine.evaluateCandidate()</code> —— 不存在「评测专用打分」这回事。</blockquote></article></main>
 </div>
-<footer>生成时间：2026-10-09 13:41（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-10 09:35（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "规则 × LLM 双模式对照评测"}];
 

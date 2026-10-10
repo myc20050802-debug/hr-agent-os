@@ -286,11 +286,11 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <li><strong>幂等性验证</strong> —— 对已扩充结果再扩一次，条数不变。</li>
 </ol>
 <h3 id="doc0--我主动写下的已知边界-不等人问">我主动写下的已知边界（不等人问）</h3>
-<div class="tablewrap"><table><thead><tr><th>边界</th><th>现状</th><th>生产级要求</th></tr></thead><tbody><tr><td>身份</td><td>请求头模拟</td><td>登录态 + 会话 + 租户隔离中间件</td></tr><tr><td>并发</td><td>单进程 SQLite</td><td>连接池、写锁、迁移脚本</td></tr><tr><td>文件存储</td><td>简历只存结构化字段</td><td>对象存储 + 加密 + 访问水印</td></tr><tr><td>第三方集成</td><td>飞书/钉钉/Mail 为模拟</td><td>真实 SDK、限流、幂等键、失败重试</td></tr><tr><td>知识库</td><td>关键词检索</td><td>向量库 + 切片策略 + 引用定位</td></tr><tr><td><strong>评测</strong></td><td>~~无离线评测集~~ <strong>已补</strong>：30 例人工标注黄金集 + 一致率 / 漏筛率 / 误筛率口径（v16 后 96.7% / 0% / 8.3%）</td><td>扩到 90 例、覆盖 9 个职能族（当前 30 例的区间下沿只有 83.3%）</td></tr><tr><td>多租户</td><td>单租户常量</td><td>所有查询带 tenant_id 且不可由前端传入</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>边界</th><th>现状</th><th>生产级要求</th></tr></thead><tbody><tr><td>身份</td><td>请求头模拟</td><td>登录态 + 会话 + 租户隔离中间件</td></tr><tr><td>并发</td><td>单进程 SQLite</td><td>连接池、写锁、迁移脚本</td></tr><tr><td>文件存储</td><td>简历只存结构化字段</td><td>对象存储 + 加密 + 访问水印</td></tr><tr><td>第三方集成</td><td>飞书/钉钉/Mail 为模拟</td><td>真实 SDK、限流、幂等键、失败重试</td></tr><tr><td>知识库</td><td>关键词检索</td><td>向量库 + 切片策略 + 引用定位</td></tr><tr><td><strong>评测</strong></td><td>~~无离线评测集~~ <strong>已补</strong>：30 例人工标注黄金集 + 一致率 / 误筛率 / 漏筛率口径（v16 后 96.7% / 0% / 8.3%）</td><td>扩到 90 例、覆盖 9 个职能族（当前 30 例的区间下沿只有 83.3%）</td></tr><tr><td>多租户</td><td>单租户常量</td><td>所有查询带 tenant_id 且不可由前端传入</td></tr></tbody></table></div>
 <blockquote><strong>这张表是我主动写的，不是被评审逼出来的。</strong> 我认为一个产品经理的能力，很大一部分体现在<strong>知道自己的产品现在停在哪一步、下一步要补什么</strong>。</blockquote>
 <h3 id="doc0--目前还缺的-我不打算掩饰">目前还缺的（我不打算掩饰）</h3>
 <ul>
-<li><strong>评测集只有 30 例、3 个岗位</strong>：已有一致率跑分（96.7% / 漏筛 0% / 误筛 8.3%），但 Wilson 95% 区间是 [83.3%, 99.4%]，下沿撑不住结论式表述 —— 下一步扩到 90 例。</li>
+<li><strong>评测集只有 30 例、3 个岗位</strong>：已有一致率跑分（96.7% / 误筛 0% / 漏筛 8.3%），但 Wilson 95% 区间是 [83.3%, 99.4%]，下沿撑不住结论式表述 —— 下一步扩到 90 例。</li>
 <li><strong>没有真实客户数据</strong>：候选人简历是按岗位画像合成的，业务价值数字（70%/60%/4h→5min）尚未实测。</li>
 <li><strong>没有真实用户验证</strong>：还没跑过 pilot，采纳率、人工接管率都是空的。</li>
 </ul>
@@ -310,11 +310,11 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <blockquote>「不是功能数量，是<strong>一套可复用的产品判断顺序</strong>：先看 As-Is 再定目标，先写非目标再写功能，先划 AI 边界再设计页面，先定对象再画界面。这套顺序我在这个项目里跑通了一遍，换个业务也能用。」</blockquote>
 <hr class="sep">
 <h2 id="doc0--附录-C-事实与假设的边界-对自己诚实">附录 C · 事实与假设的边界（对自己诚实）</h2>
-<div class="tablewrap"><table><thead><tr><th>类型</th><th>内容</th></tr></thead><tbody><tr><td><strong>已实现（可在本仓库验证）</strong></td><td>七部分 PRD / 8 阶段教程 / 24 页原型 / 零依赖全栈 MVP / 真 SQLite / 规则门槛 0 token / 风险闸门与审批 / 审计链 / 越权 403 / 合规规则表 11+9 / 岗位库 17 行业 21 岗位 / 30 职能族 + 242 句职责池 + JD 子方向选取 / 岗位层级自适应 / 任职要求六维度 / 30 例人工标注黄金集（一致率 96.7% / 漏筛 0% / 误筛 8.3%）/ 双模式回归 24 页 + 23/27 项</td></tr><tr><td><strong>设计目标（未实测）</strong></td><td>简历初筛人效 +70% / 流程逾期率 -60% / 报表 4 小时→5 分钟 / AI 打分与人工判断一致率</td></tr><tr><td><strong>尚未具备</strong></td><td>真实客户与真实简历数据 / 大规模评测集（现 30 例 / 3 岗位）/ 多租户与生产级并发 / 真实第三方集成</td></tr><tr><td><strong>下一步补齐路径</strong></td><td>黄金集 30 → 90 例（覆盖 9 个职能族，阈值进 CI）→ 真实数据 pilot → 实测替换设计值</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>类型</th><th>内容</th></tr></thead><tbody><tr><td><strong>已实现（可在本仓库验证）</strong></td><td>七部分 PRD / 8 阶段教程 / 24 页原型 / 零依赖全栈 MVP / 真 SQLite / 规则门槛 0 token / 风险闸门与审批 / 审计链 / 越权 403 / 合规规则表 11+9 / 岗位库 17 行业 21 岗位 / 30 职能族 + 242 句职责池 + JD 子方向选取 / 岗位层级自适应 / 任职要求六维度 / 30 例人工标注黄金集（一致率 96.7% / 误筛 0% / 漏筛 8.3%）/ 双模式回归 24 页 + 23/27 项</td></tr><tr><td><strong>设计目标（未实测）</strong></td><td>简历初筛人效 +70% / 流程逾期率 -60% / 报表 4 小时→5 分钟 / AI 打分与人工判断一致率</td></tr><tr><td><strong>尚未具备</strong></td><td>真实客户与真实简历数据 / 大规模评测集（现 30 例 / 3 岗位）/ 多租户与生产级并发 / 真实第三方集成</td></tr><tr><td><strong>下一步补齐路径</strong></td><td>黄金集 30 → 90 例（覆盖 9 个职能族，阈值进 CI）→ 真实数据 pilot → 实测替换设计值</td></tr></tbody></table></div>
 <hr class="sep">
 <p><em>本文档由 <code>docs/01</code> 产品需求草稿、<code>docs/02</code> 搭建实操教程、<code>docs/03</code> 本地全栈版运行说明，以及 <code>平台原型/</code>、<code>server/</code> 的实际代码整理而成。所有产出物均可在本仓库中找到对应文件。</em></p></article></main>
 </div>
-<footer>生成时间：2026-10-09 13:41（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-10 09:35（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "HR-Agent OS · 从 0 到 1 产品复盘"}];
 

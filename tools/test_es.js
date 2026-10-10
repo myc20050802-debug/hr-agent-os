@@ -101,12 +101,23 @@ has('④政策·含 OA 流程', r.text, 'OA');
 
 r = await ask('公司楼下哪有好吃的外卖？');
 check('④未命中·转 HR 记录', r.route === 'no_match', r.route);
+has('④未命中·带澄清引导（试着问我）', r.text, '试着问我');
 
 /* ---------- ⑤ 边界护栏：防止回归把社保/考勤挪回 policy ---------- */
 r = await ask('社保基数多少？');
 check('⑤护栏·社保绝不落 policy', r.route !== 'policy', r.route);
 r = await ask('查一下这个月考勤');
 check('⑤护栏·考勤绝不落 policy', r.route !== 'policy', r.route);
+
+/* ---------- ⑥ P1 主动提醒（拉式预警）+ 澄清兜底 ---------- */
+r = await ask('有什么要提醒我的？');
+check('⑥预警·路由=alert', r.route === 'alert', r.route);
+has('⑥预警·含年假提示', r.text, '年假');
+has('⑥预警·含调休提示', r.text, '调休');
+has('⑥预警·含试用期规则', r.text, '试用期');
+
+r = await ask('张三有什么要提醒的？');
+check('⑥预警越权·他人被拒', r.route === 'escalated' && r.type === '他人隐私', `${r.route}/${r.type}`);
 
 /* ---------- 清理隔离库 ---------- */
 try { fs.rmSync(tmp, { force: true }); fs.rmSync(tmp + '-wal', { force: true }); fs.rmSync(tmp + '-shm', { force: true }); } catch { /* ok */ }

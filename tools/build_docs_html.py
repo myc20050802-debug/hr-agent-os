@@ -32,7 +32,7 @@ from md2dark_html import build  # noqa: E402  （同目录的渲染器，零外�
 # ---------------------------------------------------------------------------
 MANIFEST = [
     {'out': 'docs/html/作品集_面试版.html', 'title': 'HR-Agent OS · 作品集（面试版）',
-     'subtitle': '一个能真跑起来的 B 端 HR AI Agent 平台 · 24 页面 / 47 接口 / 一致率 96.7% / 漏筛 0%',
+     'subtitle': '一个能真跑起来的 B 端 HR AI Agent 平台 · 24 页面 / 47 接口 / 一致率 96.7% / 误筛 0%',
      'sources': ['21_作品集_面试版.md']},
     {'out': 'docs/html/GitHub开源前改进清单.html', 'title': 'GitHub 开源前 · 改进清单',
      'subtitle': 'HR-Agent OS · 基于实际仓库审计（88 个跟踪文件）',

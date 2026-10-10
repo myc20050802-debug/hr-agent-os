@@ -13,11 +13,11 @@
  *   与人工标签比对，输出四项指标：
  *     档位一致率   完全同档（strong/ok/no）的比例
  *     ±1 档一致率  档位距离 ≤ 1 的比例（差一档算「接近」，不算硬错）
- *     漏筛率       人工认为该通过（strong/ok）却被 AI 判 no 的比例  ← 安全红线
- *     误筛率       人工认为该淘汰（no）却被 AI 判 strong/ok 的比例  ← 成本问题
- *   口径说明：漏筛 = 把好苗子漏掉；误筛 = 把不该推的放了进来。
- *   两者的严重性不对称：漏筛是「悄悄杀掉机会」，误筛只是「多进一轮人工」。
- *   所以本套件把「漏筛率必须为 0」写成硬断言 —— 它是回归红线。
+ *     误筛率       人工认为该通过（strong/ok）却被 AI 判 no 的比例  ← 安全红线
+ *     漏筛率       人工认为该淘汰（no）却被 AI 判 strong/ok 的比例  ← 成本问题
+ *   口径说明：误筛 = 把好苗子漏掉；漏筛 = 把不该推的放了进来。
+ *   两者的严重性不对称：误筛是「悄悄杀掉机会」，漏筛只是「多进一轮人工」。
+ *   所以本套件把「误筛率必须为 0」写成硬断言 —— 它是回归红线。
 
  * A4 部分 · 基线守卫（比对 tools/golden/baseline.json；--write-baseline 刷新）
  * B 部分 · 一致率接口与推翻原因枚举（需要后端，BASE 环境变量）
@@ -166,10 +166,10 @@ function runGoldenSet() {
   const same = out.filter(x => x.dist === 0).length;
   const near = out.filter(x => x.dist <= 1).length;
 
-  /* 漏筛：人工说该通过，AI 说 no —— 只在「非门槛拦截」与「门槛拦截」都算（门槛误杀尤其危险） */
+  /* 误筛：人工说该通过，AI 说 no —— 只在「非门槛拦截」与「门槛拦截」都算（门槛误杀尤其危险） */
   const shouldPass = out.filter(x => x.label === 'strong' || x.label === 'ok');
   const missed = shouldPass.filter(x => x.ai === 'no');
-  /* 误筛：人工说 no，AI 说 strong/ok */
+  /* 漏筛：人工说 no，AI 说 strong/ok */
   const shouldReject = out.filter(x => x.label === 'no');
   const overPassed = shouldReject.filter(x => x.ai === 'strong' || x.ai === 'ok');
 
@@ -198,7 +198,7 @@ function runGoldenSet() {
       + (x.probe ? '[探针] ' : '') + (x.dist === 0 ? '' : x.note));
   }
 
-  console.log('\n  ---- 指标（口径：漏筛=把好苗子漏掉；误筛=把不该推的放进来） ----');
+  console.log('\n  ---- 指标（口径：误筛=把好苗子漏掉；漏筛=把不该推的放进来） ----');
   console.log('  样本数            ' + n);
   console.log('  档位分布(人工)    strong ' + cases.filter(c => c.label === 'strong').length
     + ' / ok ' + cases.filter(c => c.label === 'ok').length
@@ -208,9 +208,9 @@ function runGoldenSet() {
     + '   （其中硬性门槛拦截 ' + metrics.gateBlocked + ' 例）');
   console.log('  档位一致率        ' + pct(metrics.exactAgreement) + '  (' + same + '/' + n + ')');
   console.log('  ±1 档一致率       ' + pct(metrics.within1Agreement) + '  (' + near + '/' + n + ')');
-  console.log('  漏筛率            ' + pct(metrics.missRate) + '  (' + missed.length + '/' + shouldPass.length + ' 该通过被误杀)');
-  console.log('  误筛率            ' + pct(metrics.falsePassRate) + '  (' + overPassed.length + '/' + shouldReject.length + ' 该淘汰被放行)');
-  if (missed.length) console.log('  ⚠ 漏筛明细：' + missed.map(x => x.id + '(' + x.label + '→' + x.ai + (x.gate ? ' 门槛:' + x.gateReason : '') + ')').join('、'));
+  console.log('  误筛率            ' + pct(metrics.missRate) + '  (' + missed.length + '/' + shouldPass.length + ' 该通过被误杀)');
+  console.log('  漏筛率            ' + pct(metrics.falsePassRate) + '  (' + overPassed.length + '/' + shouldReject.length + ' 该淘汰被放行)');
+  if (missed.length) console.log('  ⚠ 误筛明细：' + missed.map(x => x.id + '(' + x.label + '→' + x.ai + (x.gate ? ' 门槛:' + x.gateReason : '') + ')').join('、'));
 
   const bad = out.filter(x => x.dist > 0);
   if (bad.length) {
@@ -230,8 +230,8 @@ function runGoldenSet() {
   ok('档位一致率 ≥ 85%', metrics.exactAgreement >= 0.85, pct(metrics.exactAgreement));
   eq('±1 档一致率 = 100%（无跨两档的硬错）', metrics.within1Agreement, 1);
   /* 最要紧的一条：宁可可聊多一点，也不能把合格的人静默杀掉 */
-  eq('漏筛率 = 0（没有任何「该通过」被 AI 判 no）', metrics.missRate, 0);
-  ok('误筛率 ≤ 30%（错误方向都在安全侧：多进一轮人工，而非漏掉人）',
+  eq('误筛率 = 0（没有任何「该通过」被 AI 判 no）', metrics.missRate, 0);
+  ok('漏筛率 ≤ 30%（错误方向都在安全侧：多进一轮人工，而非漏掉人）',
     metrics.falsePassRate <= 0.3, pct(metrics.falsePassRate));
   /* 探针：三个岗位各 1 例「背景不对口」，人工都标 no。
      v16 前 3 例全部被抬进 ok；加了「技能零命中」相关性门槛后，
@@ -339,7 +339,7 @@ function runGoldenSet() {
   /* ---- A4 · 基线守卫（质量不倒退 / 错误不增长） ----
      为什么需要它：README 与文档里的 96.7% / 0% / 8.3% 过去是**手抄**的，
      改一次口径要人肉去多处同步 —— 实测漏过一次：README 表格已改成 8.3%，
-     同一篇正文仍写着「不回避 25% 的误筛率」，两处自相矛盾。
+     同一篇正文仍写着「不回避 25% 的漏筛率」，两处自相矛盾。
      现在数字只有一个源 tools/golden/baseline.json：
        · 这里守「不许变差」（断言是**单向**的 ≥ / ≤，口径升级让指标变好时不该红，
          变差时必须红 —— 这才是回归红线该有的方向性）；
@@ -387,9 +387,9 @@ function runGoldenSet() {
       metrics.exactAgreement >= B.exactAgreement, pct(metrics.exactAgreement));
     ok('±1 档一致率不低于基线 ' + pct(B.within1Agreement),
       metrics.within1Agreement >= B.within1Agreement, pct(metrics.within1Agreement));
-    ok('漏筛率不高于基线 ' + pct(B.missRate) + '（安全红线）',
+    ok('误筛率不高于基线 ' + pct(B.missRate) + '（安全红线）',
       metrics.missRate <= B.missRate, pct(metrics.missRate));
-    ok('误筛率不高于基线 ' + pct(B.falsePassRate),
+    ok('漏筛率不高于基线 ' + pct(B.falsePassRate),
       metrics.falsePassRate <= B.falsePassRate, pct(metrics.falsePassRate));
     ok('门槛拦截例数不高于基线 ' + B.gates, metrics.gateBlocked <= B.gates, String(metrics.gateBlocked));
     if (engine.REQ_LIB_VER !== B.reqLibVer) {
@@ -534,8 +534,8 @@ async function runApiSuite() {
   if (WRITE_BASELINE) {
     /* 结构有误时 runGoldenSet 早退返回 null —— 绝不拿一个坏集合去覆盖基线 */
     if (!m) { console.log('\n黄金集结构有误，已跳过写基线（先修 golden_set.json）'); process.exit(1); }
-    console.log('\n基线刷新完成：一致率 ' + pct(m.exactAgreement) + ' / 漏筛 ' + pct(m.missRate)
-      + ' / 误筛 ' + pct(m.falsePassRate));
+    console.log('\n基线刷新完成：一致率 ' + pct(m.exactAgreement) + ' / 误筛 ' + pct(m.missRate)
+      + ' / 漏筛 ' + pct(m.falsePassRate));
     console.log('下一步：node tools/check_docs.js  （确认文档里的指标行跟着更新）');
     process.exit(fails.length ? 1 : 0);
   }

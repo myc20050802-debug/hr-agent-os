@@ -30,7 +30,7 @@ window.slideDataMap.set(12, `
                 <div class="ed-p">29 / 30，严格三档一致</div>
             </div>
             <div style="display:grid;grid-template-columns:230px 120px 54px 130px 1fr;align-items:center;padding:16px 0;border-bottom:1px solid var(--line);">
-                <div class="ed-h3" style="font-size:19px;">误筛率</div>
+                <div class="ed-h3" style="font-size:19px;">漏筛率</div>
                 <div style="font-family:var(--font-title);font-size:30px;font-weight:700;color:#5A6A85;text-decoration:line-through;text-decoration-color:rgba(90,106,133,.6);">25.0%</div>
                 <div class="ed-cy" style="font-size:20px;">→</div>
                 <div style="font-family:var(--font-title);font-size:32px;font-weight:700;color:#F2F6FF;">8.3%</div>
@@ -38,7 +38,7 @@ window.slideDataMap.set(12, `
             </div>
             <div style="display:grid;grid-template-columns:230px 120px 54px 130px 1fr;align-items:center;padding:16px 0;border-bottom:1px solid var(--line);">
                 <div>
-                    <div class="ed-h3" style="font-size:19px;">漏筛率</div>
+                    <div class="ed-h3" style="font-size:19px;">误筛率</div>
                     <span class="ed-chip amber" style="margin-top:6px;">红线</span>
                 </div>
                 <div style="font-family:var(--font-title);font-size:30px;font-weight:700;color:#5A6A85;">0%</div>
@@ -53,8 +53,8 @@ window.slideDataMap.set(12, `
                 <span class="ed-tick tl"></span><span class="ed-tick br"></span>
                 <div class="ed-k">怎么选的</div>
                 <div class="ed-p" style="margin-top:9px;">
-                    5 个候选方案逐一实测，只有这一个同时满足「一致率不降 <b>且</b> 漏筛不涨」。
-                    它带来的是 <span class="ed-b">一致率 +6.7pt · 误筛 −16.7pt · 漏筛不动</span> ——
+                    5 个候选方案逐一实测，只有这一个同时满足「一致率不降 <b>且</b> 误筛不涨」。
+                    它带来的是 <span class="ed-b">一致率 +6.7pt · 漏筛 −16.7pt · 误筛不动</span> ——
                     三个数出自同一次改动、同一次跑分，不是分别调出来的。
                 </div>
             </div>
@@ -63,7 +63,7 @@ window.slideDataMap.set(12, `
                 <div class="ed-k" style="color:#FBBF24;">被否决的方案</div>
                 <div class="ed-p" style="margin-top:9px;">
                     「业务维度与职能族词表求交」看起来更聪明，实测一致率仅 73.3%、
-                    <span class="ed-warn">漏筛 0% → 22.2%</span>，直接破了红线 —— 因此明确否决。
+                    <span class="ed-warn">误筛 0% → 22.2%</span>，直接破了红线 —— 因此明确否决。
                 </div>
             </div>
         </div>

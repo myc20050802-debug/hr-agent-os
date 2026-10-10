@@ -719,8 +719,15 @@ window.Agent = (function () {
     return null;
   }
 
+  /* 主动提醒意图识别：与后端 engine.js 的 detectAlertIntent 同源。 */
+  function detectAlertIntent(q) {
+    if (/提醒|待办|预警|要注意|到期|清零|别忘了|待办事项|我要注意|有什么.*(提醒|待办)|近期.*(安排|事项)|我该.*(做|办)/.test(q)) return true;
+    return false;
+  }
+
   function classify(q) {
     if (REFUSE.some(r => r.k.some(k => q.indexOf(k) > -1))) return 'refuse';
+    if (detectAlertIntent(q)) return 'alert';
     if (detectPersonalIntent(q)) return 'personal';
     if (KB.some(b => b.k.some(k => q.indexOf(k) > -1))) return 'policy';
     return 'nomatch';
@@ -733,6 +740,23 @@ window.Agent = (function () {
       return { route: 'escalated', type: r.type, text: r.msg,
         foot: '已转人工 · 记录到「未解答问题」不适用（属于授权范围外，已按规则分流）',
         cites: [] };
+    }
+    if (route === 'alert') {
+      const d = SELF_DATA.U003;
+      const annualRemain = d.leave.annualRemain;
+      const compRemain = d.leave.compRemain;
+      const carry = d.leave.annualCarry || 0;
+      const today = new Date();
+      const yearEnd = new Date(today.getFullYear(), 11, 31);
+      const daysToYearEnd = Math.max(0, Math.ceil((yearEnd - today) / 86400000));
+      const lines = ['📌 你的近期待办提醒（以下数字来自 HR 系统实时数据，非文档说明）：'];
+      if (carry > 0) lines.push(`· 年假结转 ${carry} 天将于 ${today.getFullYear()}-12-31 清零，还剩约 ${daysToYearEnd} 天，请尽快安排休假，逾期清零不补。`);
+      else lines.push(`· 年假剩余 ${annualRemain} 天（本年度额度，无结转待清）。`);
+      lines.push(`· 调休剩余 ${compRemain} 天，调休自加班日起 3 个月内有效，逾期自动失效，建议尽快申请使用。`);
+      lines.push(`· 试用期：按《试用期与转正管理规定》为 3 个月，到期前 15 天系统会自动提醒你的上级发起转正考核（演示数据未记录入职日期，无法计算具体到期日）。`);
+      return { route: 'alert', text: lines.join('\n'),
+        cites: [{ t: '《假期管理制度》v2.6 第 3 章', eff: '2026-04-01', note: '数字来源：HR 系统实时查询（权威事实）' }],
+        badge: '🔔 主动提醒（基于本人实时数据）' };
     }
     if (route === 'personal') {
       const intent = detectPersonalIntent(q);
@@ -770,7 +794,13 @@ window.Agent = (function () {
         badge: '📚 已检索企业知识库' };
     }
     return { route: 'no_match', text: `我在公司制度文档里没有找到与「${q}」相关的内容，为避免给你错误信息，我不做推测回答。
-你可以选择：① 点击下方「转人工」由 HR 答复；② 换个说法再问一次。
+你可以选择：① 点击下方「转人工」由 HR 答复；② 换个说法再问一次；③ 试着问我这些我能准确回答的问题：
+  · 我的年假 / 调休还剩多少天
+  · 我最近的考勤怎么样
+  · 我的薪资条在哪看
+  · 报销流程是怎样的
+  · 试用期 / 转正有什么规定
+  · 有什么要提醒我的（待办 / 到期 / 清零）
 你这次的问题已被记录，HR 会据此补充知识库。`,
       cites: [], badge: '⚠️ 知识库无匹配（相似度低于阈值 0.55）' };
   }

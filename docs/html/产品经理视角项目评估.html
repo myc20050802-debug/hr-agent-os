@@ -101,7 +101,7 @@ footer{border-top:1px solid var(--line);padding:18px 26px;color:var(--tx3);font-
 <hr class="sep">
 <h2 id="doc0--本报告发布后的修复进展-2026-09-30-晚">本报告发布后的修复进展（2026-09-30 晚）</h2>
 <blockquote>上面是 16:45 的审计快照，<strong>数字保持原样不改</strong> —— 那是「当时是什么样」的证据。 这一节只记录之后发生了什么。未完成的仍列在最后，不含糊过去。</blockquote>
-<div class="tablewrap"><table><thead><tr><th>编号</th><th>问题</th><th>状态</th><th>落地物</th></tr></thead><tbody><tr><td><strong>D-1</strong></td><td>「N 个页面」四份文档四个数字（23 / 12 / 50，代码事实 24）</td><td>✅ 已修</td><td>全部统一为 <strong>24</strong>；新增 <code>tools/check_docs.js</code> 守卫（<strong>19 处现状句锚点 + 6 条结构不变量</strong>），已接入 <code>npm test</code> 与 CI</td></tr><tr><td><strong>D-2</strong></td><td>README 字节数过期 35 KB（491,922 → 实际 527,133）</td><td>✅ 已修（且改为「不可漂」）</td><td>改为锚点断言，当前 <strong>528,191 / 约 516KB</strong>；前端一改，守卫立刻标红并告诉你该改成什么</td></tr><tr><td><strong>D-3/D-4</strong></td><td>根目录散落文档 / <code>分享包</code> 停在 9-24 且写「23 个页面」</td><td>◐ 部分</td><td><code>分享包</code> 改为 <code>npm run share</code> 一键重生成，<strong>页面数直接读 <code>app.js</code></strong>，结构上不可能再漂；根目录文档收敛<strong>仍未做</strong></td></tr><tr><td><strong>G1</strong></td><td>缺零安装在线 demo（访客要 clone→装 Node→启动→登录）</td><td>✅ 已做</td><td><code>.github/workflows/pages.yml</code>（含自包含断言）+ 新增 <code>平台原型/test_pages.js</code>（18 项：自包含 / 宿主分流 / 离线渲染）+ 离线提示<strong>按宿主分流</strong></td></tr><tr><td><strong>P-1</strong></td><td>默认体验里没有 AI，且「AI 在哪」讲不清</td><td>✅ 已答</td><td><code>docs/16_规则×LLM双模式对照评测.md</code>：用<strong>代码证据</strong>讲清分工（分档 100% 规则、模型只写措辞），规则侧实测 90.0%（<strong>95% CI [74.4%, 96.5%]</strong>），LLM 侧如实标「未运行」</td></tr><tr><td><strong>E-1</strong></td><td>写死的页面 id 会导致「假绿」</td><td>✅ 已修（真 bug）</td><td><code>test_live.js</code> 实际漏测了新加的「岗位资料库」页（23/24 却报「全部通过」）；两个前端套件均改为从 <code>PAGES</code> 派生，并由守卫禁止再写死</td></tr><tr><td><strong>P-4</strong></td><td>评测集偏小（30 例 / 3 岗位）且只报点估计</td><td>◐ 部分</td><td>已按本报告建议给出区间（Wilson 95%）并写进 README 首屏；<strong>误筛 25.0% → 8.3%、一致率 90.0% → 96.7%（CI [83.3%, 99.4%]）</strong>，来自 <code>docs/18</code>（v16 相关性门槛）。扩到 90 例<strong>仍未做</strong></td></tr><tr><td><strong>口径漂移</strong></td><td>README / docs-03 / docs-04 / docs-09 里残留旧指标（误筛 25%）与旧状态（「无离线评测集」「无 CI」）</td><td>✅ 已修（2026-10-03）</td><td>四篇同步为实测值；新增 <code>tools/golden/baseline.json</code> 作<strong>评测数字唯一源</strong>，<code>test_eval.js</code> 与 <code>check_docs.js</code> 双向守卫（质量不倒退 / 错误不增长），并加<strong>负向锚点</strong>禁止旧页面数回流</td></tr><tr><td><strong>规模口径</strong></td><td>快照里是「10 套件 ~295 处断言」</td><td>✅ 已更新</td><td>现为 <strong>12 套件</strong>（后端 4 + 自包含 4 + 前端 4）；<code>npm test</code> 另并入文档守卫与规则×LLM 双模式评测</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>编号</th><th>问题</th><th>状态</th><th>落地物</th></tr></thead><tbody><tr><td><strong>D-1</strong></td><td>「N 个页面」四份文档四个数字（23 / 12 / 50，代码事实 24）</td><td>✅ 已修</td><td>全部统一为 <strong>24</strong>；新增 <code>tools/check_docs.js</code> 守卫（<strong>19 处现状句锚点 + 6 条结构不变量</strong>），已接入 <code>npm test</code> 与 CI</td></tr><tr><td><strong>D-2</strong></td><td>README 字节数过期 35 KB（491,922 → 实际 527,133）</td><td>✅ 已修（且改为「不可漂」）</td><td>改为锚点断言，当前 <strong>528,191 / 约 516KB</strong>；前端一改，守卫立刻标红并告诉你该改成什么</td></tr><tr><td><strong>D-3/D-4</strong></td><td>根目录散落文档 / <code>分享包</code> 停在 9-24 且写「23 个页面」</td><td>◐ 部分</td><td><code>分享包</code> 改为 <code>npm run share</code> 一键重生成，<strong>页面数直接读 <code>app.js</code></strong>，结构上不可能再漂；根目录文档收敛<strong>仍未做</strong></td></tr><tr><td><strong>G1</strong></td><td>缺零安装在线 demo（访客要 clone→装 Node→启动→登录）</td><td>✅ 已做</td><td><code>.github/workflows/pages.yml</code>（含自包含断言）+ 新增 <code>平台原型/test_pages.js</code>（18 项：自包含 / 宿主分流 / 离线渲染）+ 离线提示<strong>按宿主分流</strong></td></tr><tr><td><strong>P-1</strong></td><td>默认体验里没有 AI，且「AI 在哪」讲不清</td><td>✅ 已答</td><td><code>docs/16_规则×LLM双模式对照评测.md</code>：用<strong>代码证据</strong>讲清分工（分档 100% 规则、模型只写措辞），规则侧实测 90.0%（<strong>95% CI [74.4%, 96.5%]</strong>），LLM 侧如实标「未运行」</td></tr><tr><td><strong>E-1</strong></td><td>写死的页面 id 会导致「假绿」</td><td>✅ 已修（真 bug）</td><td><code>test_live.js</code> 实际漏测了新加的「岗位资料库」页（23/24 却报「全部通过」）；两个前端套件均改为从 <code>PAGES</code> 派生，并由守卫禁止再写死</td></tr><tr><td><strong>P-4</strong></td><td>评测集偏小（30 例 / 3 岗位）且只报点估计</td><td>◐ 部分</td><td>已按本报告建议给出区间（Wilson 95%）并写进 README 首屏；<strong>漏筛 25.0% → 8.3%、一致率 90.0% → 96.7%（CI [83.3%, 99.4%]）</strong>，来自 <code>docs/18</code>（v16 相关性门槛）。扩到 90 例<strong>仍未做</strong></td></tr><tr><td><strong>口径漂移</strong></td><td>README / docs-03 / docs-04 / docs-09 里残留旧指标（漏筛 25%）与旧状态（「无离线评测集」「无 CI」）</td><td>✅ 已修（2026-10-03）</td><td>四篇同步为实测值；新增 <code>tools/golden/baseline.json</code> 作<strong>评测数字唯一源</strong>，<code>test_eval.js</code> 与 <code>check_docs.js</code> 双向守卫（质量不倒退 / 错误不增长），并加<strong>负向锚点</strong>禁止旧页面数回流</td></tr><tr><td><strong>规模口径</strong></td><td>快照里是「10 套件 ~295 处断言」</td><td>✅ 已更新</td><td>现为 <strong>12 套件</strong>（后端 4 + 自包含 4 + 前端 4）；<code>npm test</code> 另并入文档守卫与规则×LLM 双模式评测</td></tr></tbody></table></div>
 <p><strong>仍未做</strong>（按性价比排序）：根目录 21 个文档收敛进 <code>docs/</code> · 补截图 · <code>CHANGELOG</code> / <code>SECURITY</code> / <code>CONTRIBUTING</code> · 黄金集扩到 60+ 例（当前 30 例的区间太宽）· 真实简历入口 · 多租户。</p>
 <hr class="sep">
 <h2 id="doc0--零-先说判断">零、先说判断</h2>
@@ -209,7 +209,7 @@ jobs:
 <p><strong>可执行方案（三步，第 2 步是关键）</strong>：</p>
 <ol>
 <li>README 与 UI 显式区分两种模式：页面上把「规则模式 / 模型模式」做成<strong>状态灯</strong>（现在成本栏已经能算出 <code>¥0.6</code> 这种数字，却没有模式标识 —— 补一个 chip 即可）。</li>
-<li><strong>用同一份 30 例黄金集跑「规则模式 vs LLM 模式」对照评测</strong>，把两个一致率、两个误筛率、两个成本写进 <code>docs/09</code>。</li>
+<li><strong>用同一份 30 例黄金集跑「规则模式 vs LLM 模式」对照评测</strong>，把两个一致率、两个漏筛率、两个成本写进 <code>docs/09</code>。</li>
 </ol>
 <p>→ 这一张对照表能一次性回答「AI 在哪」「为什么不用 LLM」「用了好不好」三个问题，<strong>是这个项目性价比最高的一项补充</strong>。</p>
 <ol>
@@ -232,14 +232,14 @@ jobs:
 <div class="tablewrap"><table><thead><tr><th>数字类型</th><th>示例</th><th>展示方式</th></tr></thead><tbody><tr><td>实测数字</td><td>一致率 90.0%（27/30）、<code>run_all</code> 10 套件</td><td>正常展示 + 脚注写口径与样本量</td></tr><tr><td>设计目标</td><td>「省 70% 时间」</td><td>加 <code>ⓘ</code>，悬浮显示「设计目标，未做对照实验」</td></tr><tr><td>演示假数据</td><td>「去年同期 65%」等人力 KPI</td><td>加「演示数据」灰标</td></tr></tbody></table></div>
 <p>并在 <code>docs/01</code> 里加一节「数字口径规范」，让后来人不再往界面里塞无源数字。</p>
 <h4 id="doc0--P-4-评测集偏小-且只覆盖-3-个岗位">P-4 评测集偏小，且只覆盖 3 个岗位</h4>
-<p><strong>证据</strong>：<code>tools/golden/golden_set.json</code>（12,693 字节）= 3 个岗位 × 10 例 = <strong>30 例</strong>，一致率 27/30 = 90.0%，<strong>误筛率 25.0%</strong>。</p>
+<p><strong>证据</strong>：<code>tools/golden/golden_set.json</code>（12,693 字节）= 3 个岗位 × 10 例 = <strong>30 例</strong>，一致率 27/30 = 90.0%，<strong>漏筛率 25.0%</strong>。</p>
 <p>你手上有 <strong>30 个职能族</strong>的词库（<code>shared/req-lib.js</code>），但只测了 3 个。</p>
-<p><strong>为什么是问题</strong>：30 例里错 3 例就是 90%，Wilson 95% 区间大约 <strong>[74%, 97%]</strong> —— 这个置信度撑不住「一致率 90%」这种结论式表述。而误筛 25% 是 B 端客户最不能接受的方向（筛掉人 = 漏掉人才）。</p>
+<p><strong>为什么是问题</strong>：30 例里错 3 例就是 90%，Wilson 95% 区间大约 <strong>[74%, 97%]</strong> —— 这个置信度撑不住「一致率 90%」这种结论式表述。而漏筛 25% 是 B 端客户最不能接受的方向（该拒的候选人却被放进面试 = 徒增面试与招聘成本）。</p>
 <p><strong>可执行方案</strong>：</p>
 <ol>
 <li>扩到 <strong>90 例</strong>：从 30 个职能族里抽 9 个族 × 10 例（覆盖技术 / 产品 / 销售 / 职能 / 制造各至少 1 族）。</li>
 <li>报告里<strong>给区间而不是点估计</strong>（写「27/30，Wilson 95% CI ≈ [74%, 97%]」），这一条会显著提升专业感。</li>
-<li>README 主动解释误筛 25%：「3 例分歧<strong>全部同向且均为有意埋的边界探针</strong>」（这句现在只存在于 <code>docs/03:460</code>，提到首屏去）。</li>
+<li>README 主动解释漏筛 25%：「3 例分歧<strong>全部同向且均为有意埋的边界探针</strong>」（这句现在只存在于 <code>docs/03:460</code>，提到首屏去）。</li>
 </ol>
 <h4 id="doc0--P-5-无真实简历入口-演示只能用合成数据">P-5 无真实简历入口，演示只能用合成数据</h4>
 <p><strong>证据</strong>：演示简历带 <code>synthesized=1</code>；<code>docs/05</code> 把「无真实简历入口」列为差距。</p>
@@ -259,7 +259,7 @@ jobs:
 <p><code>JD生成口径修复说明.md</code>（根）与其后继版 <code>JD生成口径v13修复说明…md</code>（docs/）分居两地；根目录共 21 个散落文档。</p>
 <h4 id="doc0--统一方案-把-会腐坏的数字-变成-不会腐坏">→ 统一方案：把「会腐坏的数字」变成「不会腐坏」</h4>
 <p>新增 <code>tools/check_docs.js</code>，从<strong>代码与文件系统读取真相</strong>并断言，纳入 CI：</p>
-<div class="tablewrap"><table><thead><tr><th>被守护的数字</th><th>真相来源</th></tr></thead><tbody><tr><td>页面数</td><td><code>平台原型/src/app.js</code> 里 <code>PAGES.*</code> 的个数</td></tr><tr><td>原型字节数</td><td><code>fs.statSync('平台原型/index.html').size</code></td></tr><tr><td>接口数</td><td><code>server/routes.js</code> 里 `r.(get\</td><td>post\</td><td>…)` 的个数</td></tr><tr><td>套件数与断言数</td><td><code>tools/run_all.js</code> 的套件表</td></tr><tr><td>一致率 / 误筛率</td><td><code>tools/golden/golden_set.json</code> 实跑</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>被守护的数字</th><th>真相来源</th></tr></thead><tbody><tr><td>页面数</td><td><code>平台原型/src/app.js</code> 里 <code>PAGES.*</code> 的个数</td></tr><tr><td>原型字节数</td><td><code>fs.statSync('平台原型/index.html').size</code></td></tr><tr><td>接口数</td><td><code>server/routes.js</code> 里 `r.(get\</td><td>post\</td><td>…)` 的个数</td></tr><tr><td>套件数与断言数</td><td><code>tools/run_all.js</code> 的套件表</td></tr><tr><td>一致率 / 漏筛率</td><td><code>tools/golden/golden_set.json</code> 实跑</td></tr></tbody></table></div>
 <p><strong>规则：README 与 docs 里的这些数字必须写成从脚本生成的形式（或加校验注释），CI 里数字对不上就红。</strong></p>
 <p>这是唯一能根治「文档数字腐坏」的办法 —— 靠人记得同步，一定会再错。</p>
 <hr class="sep">
@@ -275,7 +275,7 @@ jobs:
 <h3 id="doc0--D-类-演示与交付">D 类 · 演示与交付</h3>
 <div class="tablewrap"><table><thead><tr><th>缺</th><th>现状</th><th>交付物</th></tr></thead><tbody><tr><td>在线 demo</td><td>无（见 G1）</td><td>Pages 链接</td></tr><tr><td>演示脚本 / 录屏</td><td>README 有「五分钟演示路径」但<strong>没有台词</strong></td><td><code>docs/演示脚本_3分钟.md</code>：逐步台词 + 每步预期画面 + 可能的追问</td></tr><tr><td>验收对照表</td><td><code>docs/09</code> 有验收报告</td><td>加「<strong>一页纸三列对照</strong>」：需求 ↔ 实现位置 ↔ 验证证据</td></tr><tr><td>交付清单</td><td>无</td><td><code>DELIVERABLES.md</code>：给外部人一份「有什么」的总览</td></tr></tbody></table></div>
 <h3 id="doc0--E-类-面试专用-这个项目的真实用途-必须补">E 类 · 面试专用（这个项目的真实用途，必须补）</h3>
-<div class="tablewrap"><table><thead><tr><th>缺</th><th>为什么必须有</th><th>交付物</th></tr></thead><tbody><tr><td><strong>高频追问 Playbook</strong></td><td>已有的 docs 是「我做了什么」，不是「被问到怎么答」</td><td>10 问 10 答：<strong>70% 哪来的</strong> / 为什么不用 PG / 误筛 25% 怎么看 / 为什么不用框架 / 没有真实用户怎么验证 / 单租户怎么办 / LLM 在哪 / 一人做的怎么保证质量 / 词库怎么维护 / 如果重做会改什么</td></tr><tr><td><strong>失败与复盘清单</strong></td><td>现有 <code>docs/14</code> 与「面试前缺口审计」立场是<strong>自评</strong>，不是<strong>复盘失败</strong></td><td>「我做错的 5 件事 + 当时的判断依据 + 后来怎么发现 + 改成了什么」（例：简历打分曾写死 Java 词表、审计说 12 处硬编码实际 18 处）</td></tr></tbody></table></div>
+<div class="tablewrap"><table><thead><tr><th>缺</th><th>为什么必须有</th><th>交付物</th></tr></thead><tbody><tr><td><strong>高频追问 Playbook</strong></td><td>已有的 docs 是「我做了什么」，不是「被问到怎么答」</td><td>10 问 10 答：<strong>70% 哪来的</strong> / 为什么不用 PG / 漏筛 25% 怎么看 / 为什么不用框架 / 没有真实用户怎么验证 / 单租户怎么办 / LLM 在哪 / 一人做的怎么保证质量 / 词库怎么维护 / 如果重做会改什么</td></tr><tr><td><strong>失败与复盘清单</strong></td><td>现有 <code>docs/14</code> 与「面试前缺口审计」立场是<strong>自评</strong>，不是<strong>复盘失败</strong></td><td>「我做错的 5 件事 + 当时的判断依据 + 后来怎么发现 + 改成了什么」（例：简历打分曾写死 Java 词表、审计说 12 处硬编码实际 18 处）</td></tr></tbody></table></div>
 <blockquote>E 类里「失败清单」比「成绩清单」更能拿分 —— 面试官分辨真实经历与包装，靠的就是你能否说出<strong>具体的错</strong>和<strong>当时为什么那么判断</strong>。你的仓库里其实已经有素材（<code>docs/14</code>、<code>面试前缺口审计</code>、<code>docs/03</code> 的口径修复史），只是需要换一个立场重写。</blockquote>
 <hr class="sep">
 <h2 id="doc0--四-30-天可执行路线-按投入产出排序">四、30 天可执行路线（按投入产出排序）</h2>
@@ -316,7 +316,7 @@ grep -n "70% 场景模板" 平台原型/src/app.js
 # 文档数字是否腐坏
 node tools/check_docs.js        # ← 建议新增，纳入 CI</code></pre></div></article></main>
 </div>
-<footer>生成时间：2026-10-09 13:41（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
+<footer>生成时间：2026-10-10 09:35（北京时间） · 单文件离线可读 · 共 1 篇文档</footer>
 <script>
 const docs = [{"key": "doc0", "name": "产品经理视角 · 项目全面评估"}];
 

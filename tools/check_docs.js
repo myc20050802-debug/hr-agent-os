@@ -102,7 +102,7 @@ function realFacts() {
 
   /* 评测指标：唯一源 = tools/golden/baseline.json（由 test_eval.js --write-baseline 产出）。
      这些数字过去是手抄进 README / 文档的，实测漂移过一次 ——
-     README 表格已写 8.3%，同一篇正文仍写着「不回避 25% 的误筛率」。 */
+     README 表格已写 8.3%，同一篇正文仍写着「不回避 25% 的漏筛率」。 */
   const bPath = path.join(ROOT, 'tools', 'golden', 'baseline.json');
   const evalM = fs.existsSync(bPath) ? JSON.parse(fs.readFileSync(bPath, 'utf8')) : null;
 
@@ -233,17 +233,17 @@ const ANCHORS = [
     must: f => `| ±1 档一致率 | **${pctOf(f.evalM.within1Agreement)}**（${f.evalM.near}/${f.evalM.n}） |`,
   },
   {
-    file: 'README.md', count: 1, why: '漏筛率（源：baseline；安全红线）',
-    must: f => `| 漏筛率 | **${pctOf(f.evalM.missRate)}**（${f.evalM.missed}/${f.evalM.shouldPass}） |`,
+    file: 'README.md', count: 1, why: '误筛率（源：baseline；安全红线）',
+    must: f => `| 误筛率 | **${pctOf(f.evalM.missRate)}**（${f.evalM.missed}/${f.evalM.shouldPass}） |`,
   },
   {
-    file: 'README.md', count: 1, why: '误筛率（源：baseline）',
-    must: f => `| 误筛率 | **${pctOf(f.evalM.falsePassRate)}**（${f.evalM.overPassed}/${f.evalM.shouldReject}） |`,
+    file: 'README.md', count: 1, why: '漏筛率（源：baseline）',
+    must: f => `| 漏筛率 | **${pctOf(f.evalM.falsePassRate)}**（${f.evalM.overPassed}/${f.evalM.shouldReject}） |`,
   },
   {
     file: 'README.md', count: 1,
-    why: '误筛率的口径解释句（曾与上表自相矛盾：表里 8.3%、正文仍写 25%）',
-    must: f => `不回避 **${pctOf(f.evalM.falsePassRate)}** 的误筛率`,
+    why: '漏筛率的口径解释句（曾与上表自相矛盾：表里 8.3%、正文仍写 25%）',
+    must: f => `不回避 **${pctOf(f.evalM.falsePassRate)}** 的漏筛率`,
   },
   {
     file: 'README.md', count: 1,
@@ -279,7 +279,7 @@ const STALE_SCAN_EXEMPT = [
 function staleStrings(f) {
   return [
     { s: (f.pages - 1) + ' 页', note: '旧页面数（现为 ' + f.pages + ' 页）' },
-    { s: '25% 的误筛', note: '旧误筛率（现为 ' + pctOf(f.evalM.falsePassRate) + '）' },
+    { s: '25% 的漏筛', note: '旧漏筛率（现为 ' + pctOf(f.evalM.falsePassRate) + '）' },
     { s: (f.docMd - 1) + ' 篇源文档', note: '旧源文档数（现为 ' + f.docMd + ' 篇）' },
     // 原型字节数会随任意文案改动而变（只差 9 字节就漏过一次）——
     // 实测：537,842 → 537,851 时只有 README/docs/03 被改，另 6 处（含作品集幻灯片）残留。
@@ -330,7 +330,7 @@ console.log('  schema 版本（migrations）     ' + facts.schemaVer);
 if (facts.evalM) {
   const e = facts.evalM;
   console.log('  评测基线（golden/baseline）   一致率 ' + pctOf(e.exactAgreement) + '（' + e.same + '/' + e.n
-    + '） / 漏筛 ' + pctOf(e.missRate) + ' / 误筛 ' + pctOf(e.falsePassRate)
+    + '） / 误筛 ' + pctOf(e.missRate) + ' / 漏筛 ' + pctOf(e.falsePassRate)
     + ' / 门槛 ' + e.gates + ' 例 · REQ_LIB_VER ' + e.reqLibVer);
 } else {
   console.log('  评测基线（golden/baseline）   ⚠ 文件缺失');
