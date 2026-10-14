@@ -44,22 +44,32 @@ jobs:
         run: |
           mkdir -p _site
           cp 平台原型/index.html _site/index.html
+          # 作品集：把星环封面 20 页单文件 HTML 也作为 Pages 子页面发布，
+          # 使 README「作品集」入口点击即可在 GitHub 体系内直接渲染该网页
+          node -e "require('fs').copyFileSync('frontend/作品集/HR-Agent-OS_作品集_星环封面_20页_单文件.html','_site/portfolio.html')"
           # 关掉 Jekyll：它默认忽略下划线开头的文件，对我们不需要，还多一步构建
           touch _site/.nojekyll
           echo "--- 站点内容 ---"
           ls -la _site
-          wc -c _site/index.html
+          wc -c _site/index.html _site/portfolio.html
 
       # 自包含断言：一旦有人往 shell.html 里加了外部 <script src>/<link href>，
       # Pages 上会白屏（外链 404），而本地 file:// 打开却看不出来。这里直接卡住。
-      - name: 断言原型为自包含单文件（否则 Pages 上会白屏）
+      - name: 断言站点为自包含单文件（否则 Pages 上会白屏）
         run: |
           node -e "
           const fs=require('fs');
-          const s=fs.readFileSync('_site/index.html','utf8');
-          const ext=[...s.matchAll(/<script[^>]+src=\"([^\"]+)\"|<link[^>]+href=\"([^\"]+)\"/g)].map(m=>m[1]||m[2]);
-          if(ext.length){ console.error('✗ 发现外部引用，Pages 上会 404：'+ext.join(', ')); process.exit(1); }
-          console.log('✓ 自包含（无外部 script/link 引用），体积 '+s.length+' 字符');
+          const files=fs.readdirSync('_site').filter(f=>f.endsWith('.html'));
+          let fail=false;
+          for(const f of files){
+            const s=fs.readFileSync('_site/'+f,'utf8');
+            const ext=[...s.matchAll(/<script[^>]+src=\"([^\"]+)\"|<link[^>]+href=\"([^\"]+)\"/g)].map(m=>m[1]||m[2]);
+            // 字体 CDN 仅影响字体显示（失败降级系统字体，不白屏），放行；其它外链会 404 白屏，必须拦截
+            const bad=ext.filter(u=>!u.includes('fonts.googleapis.com')&&!u.includes('fonts.gstatic.com'));
+            if(bad.length){ console.error('✗ '+f+' 发现外部引用，Pages 上会 404：'+bad.join(', ')); fail=true; }
+          }
+          if(fail) process.exit(1);
+          console.log('✓ 自包含校验通过，站点文件：'+files.join(', '));
           "
 
       - uses: actions/configure-pages@v5

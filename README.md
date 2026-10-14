@@ -15,7 +15,7 @@
 | | |
 |---|---|
 | 🔍 **在线 demo**（零安装，点开就玩） | [GitHub Pages](https://myc20050802-debug.github.io/hr-agent-os/)（现在就能点） |
-| 📑 **作品集**（20 页 · 星环封面版） | [在线预览](https://hr-agent-os.app.workbuddy.host/) |
+| 📑 **作品集**（20 页 · 星环封面版） | [GitHub Pages 打开](https://myc20050802-debug.github.io/hr-agent-os/portfolio.html) |
 | ⚡ **本地跑起来**（真 SQLite + Agent 引擎 + 权限拦截） | `npm run dev` → http://127.0.0.1:8788 |
 
 <p align="center">
@@ -53,7 +53,7 @@
 
 **在线 demo**：[GitHub Pages](https://myc20050802-debug.github.io/hr-agent-os/)（现在就能点）
 
-**作品集（20 页 · 星环封面版）**：[hr-agent-os.app.workbuddy.host](https://hr-agent-os.app.workbuddy.host/)
+**作品集（20 页 · 星环封面版）**：[myc20050802-debug.github.io/hr-agent-os/portfolio.html](https://myc20050802-debug.github.io/hr-agent-os/portfolio.html)（GitHub Pages 直接渲染，无需登录）
 
 为什么它能免安装：`平台原型/index.html` 是**完全自包含的单文件** —— 内联了全部样式与脚本，
 `<script src=` / `<link href=` 均 0 命中（`.github/workflows/pages.yml` 里有一条断言专门卡这件事）。
